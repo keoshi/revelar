@@ -1,9 +1,10 @@
 import { existsSync, readdirSync, rmSync, rmdirSync, statSync } from 'node:fs';
-import { join } from 'node:path';
+import { join, resolve } from 'node:path';
 
 /** Delete every file under `dir` whose absolute path is not in `keep`; remove empty directories. */
 export function pruneDir(dir: string, keep: Set<string>): string[] {
 	const removed: string[] = [];
+	dir = resolve(dir);
 	if (!existsSync(dir)) return removed;
 	const walk = (d: string) => {
 		for (const entry of readdirSync(d, { withFileTypes: true })) {

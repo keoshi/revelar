@@ -31,6 +31,15 @@ test.describe('fullscreen viewer', () => {
 		await page.keyboard.press('ArrowRight');
 		await expect(page.locator('.counter')).toHaveText(/2 \/ 7/);
 		await expect(page).toHaveURL(/\/lisbon-walks\/[0-9a-f]{10}\/$/);
+		// The crossfade overlay is removed once the real slide has loaded underneath it.
+		await expect(page.locator('.revelar-crossfade')).toHaveCount(0);
+		// Rapid presses chain from the photo heading into view, not the one still on screen.
+		await page.keyboard.press('ArrowRight');
+		await page.keyboard.press('ArrowRight');
+		await expect(page.locator('.counter')).toHaveText(/4 \/ 7/);
+		await expect(page.locator('.revelar-crossfade')).toHaveCount(0);
+		await page.keyboard.press('ArrowLeft');
+		await page.keyboard.press('ArrowLeft');
 		await page.keyboard.press('ArrowLeft');
 		await expect(page.locator('.counter')).toHaveText(/1 \/ 7/);
 		await page.keyboard.press('Space');

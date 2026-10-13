@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { onMount, tick } from 'svelte';
+	import { onMount, tick, untrack } from 'svelte';
 	import { pushState, replaceState } from '$app/navigation';
 	import { page } from '$app/state';
 	import type { AlbumSummary, Photo } from '../types.ts';
@@ -136,21 +136,24 @@
 		showDeepLink = false;
 	}
 
+	// URL state drives the album state (Back/Forward, deep links). Only page.state.photo is
+	// tracked: while replaceState is still settling after a viewer move, the album state is
+	// ahead of the URL and reacting to it here would bounce the viewer back and forth.
 	$effect(() => {
 		if (!hydrated) return;
 		const id = page.state.photo;
 		const idx = indexOf(id);
-		if (!id || idx < 0) {
-			if (albumState.mode === 'viewer') albumState.close();
-			return;
-		}
-		if (albumState.mode === 'grid') {
-			const opts = pendingOpen ?? { autoplay: false, fromGrid: false };
-			pendingOpen = undefined;
-			albumState.open(idx, opts);
-		} else if (idx !== albumState.index) {
-			albumState.goTo(idx);
-		}
+		untrack(() => {
+			if (!id || idx < 0) {
+				if (albumState.mode === 'viewer') albumState.close();
+				return;
+			}
+			if (albumState.mode === 'grid') {
+				const opts = pendingOpen ?? { autoplay: false, fromGrid: false };
+				pendingOpen = undefined;
+				albumState.open(idx, opts);
+			} else if (idx !== albumState.index) albumState.goTo(idx);
+		});
 	});
 
 	onMount(async () => {
@@ -254,6 +257,7 @@
 	{onIndexChange}
 	{onRequestClose}
 	{onClosed}
+	{onOpened}
 />
 
 <style>

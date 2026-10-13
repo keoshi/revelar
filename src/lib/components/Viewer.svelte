@@ -1,9 +1,10 @@
 <script lang="ts">
 	/**
 	 * Fullscreen viewer: a PhotoSwipe 5 wrapper (dynamically imported on first open) with
-	 * all UI rendered by Svelte through PhotoSwipe's UI API. Handles autoplay with a
-	 * decode-gated crossfade, auto-hiding chrome, keyboard shortcuts, native fullscreen
-	 * and preloading. The album state drives it; URL handling lives in AlbumPage.
+	 * all UI rendered by Svelte through PhotoSwipe's UI API. Handles the configured
+	 * transition between photos (a decode-gated crossfade by default, for manual
+	 * navigation and autoplay alike), auto-hiding chrome, keyboard shortcuts, native
+	 * fullscreen and preloading. The album state drives it; URL handling lives in AlbumPage.
 	 */
 	import { mount, unmount } from 'svelte';
 	import type PhotoSwipe from 'photoswipe';
@@ -58,12 +59,24 @@
 
 	const INFO_WIDTH = 320;
 	const CHROME_TIMEOUT = 2500;
+	/** --dur-image: crossfade for manual navigation */
+	const FADE_MANUAL = 240;
+	/** --dur-crossfade: crossfade between slideshow photos */
+	const FADE_SLIDESHOW = 400;
+	/** how long to keep the overlay up while the underlying slide finishes loading */
+	const SWAP_LOAD_TIMEOUT = 1500;
 
 	let pswp: PhotoSwipe | undefined;
 	let chrome: ReturnType<typeof mount> | undefined;
 	let opening = false;
 	let closingRequested = false;
-	let programmaticMove = false;
+	/** index a programmatic move is heading for; a `change` to any other index came from the user */
+	let programmaticTarget: number | undefined;
+	/** target of the crossfade in flight, so repeated presses chain from it */
+	let inflightIndex: number | undefined;
+	/** bumped on every navigation; a crossfade whose token is stale never swaps the slide */
+	let navToken = 0;
+	let overlays: HTMLImageElement[] = [];
 	let ready = false;
 	let pendingClose = false;
 	let pendingIndex: number | undefined;
@@ -128,7 +141,8 @@
 			trapFocus: true,
 			returnFocus: false,
 			escKey: true,
-			arrowKeys: true,
+			// Arrow keys are handled below so they go through the configured transition.
+			arrowKeys: false,
 			loop: true,
 			preload: [1, 2],
 			padding: { top: 0, bottom: 0, left: 0, right: 0 },
@@ -196,9 +210,9 @@
 							downloadFor,
 							thumbSrc,
 							onClose: requestClose,
-							onPrev: () => userNav(() => instance.prev()),
-							onNext: () => userNav(() => instance.next()),
-							onGoTo: (i) => userNav(() => instance.goTo(i)),
+							onPrev: () => userNav(() => navigateBy(-1)),
+							onNext: () => userNav(() => navigateBy(1)),
+							onGoTo: (i) => userNav(() => navigateTo(i)),
 							onTogglePlay: togglePlay,
 							onToggleInfo: toggleInfo,
 							onToggleFilmstrip: () => albumState.toggleFilmstrip(),
@@ -210,10 +224,17 @@
 		});
 
 		instance.on('change', () => {
+			const programmatic = programmaticTarget === instance.currIndex;
+			programmaticTarget = undefined;
+			if (!programmatic) {
+				// A swipe or drag moved the slide: drop any crossfade in flight and stop the slideshow.
+				navToken++;
+				inflightIndex = undefined;
+				clearOverlays();
+				if (ready) albumState.pause();
+			} else if (albumState.autoplay) scheduleAutoplay();
 			if (instance.currIndex !== albumState.index) albumState.goTo(instance.currIndex);
 			onIndexChange(instance.currIndex);
-			if (!programmaticMove && ready) albumState.pause();
-			else if (albumState.autoplay) scheduleAutoplay();
 			showChrome();
 		});
 		instance.on('bindEvents', () => {
@@ -256,9 +277,15 @@
 					requestClose();
 					break;
 				case 'ArrowLeft':
-				case 'ArrowRight':
-					albumState.pause();
+				case 'ArrowRight': {
+					const slide = instance.currSlide;
+					// Zoomed in, the arrows pan (PhotoSwipe's own behaviour); otherwise they navigate.
+					if (slide && slide.currZoomLevel > slide.zoomLevels.fit) return;
+					e.preventDefault();
+					ev.preventDefault();
+					if (albumState.count > 1) userNav(() => navigateBy(ev.key === 'ArrowRight' ? 1 : -1));
 					break;
+				}
 			}
 		});
 		instance.on('close', () => {
@@ -286,6 +313,9 @@
 			if (chrome) unmount(chrome);
 			chrome = undefined;
 			pswp = undefined;
+			navToken++;
+			inflightIndex = undefined;
+			overlays = [];
 			ready = false;
 			pendingClose = false;
 			pendingIndex = undefined;
@@ -321,20 +351,91 @@
 		else pendingClose = true;
 	}
 
+	/** Programmatic move (Back/Forward, filmstrip): uses the configured transition. */
 	export function goTo(index: number) {
-		if (!pswp || pswp.currIndex === index) return;
-		if (!ready) {
-			pendingIndex = index;
-			return;
-		}
-		programmaticMove = true;
-		pswp.goTo(index);
-		programmaticMove = false;
+		void navigateTo(index);
 	}
 
 	function userNav(fn: () => void) {
 		albumState.pause();
 		fn();
+	}
+
+	function wrapIndex(index: number) {
+		const n = albumState.count;
+		return ((index % n) + n) % n;
+	}
+
+	/** Previous/next relative to the photo currently heading into view, so key repeats chain. */
+	function navigateBy(delta: 1 | -1) {
+		if (!pswp) return;
+		const mode = reducedMotion ? 'none' : transition;
+		if (mode === 'slide') {
+			programmaticTarget = wrapIndex(pswp.potentialIndex + delta);
+			if (delta > 0) pswp.next();
+			else pswp.prev();
+			return;
+		}
+		void navigateTo((inflightIndex ?? pswp.currIndex) + delta);
+	}
+
+	/**
+	 * Move to a photo with the configured transition. Crossfade: a decoded overlay of the
+	 * target fades in over the stage, the slide index then moves instantly underneath it,
+	 * and the overlay goes once the real slide has loaded. Navigations issued mid-fade
+	 * stack their overlays; only the latest one swaps the slide.
+	 */
+	async function navigateTo(index: number, fade = FADE_MANUAL) {
+		if (!pswp) return;
+		index = wrapIndex(index);
+		if (!ready) {
+			pendingIndex = index;
+			return;
+		}
+		const token = ++navToken;
+		if (pswp.currIndex === index) {
+			inflightIndex = undefined;
+			clearOverlays();
+			return;
+		}
+		const mode = reducedMotion ? 'none' : transition;
+		programmaticTarget = index;
+		if (mode === 'crossfade' && albumState.count > 1) {
+			inflightIndex = index;
+			try {
+				await crossfadeTo(index, fade, token);
+			} finally {
+				if (token === navToken) inflightIndex = undefined;
+			}
+		} else if (mode === 'slide') pswp.goTo(index);
+		else pswp.mainScroll.moveIndexBy(index - pswp.currIndex, false);
+	}
+
+	function clearOverlays() {
+		for (const img of overlays) img.remove();
+		overlays = [];
+	}
+
+	/** Resolves when the slide's content has loaded (or errored), or after `timeout` ms. */
+	function slideLoaded(slide: PhotoSwipe['currSlide'], timeout: number): Promise<void> {
+		return new Promise((resolve) => {
+			const instance = pswp;
+			const content = slide?.content;
+			if (!instance || !content || content.state === 'loaded' || content.isError()) {
+				resolve();
+				return;
+			}
+			const done = () => {
+				clearTimeout(timer);
+				instance.off('loadComplete', onLoad);
+				resolve();
+			};
+			const onLoad = (e: { slide?: PhotoSwipe['currSlide'] }) => {
+				if (e.slide === slide) done();
+			};
+			instance.on('loadComplete', onLoad);
+			const timer = setTimeout(done, timeout);
+		});
 	}
 
 	// ---- autoplay -------------------------------------------------------------
@@ -356,23 +457,12 @@
 		albumState.pause();
 	}
 
-	async function advance() {
+	function advance() {
 		if (!pswp || !albumState.autoplay || document.hidden) return;
-		const n = albumState.count;
-		const nextIndex = (pswp.currIndex + 1) % n;
-		const mode = reducedMotion ? 'none' : transition;
-		programmaticMove = true;
-		try {
-			if (mode === 'crossfade' && n > 1) await crossfadeTo(nextIndex);
-			else if (mode === 'slide') pswp.next();
-			else pswp.mainScroll.moveIndexBy(1, false);
-		} finally {
-			programmaticMove = false;
-		}
+		void navigateTo(pswp.currIndex + 1, FADE_SLIDESHOW);
 	}
 
-	/** Crossfade: an overlay of the next photo fades in over the stage, then the index moves instantly. */
-	async function crossfadeTo(nextIndex: number): Promise<void> {
+	async function crossfadeTo(nextIndex: number, fade: number, token: number): Promise<void> {
 		const instance = pswp!;
 		const photo = albumState.photos[nextIndex];
 		const stage = instance.scrollWrap!;
@@ -400,7 +490,7 @@
 		} catch {
 			// fall through: still show it
 		}
-		if (!pswp || !albumState.autoplay) return;
+		if (!pswp || token !== navToken) return;
 		Object.assign(img.style, {
 			position: 'absolute',
 			left: '0',
@@ -411,15 +501,20 @@
 			opacity: '0',
 			zIndex: '5',
 			pointerEvents: 'none',
-			transition: 'opacity var(--dur-crossfade) var(--ease-out)'
+			transition: `opacity ${fade}ms var(--ease-out)`
 		});
 		stage.appendChild(img);
+		overlays.push(img);
 		await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
 		img.style.opacity = '1';
-		await new Promise((r) => setTimeout(r, 400));
-		if (pswp) pswp.mainScroll.moveIndexBy(nextIndex - pswp.currIndex, false);
+		await new Promise((r) => setTimeout(r, fade));
+		if (!pswp || token !== navToken) return;
+		programmaticTarget = nextIndex;
+		pswp.mainScroll.moveIndexBy(nextIndex - pswp.currIndex, false);
+		await slideLoaded(pswp.currSlide, SWAP_LOAD_TIMEOUT);
+		if (token !== navToken) return;
 		await new Promise((r) => requestAnimationFrame(r));
-		img.remove();
+		if (token === navToken) clearOverlays();
 	}
 
 	// ---- chrome visibility ---------------------------------------------------

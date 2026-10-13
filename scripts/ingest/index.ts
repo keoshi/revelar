@@ -78,6 +78,7 @@ export async function runIngest(opts: IngestOptions = {}): Promise<IngestReport>
 		dirs,
 		tokens,
 		privateKeys,
+		privateSlugsSeen: new Set(),
 		keep: new Set()
 	};
 
@@ -85,14 +86,12 @@ export async function runIngest(opts: IngestOptions = {}): Promise<IngestReport>
 	const scanned = scanPhotos(photosDir, warn);
 	const albums: AlbumSummary[] = [];
 	const privateAlbums: PrivateAlbumEntry[] = [];
-	const activePrivateSlugs = new Set<string>();
 
 	for (const album of scanned) {
 		const result = await processAlbum(album, ctx);
 		if (result.kind === 'public' || result.kind === 'unlisted') albums.push(result.summary);
 		else if (result.kind === 'private') {
 			privateAlbums.push(result.entry);
-			activePrivateSlugs.add(result.entry.slug);
 		}
 		if (result.kind !== 'skipped') {
 			const count = result.kind === 'private' ? '(private)' : `${result.summary.count} photos`;
@@ -125,7 +124,7 @@ export async function runIngest(opts: IngestOptions = {}): Promise<IngestReport>
 	];
 	cache.save();
 	for (const slug of Object.keys(privateKeys))
-		if (!activePrivateSlugs.has(slug)) delete privateKeys[slug];
+		if (!ctx.privateSlugsSeen.has(slug)) delete privateKeys[slug];
 	writeJsonFile(tokensPath, tokens);
 	writeJsonFile(keysPath, privateKeys);
 

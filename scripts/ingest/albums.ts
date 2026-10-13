@@ -4,7 +4,8 @@ import {
 	mkdirSync,
 	readFileSync,
 	statSync,
-	writeFileSync
+	writeFileSync,
+	readdirSync
 } from 'node:fs';
 import { createHash } from 'node:crypto';
 import { basename, extname, join, relative } from 'node:path';
@@ -73,6 +74,8 @@ export type Context = {
 	};
 	tokens: Record<string, string>;
 	privateKeys: Record<string, PrivateKeyRecord>;
+	/** slugs of albums declared private in this run (even if they failed), so their keys and files survive */
+	privateSlugsSeen: Set<string>;
 	/** every absolute path under static/ (or .cache/derivatives) that must survive pruning */
 	keep: Set<string>;
 };
@@ -94,6 +97,15 @@ export type AlbumResult =
 	| { kind: 'skipped' };
 
 const sha256 = (data: Buffer | string) => createHash('sha256').update(data).digest('hex');
+
+function keepDir(dir: string, keep: Set<string>): void {
+	if (!existsSync(dir)) return;
+	for (const entry of readdirSync(dir, { withFileTypes: true })) {
+		const p = join(dir, entry.name);
+		if (entry.isDirectory()) keepDir(p, keep);
+		else keep.add(p);
+	}
+}
 
 export function photoId(rel: string): string {
 	return sha256(rel).slice(0, 10);
@@ -302,6 +314,11 @@ export async function processAlbum(album: ScannedAlbum, ctx: Context): Promise<A
 	const isPrivate = sidecar.visibility === 'private';
 	let privateKey: { dek: Uint8Array; salt: Uint8Array; token: string } | undefined;
 	if (isPrivate) {
+		ctx.privateSlugsSeen.add(album.slug);
+		// Whatever happens below, never prune this album's encrypted output on a failed run.
+		const existingToken = ctx.tokens[album.slug];
+		if (existingToken) keepDir(join(ctx.dirs.mediaPrivate, existingToken), ctx.keep);
+		keepDir(join(ctx.dirs.privateDerivatives, album.slug), ctx.keep);
 		const envName = sidecar.password_env;
 		if (!envName) {
 			ctx.error(`album "${album.folder}" is private but album.yaml has no password_env`);

@@ -20,6 +20,8 @@
 		draggable?: boolean;
 		class?: string;
 		onload?: (img: HTMLImageElement) => void;
+		/** private albums: resolve a decrypted object URL for a CSS width (DPR applied inside) */
+		resolver?: (cssWidth: number) => Promise<string>;
 	};
 
 	let {
@@ -35,7 +37,8 @@
 		fit = 'cover',
 		draggable = false,
 		class: className = '',
-		onload
+		onload,
+		resolver
 	}: Props = $props();
 
 	const expanded = $derived(expandSources(sources));
@@ -43,6 +46,8 @@
 	let img: HTMLImageElement | undefined = $state();
 	let loaded = $state(false);
 	let placeholder = $state<string | undefined>(undefined);
+	let resolved = $state<string | undefined>(undefined);
+	let picture: HTMLElement | undefined = $state();
 
 	function markLoaded() {
 		if (loaded) return;
@@ -54,27 +59,60 @@
 		if (img && img.complete && img.naturalWidth > 0) markLoaded();
 		else if (thumbhash) placeholder = thumbhashUrl(thumbhash);
 	});
+
+	$effect(() => {
+		if (!resolver || !picture) return;
+		const cssWidth = picture.clientWidth || parseInt(sizes, 10) || 640;
+		let cancelled = false;
+		resolver(cssWidth).then((url) => {
+			if (!cancelled) resolved = url;
+		});
+		return () => {
+			cancelled = true;
+		};
+	});
 </script>
 
-<picture class="picture {className}" class:loaded style:background-color={color}>
+<picture
+	bind:this={picture}
+	class="picture {className}"
+	class:loaded
+	style:background-color={color}
+>
 	{#if placeholder && !loaded}
 		<span class="placeholder" style:background-image="url({placeholder})" aria-hidden="true"></span>
 	{/if}
-	<source type="image/avif" srcset={srcsetString(expanded.avif, base)} {sizes} />
-	<source type="image/webp" srcset={srcsetString(expanded.webp, base)} {sizes} />
-	<img
-		bind:this={img}
-		src={base + expanded.jpeg}
-		{alt}
-		{width}
-		{height}
-		{loading}
-		decoding={priority ? 'sync' : 'async'}
-		fetchpriority={priority ? 'high' : 'auto'}
-		{draggable}
-		style:object-fit={fit}
-		onload={markLoaded}
-	/>
+	{#if resolver}
+		{#if resolved}
+			<img
+				bind:this={img}
+				src={resolved}
+				{alt}
+				{width}
+				{height}
+				decoding="async"
+				{draggable}
+				style:object-fit={fit}
+				onload={markLoaded}
+			/>
+		{/if}
+	{:else}
+		<source type="image/avif" srcset={srcsetString(expanded.avif, base)} {sizes} />
+		<source type="image/webp" srcset={srcsetString(expanded.webp, base)} {sizes} />
+		<img
+			bind:this={img}
+			src={base + expanded.jpeg}
+			{alt}
+			{width}
+			{height}
+			{loading}
+			decoding={priority ? 'sync' : 'async'}
+			fetchpriority={priority ? 'high' : 'auto'}
+			{draggable}
+			style:object-fit={fit}
+			onload={markLoaded}
+		/>
+	{/if}
 </picture>
 
 <style>

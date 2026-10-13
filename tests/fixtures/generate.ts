@@ -87,7 +87,12 @@ const CAMERA = {
 
 export type FixtureSet = { albumDir: string; files: string[] };
 
-export async function generateFixtures(root: string): Promise<FixtureSet> {
+export type FixtureOptions = { extras?: boolean };
+
+export async function generateFixtures(
+	root: string,
+	opts: FixtureOptions = {}
+): Promise<FixtureSet> {
 	const albumDir = join(root, '2025-03-14-lisbon-walks');
 	mkdirSync(albumDir, { recursive: true });
 	const files: string[] = [];
@@ -239,6 +244,44 @@ photos:
 			.withExif({ IFD2: { DateTimeOriginal: '2024:08:02 10:00:00' } })
 			.toBuffer()
 	);
+
+	if (opts.extras) {
+		// Unlisted album: reachable at its slug, hidden from listings, noindex
+		const unlisted = join(root, '2023-rooftops');
+		mkdirSync(unlisted, { recursive: true });
+		writeFileSync(
+			join(unlisted, 'a.jpg'),
+			await gradient(1200, 800, 10)
+				.jpeg()
+				.withExif({ IFD2: { DateTimeOriginal: '2023:06:01 10:00:00' } })
+				.toBuffer()
+		);
+		writeFileSync(join(unlisted, 'b.jpg'), await gradient(800, 1200, 11).jpeg().toBuffer());
+		writeFileSync(join(unlisted, 'album.yaml'), 'title: Rooftops\nvisibility: unlisted\n');
+
+		// Private album: encrypted at build with the password in REVELAR_TEST_PW
+		const priv = join(root, 'secret-garden');
+		mkdirSync(priv, { recursive: true });
+		writeFileSync(
+			join(priv, 'one.jpg'),
+			await gradient(1400, 933, 12)
+				.jpeg()
+				.withXmp(
+					xmpPacket({
+						title: 'Hidden fountain',
+						description: 'Nobody else has seen this.',
+						dateCreated: '2025-05-01'
+					})
+				)
+				.toBuffer()
+		);
+		writeFileSync(join(priv, 'two.jpg'), await gradient(900, 1200, 13).jpeg().toBuffer());
+		writeFileSync(join(priv, 'three.jpg'), await gradient(1600, 900, 14).jpeg().toBuffer());
+		writeFileSync(
+			join(priv, 'album.yaml'),
+			'title: Secret garden\nvisibility: private\npassword_env: REVELAR_TEST_PW\ndownloads: large\n'
+		);
+	}
 
 	// Things that must be ignored
 	mkdirSync(join(root, '_drafts'), { recursive: true });

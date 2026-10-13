@@ -35,7 +35,6 @@
 
 	let container: HTMLDivElement | undefined = $state();
 	let failed = $state(false);
-	let map: MapLibreMap | undefined;
 
 	const SOURCE = 'revelar-photos';
 	const ICON = 40;
@@ -167,7 +166,6 @@
 				failed = true;
 				return;
 			}
-			map = m;
 			m.addControl(new maplibre.NavigationControl({ showCompass: false }), 'top-right');
 			m.on('error', () => {
 				// Style or tiles unreachable: keep the list below the map usable.
@@ -237,7 +235,6 @@
 				observer.disconnect();
 				mq.removeEventListener('change', swap);
 				m.remove();
-				map = undefined;
 			};
 			if (cancelled) cleanup();
 		})();

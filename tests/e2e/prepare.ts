@@ -8,10 +8,11 @@ import { loadConfig } from '../../scripts/ingest/config.ts';
 async function prepare() {
 	const root = process.cwd();
 	const photos = join(root, 'photos');
-	if (!existsSync(join(photos, '2025-03-14-lisbon-walks'))) {
-		await generateFixtures(photos);
+	if (!existsSync(join(photos, 'secret-garden'))) {
+		await generateFixtures(photos, { extras: true });
 		rmSync(join(photos, 'stray.jpg'), { force: true });
 	}
+	process.env.REVELAR_TEST_PW ??= 'correct horse battery staple';
 	// Same config as the site build, with downloads enabled so the download controls are exercised.
 	const config = await loadConfig();
 	config.defaults.downloads = 'large';

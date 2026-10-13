@@ -19,9 +19,11 @@
 		onOpen?: (index: number, tile: HTMLElement) => void;
 		/** resolves the href for a photo; defaults to /[album]/[photo]/ */
 		hrefFor?: (photo: Photo) => string;
+		/** private albums: decrypted object URL for a photo at a CSS width */
+		resolveSrc?: (photo: Photo, cssWidth: number) => Promise<string>;
 	};
 
-	let { photos, albumSlug, rowHeight, onOpen, hrefFor }: Props = $props();
+	let { photos, albumSlug, rowHeight, onOpen, hrefFor, resolveSrc }: Props = $props();
 
 	let grid: HTMLElement | undefined = $state();
 	let layout = $state<Layout | undefined>(undefined);
@@ -197,6 +199,7 @@
 				sizes={layout && width ? `${Math.round(layout.boxes[i].width)}px` : ssrSizes(photo.aspect)}
 				loading={i < eagerCount ? 'eager' : 'lazy'}
 				priority={i < eagerCount}
+				resolver={resolveSrc ? (w) => resolveSrc(photo, w) : undefined}
 			/>
 			{#if photo.title}
 				<span class="overlay"><span class="overlay-title">{photo.title}</span></span>

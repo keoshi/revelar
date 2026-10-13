@@ -18,10 +18,10 @@ async function prepare() {
 		rmSync(join(photos, 'stray.jpg'), { force: true });
 	}
 	process.env.REVELAR_TEST_PW ??= 'correct horse battery staple';
-	// Same config as the site build, with downloads enabled so the download controls are exercised.
+	// Same config as the site build (REVELAR_CONFIG, see playwright.config.ts).
+	process.env.REVELAR_CONFIG ??= 'tests/e2e/revelar.config.ts';
 	const config = await loadConfig();
 	config.photosDir = photos;
-	config.defaults.downloads = 'large';
 	await runIngest({ quiet: true, config, root: siteRoot });
 	// Tracked static files (headers) ship with the fixture site too.
 	mkdirSync(join(siteRoot, 'static'), { recursive: true });

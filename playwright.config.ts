@@ -14,6 +14,8 @@ export default defineConfig({
 		env: {
 			// Fixtures are ingested into their own root so the suite never touches photos/.
 			REVELAR_SITE_ROOT: SITE_ROOT,
+			// The suite has its own config so it does not depend on the owner's revelar.config.ts.
+			REVELAR_CONFIG: 'tests/e2e/revelar.config.ts',
 			REVELAR_TEST_PW: process.env.REVELAR_TEST_PW ?? 'correct horse battery staple'
 		}
 	},

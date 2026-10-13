@@ -1,6 +1,7 @@
 import { marked } from 'marked';
 import { validateConfig, type RevelarConfig, type SiteSettings } from '#lib/config.ts';
-import userConfig from '../../../revelar.config.ts';
+// `$config` is aliased in vite.config.ts to revelar.config.ts, or to REVELAR_CONFIG when set.
+import userConfig from '$config';
 
 let cachedConfig: RevelarConfig | undefined;
 
@@ -21,6 +22,7 @@ export function siteSettings(): SiteSettings {
 		description: c.site.description,
 		baseUrl: c.site.baseUrl.replace(/\/$/, ''),
 		author: c.site.author,
+		authorUrl: c.site.authorUrl,
 		copyright: c.site.copyright,
 		language: c.site.language,
 		introHtml: renderMarkdown(c.site.intro),

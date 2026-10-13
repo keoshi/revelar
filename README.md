@@ -92,6 +92,8 @@ photos:
 `revelar.config.ts` at the repo root is validated at ingest; invalid values fail the build with a readable message. The important fields:
 
 - `site.baseUrl` (required) is used for canonical and Open Graph URLs. If it has a path (for example `https://user.github.io/photos`), the site is built to work from that subpath. `BASE_PATH=/photos` overrides it.
+- `site.author`, `site.authorUrl` and `site.copyright`: the footer shows the copyright line followed by a link to the author's site (as its host name); the author also appears as the creator in structured data.
+- `REVELAR_CONFIG=path/to/config.ts` makes ingest, dev and build use another config file (the e2e suite uses `tests/e2e/revelar.config.ts`).
 - `photosDir` can be an absolute path, so large libraries can live outside the repo.
 - `defaults.downloads`, `defaults.location` and `defaults.exifPanel` set site-wide behaviour that `album.yaml` can override.
 - `images.widths` and the quality settings control derivatives. Widths larger than the original are skipped; nothing is ever upscaled.

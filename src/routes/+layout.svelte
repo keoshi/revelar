@@ -8,6 +8,10 @@
 
 	let { data, children }: LayoutProps = $props();
 	const site = $derived(data.site);
+	// The footer links the author's site by its host name: "© Name · example.com".
+	const authorHost = $derived(
+		site.authorUrl ? new URL(site.authorUrl).hostname.replace(/^www\./, '') : ''
+	);
 	const themeVars = $derived(
 		[
 			`--accent-dark:${site.theme.accent}`,
@@ -32,7 +36,10 @@
 </main>
 
 <footer class="container site-footer">
-	<p>{site.copyright}</p>
+	<p>
+		{site.copyright}{#if site.copyright && authorHost}<span class="sep" aria-hidden="true">·</span
+			>{/if}{#if authorHost}<a href={site.authorUrl} rel="author">{authorHost}</a>{/if}
+	</p>
 </footer>
 
 <style>
@@ -40,5 +47,11 @@
 		padding-block: 48px 32px;
 		color: var(--text-muted);
 		font-size: var(--text-xs);
+	}
+	.site-footer a {
+		color: inherit;
+	}
+	.sep {
+		margin-inline: 0.5em;
 	}
 </style>

@@ -4,9 +4,10 @@ export default defineConfig({
 	site: {
 		title: 'Revelar',
 		description: 'Selected work',
-		baseUrl: 'https://photos.example.com', // required for canonical/OG URLs; path becomes paths.base
-		author: 'Your Name',
-		copyright: '© Your Name',
+		baseUrl: 'https://dev.keoshi.com/porto-vigo', // required for canonical/OG URLs; path becomes paths.base
+		author: 'Filipe Varela',
+		authorUrl: 'https://keoshi.com',
+		copyright: '© Filipe Varela',
 		language: 'en',
 		intro: '' // Markdown shown on the home page
 	},

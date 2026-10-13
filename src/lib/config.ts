@@ -15,6 +15,14 @@ const SiteSchema = v.object({
 		v.url('site.baseUrl must be an absolute URL, e.g. https://photos.example.com')
 	),
 	author: v.optional(v.string(), ''),
+	// Linked from the footer and used as the creator URL in structured data.
+	authorUrl: v.optional(
+		v.pipe(
+			v.string(),
+			v.check((s) => s === '' || URL.canParse(s), 'site.authorUrl must be an absolute URL')
+		),
+		''
+	),
 	copyright: v.optional(v.string(), ''),
 	language: v.optional(v.string(), 'en'),
 	intro: v.optional(v.string(), '')
@@ -121,6 +129,7 @@ export type SiteSettings = {
 	description: string;
 	baseUrl: string;
 	author: string;
+	authorUrl: string;
 	copyright: string;
 	language: string;
 	introHtml: string;

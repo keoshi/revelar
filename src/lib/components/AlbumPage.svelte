@@ -69,7 +69,9 @@
 				keywords: current.keywords.length ? current.keywords.join(', ') : undefined,
 				width: current.width,
 				height: current.height,
-				creator: site.author ? { '@type': 'Person', name: site.author } : undefined,
+				creator: site.author
+					? { '@type': 'Person', name: site.author, url: site.authorUrl || undefined }
+					: undefined,
 				copyrightNotice: site.copyright || undefined,
 				isPartOf: {
 					'@type': 'ImageGallery',
@@ -87,7 +89,9 @@
 			dateCreated: album.date,
 			numberOfItems: album.count,
 			image: album.photos.slice(0, 12).map((p) => abs(expandSources(p.sources).jpeg)),
-			creator: site.author ? { '@type': 'Person', name: site.author } : undefined,
+			creator: site.author
+				? { '@type': 'Person', name: site.author, url: site.authorUrl || undefined }
+				: undefined,
 			copyrightNotice: site.copyright || undefined
 		};
 	});

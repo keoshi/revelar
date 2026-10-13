@@ -3,7 +3,13 @@ import type { Plugin } from 'vite';
 import adapter from '@sveltejs/adapter-static';
 import { sveltekit } from '@sveltejs/kit/vite';
 import { resolve } from 'node:path';
-import revelar from './revelar.config.ts';
+import { pathToFileURL } from 'node:url';
+import type { RevelarConfigInput } from './src/lib/config.ts';
+
+// The site config: revelar.config.ts unless REVELAR_CONFIG names another file (the e2e suite
+// uses its own so the tests do not depend on the owner's settings).
+const configPath = resolve(process.env.REVELAR_CONFIG ?? 'revelar.config.ts');
+const revelar: RevelarConfigInput = (await import(pathToFileURL(configPath).href)).default;
 
 // The e2e suite ingests fixtures into its own root (see tests/e2e/prepare.ts) so it never
 // touches photos/ or the real generated output.
@@ -83,6 +89,9 @@ export default defineConfig({
 		})
 	],
 	// MapLibre spawns its worker from its own module URL; the dev pre-bundle breaks that.
+	// `$config` (used by src/lib/server/site.ts) resolves to the active config file; its type is
+	// declared in src/config.d.ts.
+	resolve: { alias: { $config: configPath } },
 	optimizeDeps: { exclude: ['maplibre-gl'] },
 	build: { target: 'es2022' },
 	test: {

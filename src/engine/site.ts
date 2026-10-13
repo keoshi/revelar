@@ -9,12 +9,15 @@ import {
 	mkdirSync,
 	readdirSync,
 	readFileSync,
+	statSync,
 	writeFileSync
 } from 'node:fs';
 import { basename, extname, join, resolve } from 'node:path';
 import { parse, stringify } from 'yaml';
+import sharp from 'sharp';
+import pLimit from 'p-limit';
 import { loadConfig } from './config.ts';
-import { scanPhotos, type ScannedAlbum } from './scan.ts';
+import { scanPhotos, type ScannedAlbum, type ScannedFile } from './scan.ts';
 import { loadSidecar, type Sidecar } from './sidecar.ts';
 import type { AlbumSummary, Manifest, Photo } from '../lib/types.ts';
 import type { RevelarConfig, RevelarConfigInput } from '../lib/config.ts';
@@ -83,6 +86,37 @@ export function readManifest(root: string): Manifest | undefined {
 	return JSON.parse(readFileSync(path, 'utf8')) as Manifest;
 }
 
+/**
+ * Quick previews for photos that have not been processed yet: a 480 px JPEG per original in
+ * `.cache/thumbs/<slug>/`, made on demand and reused until the original changes. The app shows
+ * these until the ingest produces the real derivatives.
+ */
+const THUMB_SIZE = 480;
+const thumbLimit = pLimit(4);
+export async function quickThumb(
+	root: string,
+	slug: string,
+	file: ScannedFile
+): Promise<string | undefined> {
+	const dir = join(root, '.cache', 'thumbs', slug);
+	const out = join(dir, `${file.name}.jpg`);
+	try {
+		if (!existsSync(out) || statSync(out).mtimeMs < file.mtimeMs) {
+			mkdirSync(dir, { recursive: true });
+			await thumbLimit(() =>
+				sharp(file.abs)
+					.rotate()
+					.resize(THUMB_SIZE, THUMB_SIZE, { fit: 'inside', withoutEnlargement: true })
+					.jpeg({ quality: 72 })
+					.toFile(out)
+			);
+		}
+	} catch {
+		return undefined; // unreadable or unsupported (HEIC without libheif): no preview
+	}
+	return `/cache/thumbs/${encodeURIComponent(slug)}/${encodeURIComponent(file.name)}.jpg`;
+}
+
 export type AlbumListing = {
 	slug: string;
 	folder: string;
@@ -94,6 +128,8 @@ export type AlbumListing = {
 	visibility: 'public' | 'unlisted' | 'private';
 	/** from the last ingest, if any */
 	built?: { count: number; coverUrl: string; coverColor: string };
+	/** before any ingest: a quick preview of the first photo */
+	preview?: { coverUrl: string };
 };
 
 /** Albums on disk, with sidecar titles and, when an ingest has run, the built cover. */
@@ -101,26 +137,34 @@ export async function listAlbums(root: string): Promise<AlbumListing[]> {
 	const config = await readConfig(root);
 	const scanned = scanPhotos(resolve(root, config.photosDir), () => {});
 	const manifest = readManifest(root);
-	return scanned.map((album) => {
-		const { sidecar } = loadSidecar(album.sidecarPath);
-		const built = manifest?.albums.find((a) => a.slug === album.slug);
-		return {
-			slug: album.slug,
-			folder: album.folder,
-			dir: album.dir,
-			files: album.files.length,
-			title: sidecar.title ?? titleFromFolder(album),
-			date: (sidecar.date as string | undefined) ?? album.folderDate,
-			visibility: sidecar.visibility,
-			built: built
-				? {
-						count: built.count,
-						coverUrl: expandSources(built.cover.sources).jpeg,
-						coverColor: built.cover.color
-					}
-				: undefined
-		};
-	});
+	return Promise.all(
+		scanned.map(async (album) => {
+			const { sidecar } = loadSidecar(album.sidecarPath);
+			const built = manifest?.albums.find((a) => a.slug === album.slug);
+			const coverFile = sidecar.cover
+				? (album.files.find((f) => f.name === sidecar.cover) ?? album.files[0])
+				: album.files[0];
+			const previewUrl =
+				built || !coverFile ? undefined : await quickThumb(root, album.slug, coverFile);
+			return {
+				slug: album.slug,
+				folder: album.folder,
+				dir: album.dir,
+				files: album.files.length,
+				title: sidecar.title ?? titleFromFolder(album),
+				date: (sidecar.date as string | undefined) ?? album.folderDate,
+				visibility: sidecar.visibility,
+				built: built
+					? {
+							count: built.count,
+							coverUrl: expandSources(built.cover.sources).jpeg,
+							coverColor: built.cover.color
+						}
+					: undefined,
+				preview: previewUrl ? { coverUrl: previewUrl } : undefined
+			};
+		})
+	);
 }
 
 function titleFromFolder(album: ScannedAlbum): string {
@@ -132,7 +176,7 @@ export type AlbumDetail = {
 	slug: string;
 	folder: string;
 	dir: string;
-	files: { name: string; size: number }[];
+	files: { name: string; size: number; thumbUrl?: string }[];
 	/** album.yaml as written (unknown keys preserved on save) */
 	sidecar: Record<string, unknown>;
 	/** validated view of the sidecar with defaults applied */
@@ -157,7 +201,16 @@ export async function readAlbum(root: string, slug: string): Promise<AlbumDetail
 		slug,
 		folder: album.folder,
 		dir: album.dir,
-		files: album.files.map((f) => ({ name: f.name, size: f.size })),
+		files: await Promise.all(
+			album.files.map(async (f) => ({
+				name: f.name,
+				size: f.size,
+				// quick previews only for photos the ingest has not produced derivatives for
+				thumbUrl: built?.photos.some((p) => p.file === f.name)
+					? undefined
+					: await quickThumb(root, slug, f)
+			}))
+		),
 		sidecar: raw as Record<string, unknown>,
 		settings: sidecar,
 		built: built

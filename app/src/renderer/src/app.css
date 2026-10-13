@@ -8,6 +8,7 @@
 	--accent: #e8c37a;
 	--danger: #e07a7a;
 	--radius: 6px;
+	--ease: cubic-bezier(0.2, 0, 0, 1);
 	--font: 'Inter Variable', ui-sans-serif, system-ui, sans-serif;
 	color-scheme: dark;
 }
@@ -56,8 +57,17 @@ button {
 	cursor: pointer;
 	white-space: nowrap;
 }
+button {
+	transition:
+		background 160ms var(--ease),
+		transform 160ms var(--ease),
+		opacity 160ms var(--ease);
+}
 button:hover {
 	background: #2e2e2e;
+}
+button:active:not(:disabled) {
+	transform: scale(0.98);
 }
 button:disabled {
 	opacity: 0.5;
@@ -132,4 +142,42 @@ label {
 }
 .no-drag {
 	-webkit-app-region: no-drag;
+}
+
+/* Motion: a short rise-in for lists and panels, and a pulse for "Saved". */
+.rise {
+	animation: rise 420ms var(--ease) both;
+}
+@keyframes rise {
+	from {
+		opacity: 0;
+		transform: translateY(8px);
+	}
+	to {
+		opacity: 1;
+		transform: none;
+	}
+}
+button.saved {
+	animation: pulse 500ms var(--ease);
+}
+@keyframes pulse {
+	0% {
+		transform: scale(1);
+	}
+	40% {
+		transform: scale(1.04);
+	}
+	100% {
+		transform: scale(1);
+	}
+}
+@media (prefers-reduced-motion: reduce) {
+	*,
+	*::before,
+	*::after {
+		animation-duration: 0.01ms !important;
+		animation-iteration-count: 1 !important;
+		transition-duration: 0.01ms !important;
+	}
 }

@@ -82,7 +82,9 @@
 		load(await engine.album(site.root, slug));
 	}
 
-	const thumb = (file: string) => album?.built?.photos.find((p) => p.file === file)?.thumbUrl;
+	const thumb = (file: string) =>
+		album?.built?.photos.find((p) => p.file === file)?.thumbUrl ??
+		album?.files.find((f) => f.name === file)?.thumbUrl;
 	const builtPhoto = (file: string) => album?.built?.photos.find((p) => p.file === file);
 </script>
 
@@ -96,7 +98,7 @@
 				<p class="muted small">photos/{album.folder} · {album.files.length} photos</p>
 			</div>
 			<div class="row">
-				<button type="button" onclick={save}>{saved ? 'Saved' : 'Save'}</button>
+				<button type="button" class:saved onclick={save}>{saved ? 'Saved' : 'Save'}</button>
 				<button type="button" class="primary" onclick={process}>Save and process</button>
 			</div>
 		</header>
@@ -156,12 +158,15 @@
 						<option value="hide">Hidden</option>
 					</select>
 				</div>
+				<p class="muted small hint">
+					"Site default" follows the site settings (site menu, top right).
+				</p>
 			</div>
 
 			<div class="photos">
 				{#if !album.built}
 					<p class="muted">
-						Process the album to see thumbnails. Titles and captions can be edited now.
+						Not processed yet: these are quick previews. Titles and captions can be edited now.
 					</p>
 				{/if}
 				<div class="thumbs">
@@ -234,6 +239,8 @@
 		gap: 8px;
 	}
 	.thumb {
+		animation: rise 360ms var(--ease) both;
+		transition: border-color 160ms var(--ease);
 		position: relative;
 		padding: 0;
 		border: 2px solid transparent;

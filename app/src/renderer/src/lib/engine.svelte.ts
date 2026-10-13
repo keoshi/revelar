@@ -9,7 +9,7 @@ import type {
 } from 'revelar';
 
 export type SiteState = { root: string; config: RevelarConfig; albums: AlbumListing[] };
-export type Screen = 'welcome' | 'library' | 'album' | 'preview' | 'publish';
+export type Screen = 'welcome' | 'library' | 'album' | 'preview' | 'publish' | 'settings';
 
 const bridge = () => window.revelar;
 
@@ -24,7 +24,7 @@ export const engine = {
 	init: (root: string) => bridge().call<{ root: string; written: string[] }>('site.init', { root }),
 	albums: (root: string) => bridge().call<AlbumListing[]>('site.albums', { root }),
 	saveConfig: (root: string, config: unknown) =>
-		bridge().call<RevelarConfig>('site.config.save', { root, config }),
+		bridge().call<RevelarConfig>('site.config.save', { root, config: $state.snapshot(config) }),
 	album: (root: string, slug: string) => bridge().call<AlbumDetail>('album.get', { root, slug }),
 	saveAlbum: (root: string, slug: string, patch: Record<string, unknown>) =>
 		bridge().call<AlbumDetail>('album.save', { root, slug, patch }),

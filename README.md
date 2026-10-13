@@ -228,10 +228,12 @@ tests/                       Vitest unit tests, Playwright e2e, synthetic fixtur
 
 ## Desktop app (proof of concept)
 
-`app/` is an Electron app for people who would rather not use a terminal: a friendly face over the same site folder. It opens or creates a site, lists albums with their covers, adds a folder of photos as an album, edits titles, captions, cover, visibility and the other `album.yaml` settings, processes photos with live progress, previews the built site in place, and publishes to Netlify with a personal access token. Everything it writes is the same `photos/`, `album.yaml` and `revelar.config.ts` the CLI uses, so a site can move between the app and the terminal freely.
+`app/` is an Electron app for people who would rather not use a terminal: a friendly face over the same site folder. It creates or opens a site (recent ones are one click away), lists albums with their covers, follows folders added in Finder, adds a folder of photos as an album, edits titles, captions, cover, visibility and the other `album.yaml` settings, keeps site-wide settings (name, address, defaults, theme) in a form, processes photos with live progress, previews the built site in place, and publishes to Netlify with a personal access token. Photos show up before processing through quick previews. Everything it writes is the same `photos/`, `album.yaml` and `revelar.config.ts` the CLI uses, so a site can move between the app and the terminal freely.
 
+![The welcome screen](docs/screenshots/app-welcome.jpg)
 ![The app's library screen](docs/screenshots/app-library.jpg)
 ![The album editor](docs/screenshots/app-album.jpg)
+![Site settings](docs/screenshots/app-settings.jpg)
 
 The engine runs in a utility process (see `bin/revelar-host.js` and `src/engine/host.ts`, a small request/response protocol with progress events) so image encoding never blocks the window. To try it from this checkout:
 

@@ -35,20 +35,26 @@
 			error = e instanceof Error ? e.message : String(e);
 		}
 	}
+
+	const cover = (a: SiteState['albums'][number]) => a.built?.coverUrl ?? a.preview?.coverUrl;
 </script>
 
 <section>
 	<header class="head">
 		<div>
 			<h1>{site.config.site.title}</h1>
-			<p class="muted small">{site.root}</p>
+			<p class="muted small">
+				{site.albums.length}
+				{site.albums.length === 1 ? 'album' : 'albums'} ·
+				{#if pending}{pending} to process{:else}everything processed{/if}
+			</p>
 		</div>
 		<div class="row">
-			<button type="button" onclick={() => process()}
-				>{pending
-					? `Process ${pending} album${pending === 1 ? '' : 's'}`
-					: 'Process photos'}</button
-			>
+			{#if pending}
+				<button type="button" onclick={() => process()}
+					>Process {pending} {pending === 1 ? 'album' : 'albums'}</button
+				>
+			{/if}
 			<button type="button" onclick={addAlbum}>Add album…</button>
 			<button type="button" class="primary" onclick={onPreview}>Preview site</button>
 		</div>
@@ -56,20 +62,26 @@
 	{#if error}<p class="error">{error}</p>{/if}
 
 	{#if site.albums.length === 0}
-		<div class="empty">
+		<div class="empty rise">
 			<p>No albums yet.</p>
 			<p class="muted">
-				Add a folder of photos, or drop folders into <code>{site.root}/photos</code>.
+				Add a folder of photos, or drop folders into <code>{site.root}/photos</code>. They appear
+				here as soon as they land.
 			</p>
 		</div>
 	{:else}
 		<div class="grid">
-			{#each site.albums as album (album.slug)}
-				<button type="button" class="card" onclick={() => onOpenAlbum(album.slug)}>
+			{#each site.albums as album, i (album.slug)}
+				<button
+					type="button"
+					class="card rise"
+					style:animation-delay="{Math.min(i, 12) * 40}ms"
+					onclick={() => onOpenAlbum(album.slug)}
+				>
 					<div class="cover" style:background={album.built?.coverColor ?? 'var(--surface-2)'}>
-						{#if album.built}<img src={siteUrl(album.built.coverUrl)} alt="" loading="lazy" />{/if}
+						{#if cover(album)}<img src={siteUrl(cover(album)!)} alt="" loading="lazy" />{/if}
 						{#if !album.built || album.built.count !== album.files}<span class="badge"
-								>needs processing</span
+								>not processed</span
 							>{/if}
 						{#if album.visibility !== 'public'}<span class="badge vis">{album.visibility}</span
 							>{/if}
@@ -107,20 +119,34 @@
 		border-radius: var(--radius);
 		overflow: hidden;
 	}
-	.card:hover .cover {
-		outline: 2px solid var(--accent);
-	}
 	.cover {
 		position: relative;
 		aspect-ratio: 3 / 2;
 		border-radius: var(--radius);
 		overflow: hidden;
+		transition:
+			transform 220ms var(--ease),
+			box-shadow 220ms var(--ease);
+	}
+	.card:hover .cover {
+		transform: translateY(-2px);
+		box-shadow: 0 10px 24px rgb(0 0 0 / 0.4);
+	}
+	.card:focus-visible {
+		outline: none;
+	}
+	.card:focus-visible .cover {
+		outline: 2px solid var(--accent);
 	}
 	.cover img {
 		width: 100%;
 		height: 100%;
 		object-fit: cover;
 		display: block;
+		transition: transform 600ms var(--ease);
+	}
+	.card:hover .cover img {
+		transform: scale(1.03);
 	}
 	.badge {
 		position: absolute;
@@ -131,6 +157,7 @@
 		border-radius: 999px;
 		background: rgb(0 0 0 / 0.6);
 		color: #fff;
+		backdrop-filter: blur(6px);
 	}
 	.badge.vis {
 		left: auto;

@@ -109,6 +109,8 @@ function createWindow(): void {
 		title: 'Revelar',
 		backgroundColor: '#0e0e0e',
 		titleBarStyle: process.platform === 'darwin' ? 'hiddenInset' : 'default',
+		// Centre the traffic lights on the app's 46 px top bar.
+		trafficLightPosition: { x: 18, y: 17 },
 		webPreferences: { preload: join(import.meta.dirname, '../preload/index.mjs'), sandbox: false }
 	});
 	win.on('closed', () => (win = undefined));
@@ -117,13 +119,23 @@ function createWindow(): void {
 }
 
 app.whenReady().then(() => {
-	// site://media/<album>/<file> → <siteRoot>/static/media/<album>/<file>
+	// Files of the open site: site://media/… and site://downloads/… map to static/, site://cache/…
+	// to .cache/ (quick previews) and site://photos/… to the originals.
+	const BASES: Record<string, string> = {
+		media: 'static/media',
+		'media-private': 'static/media-private',
+		downloads: 'static/downloads',
+		cache: '.cache',
+		photos: 'photos'
+	};
 	protocol.handle('site', (request) => {
 		if (!siteRoot) return new Response('No site open', { status: 404 });
 		const url = new URL(request.url);
-		const rel = decodeURIComponent(url.host + url.pathname);
-		const file = join(siteRoot, 'static', rel);
-		if (!file.startsWith(join(siteRoot, 'static')) || !existsSync(file))
+		const base = BASES[url.host];
+		if (!base) return new Response('Not found', { status: 404 });
+		const dir = join(siteRoot, base);
+		const file = join(dir, decodeURIComponent(url.pathname));
+		if (!file.startsWith(dir) || !existsSync(file))
 			return new Response('Not found', { status: 404 });
 		return net.fetch(pathToFileURL(file).href);
 	});

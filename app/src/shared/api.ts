@@ -4,6 +4,8 @@ export type EngineEvent = { event: string; data: unknown };
 
 export type Settings = {
 	lastRoot?: string;
+	/** most recent first */
+	recentRoots?: string[];
 	netlify?: { siteId?: string; siteName?: string; url?: string };
 };
 

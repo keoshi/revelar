@@ -31,6 +31,8 @@
 
 	const aspects = $derived(photos.map((p) => p.aspect));
 	const EAGER_ROW_WIDTH = 1552;
+	// Assembled here so the template never contains a literal script tag (keeps the ESLint parser happy).
+	const inlineScriptTag = '<script>' + INLINE_LAYOUT_SCRIPT + '</' + 'script>';
 	const eagerCount = $derived.by(() => {
 		let sum = 0;
 		let n = 0;
@@ -110,7 +112,7 @@
 	function onKeydown(e: KeyboardEvent, i: number) {
 		if (!layout) return;
 		const boxes = layout.boxes;
-		let next = -1;
+		let next: number;
 		switch (e.key) {
 			case 'ArrowRight':
 				next = Math.min(i + 1, boxes.length - 1);
@@ -204,7 +206,7 @@
 </div>
 {#if !hydrated}
 	<!-- eslint-disable-next-line svelte/no-at-html-tags -- static, dependency-free layout script (see utils/layout.ts) -->
-	{@html `<script>${INLINE_LAYOUT_SCRIPT}</script>`}
+	{@html inlineScriptTag}
 {/if}
 
 <style>

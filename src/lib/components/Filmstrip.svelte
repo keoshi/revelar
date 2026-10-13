@@ -36,6 +36,7 @@
 		photos.slice(range[0], range[1]).map((photo, i) => ({ photo, i: i + range[0] }))
 	);
 
+	// eslint-disable-next-line svelte/prefer-svelte-reactivity -- plain lookup cache, never rendered directly
 	const srcCache = new Map<string, string>();
 	function defaultThumb(sources: PhotoSources): string {
 		const s = expandSources(sources);

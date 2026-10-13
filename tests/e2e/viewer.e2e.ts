@@ -97,3 +97,51 @@ test.describe('fullscreen viewer', () => {
 		await expect(page.locator('.counter')).toHaveText(/2 \/ 7/, { timeout: 8000 });
 	});
 });
+
+test.describe('downloads and info panel', () => {
+	test('shows per-photo and album download links with sizes', async ({ page }) => {
+		await page.goto('/lisbon-walks/');
+		const albumDownload = page.locator('.album-header a[download]');
+		await expect(albumDownload).toHaveAttribute(
+			'href',
+			/\/downloads\/lisbon-walks-[0-9a-f]{8}\.zip$/
+		);
+		await expect(albumDownload).toContainText(/Download album · \d+(\.\d+)? (KB|MB)/);
+		await openFirst(page, 1);
+		const link = page.locator('.chrome a[download]').first();
+		await expect(link).toHaveAttribute('href', /\/media\/lisbon-walks\/.+\.jpg$/);
+		await expect(link).toHaveAttribute('download', /^lisbon-walks-.+\.jpg$/);
+	});
+
+	test('info panel shows formatted EXIF and toggles with I', async ({ page }) => {
+		await page.goto('/lisbon-walks/');
+		await openFirst(page, 1);
+		await page.keyboard.press('i');
+		const panel = page.locator('.info.open');
+		await expect(panel).toBeVisible();
+		await expect(panel).toContainText('Sony α7 IV');
+		await expect(panel).toContainText('35 mm · ƒ/2.8 · 1/250 s · ISO 400 · −0.3 EV');
+		await expect(panel).toContainText('FE 35mm F1.8');
+		await expect(panel.locator('.chip')).toHaveCount(2);
+		await page.keyboard.press('i');
+		await expect(page.locator('.info.open')).toHaveCount(0);
+	});
+
+	test('filmstrip starts collapsed on small screens and the counter reveals it', async ({
+		browser
+	}) => {
+		const context = await browser.newContext({
+			viewport: { width: 390, height: 844 },
+			isMobile: true,
+			hasTouch: true
+		});
+		const page = await context.newPage();
+		await page.goto('/lisbon-walks/');
+		await page.locator('[data-tile]').first().tap();
+		await expect(page.locator(READY)).toBeVisible();
+		await expect(page.locator('.filmstrip')).toHaveCount(0);
+		await page.locator('.counter').tap();
+		await expect(page.locator('.filmstrip')).toBeVisible();
+		await context.close();
+	});
+});

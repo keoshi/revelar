@@ -15,9 +15,6 @@
 		mapHref?: string;
 		onPlay?: () => void;
 		onDownloadAlbum?: () => void;
-		/** base path for download URLs */
-		downloadHref?: string;
-		noindex?: boolean;
 	};
 
 	let {

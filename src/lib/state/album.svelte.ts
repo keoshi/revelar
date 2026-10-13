@@ -22,7 +22,9 @@ export class AlbumState {
 
 	constructor(photos: Photo[], opts: { filmstrip?: boolean } = {}) {
 		this.photos = photos;
-		this.filmstripOpen = opts.filmstrip ?? true;
+		// Collapsed by default on small screens; a tap on the counter reveals it.
+		const small = typeof window !== 'undefined' && window.innerWidth < 640;
+		this.filmstripOpen = (opts.filmstrip ?? true) && !small;
 	}
 
 	get count(): number {

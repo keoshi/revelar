@@ -21,7 +21,8 @@
 
 	let { album, site, hasMap, initialPhoto }: Props = $props();
 
-	// svelte-ignore state_referenced_locally -- one store per album page; the page is keyed by slug
+	// One store per album page; the page component is keyed by slug.
+	// svelte-ignore state_referenced_locally
 	const albumState = createAlbumState(album, { filmstrip: site.viewer.filmstrip });
 	let grid: Grid | undefined = $state();
 	let viewer: Viewer | undefined = $state();
@@ -182,8 +183,6 @@
 <Viewer
 	bind:this={viewer}
 	{albumState}
-	albumSlug={album.slug}
-	albumTitle={album.title}
 	language={site.language}
 	slideshowInterval={site.viewer.slideshowInterval}
 	transition={site.viewer.transition}

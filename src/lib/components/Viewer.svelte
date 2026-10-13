@@ -17,8 +17,6 @@
 
 	type Props = {
 		albumState: AlbumState;
-		albumSlug: string;
-		albumTitle: string;
 		language: string;
 		slideshowInterval: number;
 		transition: 'crossfade' | 'slide' | 'none';
@@ -41,8 +39,6 @@
 
 	let {
 		albumState,
-		albumSlug,
-		albumTitle,
 		language,
 		slideshowInterval,
 		transition,
@@ -186,8 +182,6 @@
 						target: el,
 						props: {
 							albumState,
-							albumSlug,
-							albumTitle,
 							language,
 							slideshowInterval,
 							filmstripEnabled,

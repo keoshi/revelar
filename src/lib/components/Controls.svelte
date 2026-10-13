@@ -5,7 +5,6 @@
 
 	type Props = {
 		albumState: AlbumState;
-		albumSlug: string;
 		slideshowInterval: number;
 		showFilmstripToggle: boolean;
 		showInfo: boolean;

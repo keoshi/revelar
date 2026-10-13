@@ -8,8 +8,6 @@
 
 	type Props = {
 		albumState: AlbumState;
-		albumSlug: string;
-		albumTitle: string;
 		language: string;
 		slideshowInterval: number;
 		filmstripEnabled: boolean;
@@ -32,7 +30,6 @@
 
 	let {
 		albumState,
-		albumSlug,
 		language,
 		slideshowInterval,
 		filmstripEnabled,
@@ -67,7 +64,6 @@
 >
 	<Controls
 		{albumState}
-		{albumSlug}
 		{slideshowInterval}
 		showFilmstripToggle={filmstripEnabled}
 		showInfo={exifPanel}

@@ -9,7 +9,7 @@
 	import { albumHref, photoHref, withBase } from '../utils/href.ts';
 	import AlbumHeader from './AlbumHeader.svelte';
 	import Grid from './Grid.svelte';
-	import Viewer from './Viewer.svelte';
+	import LazyViewer from './LazyViewer.svelte';
 
 	type Props = {
 		album: AlbumSummary;
@@ -17,15 +17,15 @@
 		hasMap: boolean;
 		/** photo id to open in the viewer on load (deep link) */
 		initialPhoto?: string;
+		inlineScript?: string;
 	};
 
-	let { album, site, hasMap, initialPhoto }: Props = $props();
+	let { album, site, hasMap, initialPhoto, inlineScript }: Props = $props();
 
 	// One store per album page; the page component is keyed by slug.
 	// svelte-ignore state_referenced_locally
 	const albumState = createAlbumState(album, { filmstrip: site.viewer.filmstrip });
 	let grid: Grid | undefined = $state();
-	let viewer: Viewer | undefined = $state();
 	let hydrated = $state(false);
 
 	const current = $derived(
@@ -45,6 +45,49 @@
 		current ? `${current.title ?? `Photo ${currentIndex + 1}`} · ${album.title}` : album.title
 	);
 	const ogImage = $derived(expandSources((current ?? album.cover).sources).jpeg);
+	const jsonLd = $derived.by(() => {
+		const abs = (u: string) => site.baseUrl + u;
+		if (current) {
+			return {
+				'@context': 'https://schema.org',
+				'@type': 'ImageObject',
+				contentUrl: abs(expandSources(current.sources).jpeg),
+				url: canonical,
+				name: current.title ?? `Photo ${currentIndex + 1} of ${album.count}`,
+				description: current.caption,
+				caption: current.caption,
+				dateCreated: current.date,
+				keywords: current.keywords.length ? current.keywords.join(', ') : undefined,
+				width: current.width,
+				height: current.height,
+				creator: site.author ? { '@type': 'Person', name: site.author } : undefined,
+				copyrightNotice: site.copyright || undefined,
+				isPartOf: {
+					'@type': 'ImageGallery',
+					name: album.title,
+					url: `${site.baseUrl}/${album.slug}/`
+				}
+			};
+		}
+		return {
+			'@context': 'https://schema.org',
+			'@type': 'ImageGallery',
+			name: album.title,
+			url: canonical,
+			description: album.description,
+			dateCreated: album.date,
+			numberOfItems: album.count,
+			image: album.photos.slice(0, 12).map((p) => abs(expandSources(p.sources).jpeg)),
+			creator: site.author ? { '@type': 'Person', name: site.author } : undefined,
+			copyrightNotice: site.copyright || undefined
+		};
+	});
+	const jsonLdTag = $derived(
+		'<script type="application/ld+json">' +
+			JSON.stringify(jsonLd).replace(/</g, '\\u003c') +
+			'</' +
+			'script>'
+	);
 
 	function indexOf(id: string | undefined): number {
 		if (!id) return -1;
@@ -141,6 +184,8 @@
 	<meta property="og:url" content={canonical} />
 	<meta property="og:image" content={site.baseUrl + ogImage} />
 	<meta name="twitter:card" content="summary_large_image" />
+	<!-- eslint-disable-next-line svelte/no-at-html-tags -- JSON-LD built from build-time data with < escaped -->
+	{@html jsonLdTag}
 </svelte:head>
 
 <section class="container album">
@@ -161,6 +206,7 @@
 		albumSlug={album.slug}
 		rowHeight={site.viewer.gridRowHeight}
 		onOpen={(i) => openFromGrid(i)}
+		{inlineScript}
 	/>
 	{#if current && !hydrated}
 		<!-- Plain markup for crawlers and no-JS visitors; the viewer takes over once hydrated. -->
@@ -180,8 +226,7 @@
 	{/if}
 </section>
 
-<Viewer
-	bind:this={viewer}
+<LazyViewer
 	{albumState}
 	language={site.language}
 	slideshowInterval={site.viewer.slideshowInterval}

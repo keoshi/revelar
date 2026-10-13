@@ -22,7 +22,7 @@ test.describe('home', () => {
 	test('lists albums newest first with covers', async ({ page }) => {
 		await page.goto('/');
 		const covers = page.locator('.covers li');
-		await expect(covers).toHaveCount(2);
+		await expect(covers).toHaveCount(3);
 		await expect(covers.first()).toContainText('Lisbon walks');
 		await expect(covers.first().locator('img')).toHaveAttribute('alt', /.+/);
 	});

@@ -6,5 +6,11 @@
 </script>
 
 {#key data.album.slug}
-	<AlbumPage album={data.album} site={data.site} hasMap={data.hasMap} initialPhoto={data.photoId} />
+	<AlbumPage
+		album={data.album}
+		site={data.site}
+		hasMap={data.hasMap}
+		inlineScript={data.inlineScript}
+		initialPhoto={data.photoId}
+	/>
 {/key}

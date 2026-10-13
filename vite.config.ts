@@ -30,9 +30,24 @@ export default defineConfig({
 			adapter: adapter({ pages: 'build', assets: 'build', precompress: false, strict: true }),
 			paths: { base: basePath() },
 			prerender: {
+				// Endpoints are not discovered by crawling; list them (and the optional global map) explicitly.
+				entries: ['*', '/robots.txt', '/sitemap.xml', '/rss.xml', '/map/'],
+				handleUnseenRoutes: ({ routes }) => {
+					// Routes whose entries() returned nothing (e.g. no private albums) are fine.
+					const unexpected = routes.filter(
+						(r) => !['/p/[token]', '/[album]/map', '/map'].includes(r)
+					);
+					if (unexpected.length)
+						throw new Error(`Routes not prerendered: ${unexpected.join(', ')}`);
+				},
 				handleHttpError: ({ path, status, message }) => {
-					// /map/ only exists when the global map is enabled; a 404 there is expected.
-					if (status === 404 && path.replace(/\/$/, '') === `${basePath()}/map`) return;
+					// Optional outputs: /map/ (global map), sitemap.xml and rss.xml can be disabled in config.
+					const optional = [
+						`${basePath()}/map`,
+						`${basePath()}/sitemap.xml`,
+						`${basePath()}/rss.xml`
+					];
+					if (status === 404 && optional.includes(path.replace(/\/$/, ''))) return;
 					throw new Error(message);
 				},
 				handleMissingId: 'warn'

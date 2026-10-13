@@ -24,7 +24,7 @@ function walk(dir: string, out: string[] = []): string[] {
 test.describe('unlisted albums', () => {
 	test('are reachable at their slug, noindex, and absent from the home page', async ({ page }) => {
 		await page.goto('/');
-		await expect(page.locator('.covers li')).toHaveCount(2);
+		await expect(page.locator('.covers li')).toHaveCount(3);
 		await expect(page.locator('.covers')).not.toContainText('Rooftops');
 		await page.goto('/rooftops/');
 		await expect(page.locator('h1')).toHaveText('Rooftops');

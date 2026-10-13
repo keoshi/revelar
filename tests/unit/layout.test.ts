@@ -1,9 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import {
-	computeLayout,
-	computeLayoutInline,
-	INLINE_LAYOUT_SCRIPT
-} from '../../src/lib/utils/layout.ts';
+import { computeLayout } from '../../src/lib/utils/layout.ts';
+import { computeLayoutInline, INLINE_LAYOUT_SCRIPT } from '../../src/lib/utils/layout-inline.ts';
 
 function rng(seed: number) {
 	let s = seed;

@@ -8,7 +8,7 @@ import { loadConfig } from '../../scripts/ingest/config.ts';
 async function prepare() {
 	const root = process.cwd();
 	const photos = join(root, 'photos');
-	if (!existsSync(join(photos, 'secret-garden'))) {
+	if (!existsSync(join(photos, 'secret-garden')) || !existsSync(join(photos, '2022-hundred'))) {
 		await generateFixtures(photos, { extras: true });
 		rmSync(join(photos, 'stray.jpg'), { force: true });
 	}

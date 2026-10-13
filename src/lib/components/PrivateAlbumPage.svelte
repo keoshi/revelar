@@ -10,7 +10,7 @@
 	import { formatBytes } from '../utils/text.ts';
 	import AlbumHeader from './AlbumHeader.svelte';
 	import Grid from './Grid.svelte';
-	import Viewer from './Viewer.svelte';
+	import LazyViewer from './LazyViewer.svelte';
 
 	type Props = {
 		album: PrivateAlbumPayload;
@@ -38,6 +38,7 @@
 	}
 
 	function hashFor(id?: string): string {
+		// eslint-disable-next-line svelte/prefer-svelte-reactivity -- transient, never rendered
 		const params = new URLSearchParams(page.url.hash.replace(/^#/, ''));
 		if (id) params.set('photo', id);
 		else params.delete('photo');
@@ -161,7 +162,7 @@
 	/>
 </section>
 
-<Viewer
+<LazyViewer
 	{albumState}
 	language={site.language}
 	slideshowInterval={site.viewer.slideshowInterval}

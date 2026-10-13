@@ -283,6 +283,33 @@ photos:
 		);
 	}
 
+	if (opts.extras) {
+		// A 100-photo album for performance budgets
+		const hundred = join(root, '2022-hundred');
+		mkdirSync(hundred, { recursive: true });
+		const shapes: [number, number][] = [
+			[1200, 800],
+			[800, 1200],
+			[1200, 1200],
+			[1600, 900],
+			[900, 1350]
+		];
+		for (let i = 0; i < 100; i++) {
+			const [w, h] = shapes[i % shapes.length];
+			const buf = await gradient(w, h, i + 20)
+				.jpeg({ quality: 80 })
+				.withXmp(
+					xmpPacket({
+						title: i % 3 === 0 ? `Frame ${i + 1}` : undefined,
+						alt: `Gradient test frame ${i + 1}`,
+						dateCreated: `2022-07-${String((i % 28) + 1).padStart(2, '0')}`
+					})
+				)
+				.toBuffer();
+			writeFileSync(join(hundred, `frame-${String(i + 1).padStart(3, '0')}.jpg`), buf);
+		}
+	}
+
 	// Things that must be ignored
 	mkdirSync(join(root, '_drafts'), { recursive: true });
 	writeFileSync(join(root, '_drafts', 'x.jpg'), await gradient(100, 100, 1).jpeg().toBuffer());

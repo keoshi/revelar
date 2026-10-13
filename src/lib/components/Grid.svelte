@@ -3,13 +3,7 @@
 	import { photoHref } from '../utils/href.ts';
 	import type { Photo } from '../types.ts';
 	import Picture from './Picture.svelte';
-	import {
-		GRID_SPACING,
-		INLINE_LAYOUT_SCRIPT,
-		computeLayout,
-		rowHeightFor,
-		type Layout
-	} from '../utils/layout.ts';
+	import { GRID_SPACING, computeLayout, rowHeightFor, type Layout } from '../utils/layout.ts';
 
 	type Props = {
 		photos: Photo[];
@@ -21,9 +15,11 @@
 		hrefFor?: (photo: Photo) => string;
 		/** private albums: decrypted object URL for a photo at a CSS width */
 		resolveSrc?: (photo: Photo, cssWidth: number) => Promise<string>;
+		/** pre-hydration layout script (server-only string, see utils/layout-inline.ts) */
+		inlineScript?: string;
 	};
 
-	let { photos, albumSlug, rowHeight, onOpen, hrefFor, resolveSrc }: Props = $props();
+	let { photos, albumSlug, rowHeight, onOpen, hrefFor, resolveSrc, inlineScript }: Props = $props();
 
 	let grid: HTMLElement | undefined = $state();
 	let layout = $state<Layout | undefined>(undefined);
@@ -34,7 +30,9 @@
 	const aspects = $derived(photos.map((p) => p.aspect));
 	const EAGER_ROW_WIDTH = 1552;
 	// Assembled here so the template never contains a literal script tag (keeps the ESLint parser happy).
-	const inlineScriptTag = '<script>' + INLINE_LAYOUT_SCRIPT + '</' + 'script>';
+	const inlineScriptTag = $derived(
+		inlineScript ? '<script>' + inlineScript + '</' + 'script>' : ''
+	);
 	const eagerCount = $derived.by(() => {
 		let sum = 0;
 		let n = 0;
@@ -207,7 +205,7 @@
 		</a>
 	{/each}
 </div>
-{#if !hydrated}
+{#if !hydrated && inlineScriptTag}
 	<!-- eslint-disable-next-line svelte/no-at-html-tags -- static, dependency-free layout script (see utils/layout.ts) -->
 	{@html inlineScriptTag}
 {/if}

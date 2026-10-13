@@ -1,0 +1,15 @@
+# Netlify / Cloudflare Pages headers. Derivatives and bundles are content-hashed: cache forever.
+/media/*
+  Cache-Control: public, max-age=31536000, immutable
+/media-private/*
+  Cache-Control: public, max-age=31536000, immutable
+/downloads/*
+  Cache-Control: public, max-age=31536000, immutable
+/_app/immutable/*
+  Cache-Control: public, max-age=31536000, immutable
+/*.html
+  Cache-Control: public, max-age=0, must-revalidate
+/*/
+  Cache-Control: public, max-age=0, must-revalidate
+/
+  Cache-Control: public, max-age=0, must-revalidate

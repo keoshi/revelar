@@ -2,6 +2,7 @@ import { error } from '@sveltejs/kit';
 import { findAlbum, loadManifest } from '#lib/server/manifest.ts';
 import { albumPageData } from '#lib/server/album.ts';
 import { siteConfig } from '#lib/server/site.ts';
+import { INLINE_LAYOUT_SCRIPT } from '#lib/utils/layout-inline.ts';
 import type { EntryGenerator, PageServerLoad } from './$types';
 
 export const entries: EntryGenerator = () =>
@@ -16,6 +17,7 @@ export const load: PageServerLoad = ({ params }) => {
 	return {
 		album: albumPageData(album),
 		photoId: photo.id,
-		hasMap: config.map.enabled && Boolean(album.bounds)
+		hasMap: config.map.enabled && Boolean(album.bounds),
+		inlineScript: INLINE_LAYOUT_SCRIPT
 	};
 };

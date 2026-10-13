@@ -11,9 +11,16 @@ test.describe('maps', () => {
 			'href',
 			/\/lisbon-walks\/[0-9a-f]{10}\/$/
 		);
-		await expect(page.locator('.maplibregl-map, .map-fallback').first()).toBeVisible({
-			timeout: 15000
-		});
+		// Either the WebGL map renders or (offline / no WebGL) the fallback message shows.
+		await expect(page.locator('.map-wrap')).toBeVisible();
+		await expect
+			.poll(
+				async () =>
+					(await page.locator('.maplibregl-canvas').isVisible()) ||
+					(await page.locator('.map-fallback').isVisible()),
+				{ timeout: 20000 }
+			)
+			.toBe(true);
 	});
 
 	test('album header links to the map only when photos have locations', async ({ page }) => {

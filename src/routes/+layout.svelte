@@ -25,7 +25,7 @@
 	{@html `<style>:root{${themeVars}}</style>`}
 </svelte:head>
 
-<SiteHeader title={site.title} themeMode={site.theme.mode} />
+<SiteHeader title={site.title} href={data.homeHref} themeMode={site.theme.mode} />
 
 <main id="main">
 	{@render children()}

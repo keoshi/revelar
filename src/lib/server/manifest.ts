@@ -1,6 +1,7 @@
 import { existsSync, readFileSync, statSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { EMPTY_MANIFEST, type Manifest, type AlbumSummary } from '#lib/types.ts';
+import { albumHref } from '#lib/utils/href.ts';
 
 /** REVELAR_SITE_ROOT lets the e2e suite build from its own ingest output instead of the real one. */
 const MANIFEST_PATH = resolve(
@@ -32,6 +33,12 @@ export function loadManifest(): Manifest {
 
 export function publicAlbums(): AlbumSummary[] {
 	return loadManifest().albums.filter((a) => a.visibility === 'public');
+}
+
+/** When exactly one public album exists, its href; the home page redirects there. */
+export function soleAlbumHref(): string | undefined {
+	const albums = publicAlbums();
+	return albums.length === 1 ? albumHref(albums[0].slug) : undefined;
 }
 
 export function findAlbum(slug: string): AlbumSummary | undefined {

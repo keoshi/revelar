@@ -13,9 +13,9 @@ export const GET: RequestHandler = () => {
 	if (!config.feeds.sitemap) error(404, 'Sitemap disabled');
 	const { baseUrl } = siteSettings();
 	const albums = publicAlbums();
-	const urls: { loc: string; lastmod?: string; image?: { loc: string; title?: string } }[] = [
-		{ loc: `${baseUrl}/` }
-	];
+	const urls: { loc: string; lastmod?: string; image?: { loc: string; title?: string } }[] = [];
+	// A single-album site redirects its home page to the album, so only list the album.
+	if (albums.length !== 1) urls.push({ loc: `${baseUrl}/` });
 	for (const album of albums) {
 		const lastmod = album.dateRange?.to ?? album.date;
 		urls.push({ loc: `${baseUrl}/${album.slug}/`, lastmod: lastmod?.slice(0, 10) });

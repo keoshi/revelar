@@ -2,7 +2,7 @@ import { defineConfig } from './src/lib/config.ts';
 
 export default defineConfig({
 	site: {
-		title: 'Photographs',
+		title: 'Revelar',
 		description: 'Selected work',
 		baseUrl: 'https://photos.example.com', // required for canonical/OG URLs; path becomes paths.base
 		author: 'Your Name',

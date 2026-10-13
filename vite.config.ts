@@ -81,6 +81,8 @@ export default defineConfig({
 			}
 		})
 	],
+	// MapLibre spawns its worker from its own module URL; the dev pre-bundle breaks that.
+	optimizeDeps: { exclude: ['maplibre-gl'] },
 	build: { target: 'es2022' },
 	test: {
 		expect: { requireAssertions: true },

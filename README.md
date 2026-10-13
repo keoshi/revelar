@@ -122,6 +122,7 @@ The ingest step is incremental: unchanged originals (same size, mtime and conten
 - Albums always open as a justified grid. Click a photo (or press Enter on a focused tile) to open the fullscreen viewer; arrow keys move between tiles in the grid.
 - `viewer.transition` sets how photos change in the viewer, for manual navigation and the slideshow alike: `crossfade` (default; 240 ms when you navigate, 400 ms between slideshow photos, started only once the next image has decoded), `slide` (PhotoSwipe's native slide) or `none`. Swipes always follow the finger. `prefers-reduced-motion` makes every change instant.
 - Viewer shortcuts: `←`/`→` previous/next, `Space` play/pause the slideshow, `I` info panel, `T` filmstrip, `D` download, `F` fullscreen, `Esc` close. Chrome hides after 2.5 s of inactivity.
+- A site with a single public album sends the home page straight to that album, and the header title links there.
 - Every photo has its own URL (`/album/<id>/`) that opens the viewer directly and unfurls with the right image when shared.
 - A manual light/dark toggle in the header is remembered on the device; the viewer always uses a dark stage.
 

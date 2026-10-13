@@ -8,7 +8,7 @@ import * as v from 'valibot';
 const hexColor = v.pipe(v.string(), v.regex(/^#[0-9a-fA-F]{6}$/, 'must be a 6-digit hex colour'));
 
 const SiteSchema = v.object({
-	title: v.optional(v.string(), 'Photographs'),
+	title: v.optional(v.string(), 'Revelar'),
 	description: v.optional(v.string(), ''),
 	baseUrl: v.pipe(
 		v.string('site.baseUrl is required (used for canonical and Open Graph URLs)'),

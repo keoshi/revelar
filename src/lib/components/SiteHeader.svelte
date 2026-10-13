@@ -20,10 +20,9 @@
 	}
 
 	.site-title {
-		font-family: var(--font-titles);
 		font-size: var(--text-lg);
-		font-weight: 500;
-		letter-spacing: -0.01em;
+		font-weight: 600;
+		letter-spacing: -0.015em;
 	}
 
 	.site-title:hover {

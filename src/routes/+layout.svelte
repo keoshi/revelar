@@ -2,7 +2,6 @@
 	import '#lib/styles/tokens.css';
 	import '#lib/styles/base.css';
 	import '@fontsource-variable/inter';
-	import '@fontsource-variable/newsreader';
 	import favicon from '#lib/assets/favicon.svg';
 	import SiteHeader from '#lib/components/SiteHeader.svelte';
 	import type { LayoutProps } from './$types';
@@ -13,8 +12,7 @@
 		[
 			`--accent-dark:${site.theme.accent}`,
 			`--accent-light:${site.theme.accentLight}`,
-			site.theme.fontSans === 'system' ? '--font-ui:ui-sans-serif,system-ui,sans-serif' : '',
-			site.theme.fontTitles === 'sans' ? '--font-titles:var(--font-ui)' : ''
+			site.theme.fontSans === 'system' ? '--font-ui:ui-sans-serif,system-ui,sans-serif' : ''
 		]
 			.filter(Boolean)
 			.join(';')

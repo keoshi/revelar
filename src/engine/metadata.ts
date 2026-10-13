@@ -1,7 +1,7 @@
 import exifr from 'exifr';
-import { cleanText } from '../../src/lib/utils/text.ts';
-import { formatShutter } from '../../src/lib/utils/exif.ts';
-import type { PhotoExif } from '../../src/lib/types.ts';
+import { cleanText } from '../lib/utils/text.ts';
+import { formatShutter } from '../lib/utils/exif.ts';
+import type { PhotoExif } from '../lib/types.ts';
 import { normaliseDate, type PhotoOverride } from './sidecar.ts';
 
 /** Metadata embedded in the file, after precedence between XMP / IPTC / EXIF, before sidecar overrides. */

@@ -1,4 +1,4 @@
-import { defineConfig } from './src/lib/config.ts';
+import { defineConfig } from 'revelar/config';
 
 export default defineConfig({
 	site: {

@@ -28,7 +28,6 @@ test-results
 # Revelar generated content
 /photos/*
 !/photos/.gitkeep
-/src/lib/generated/
 /static/media/
 /static/media-private/
 /static/downloads/

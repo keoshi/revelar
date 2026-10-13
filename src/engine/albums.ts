@@ -11,16 +11,16 @@ import { createHash } from 'node:crypto';
 import { basename, extname, join, relative, resolve } from 'node:path';
 import { marked } from 'marked';
 import type pLimit from 'p-limit';
-import type { RevelarConfig } from '../../src/lib/config.ts';
+import type { RevelarConfig } from '../lib/config.ts';
 import type {
 	AlbumSummary,
 	Photo,
 	PhotoRef,
 	PrivateAlbumEntry,
 	PrivateAlbumPayload
-} from '../../src/lib/types.ts';
-import { naturalCompare } from '../../src/lib/utils/text.ts';
-import { expandSources } from '../../src/lib/utils/sources.ts';
+} from '../lib/types.ts';
+import { naturalCompare } from '../lib/utils/text.ts';
+import { expandSources } from '../lib/utils/sources.ts';
 import {
 	PBKDF2_ITERATIONS,
 	deriveKek,
@@ -32,7 +32,7 @@ import {
 	toBase64,
 	toBase64Url,
 	wrapDek
-} from '../../src/lib/crypto/aes.ts';
+} from '../lib/crypto/aes.ts';
 import type { IngestCache, CacheEntry } from './cache.ts';
 import { encodePhoto, settingsKey, writeGpsSafeOriginal } from './encode.ts';
 import {

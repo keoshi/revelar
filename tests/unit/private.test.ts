@@ -3,7 +3,7 @@ import { existsSync, mkdtempSync, readdirSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { generateFixtures } from '../fixtures/generate.ts';
-import { runIngest, type IngestReport } from '../../scripts/ingest/index.ts';
+import { runIngest, type IngestReport } from '../../src/engine/ingest.ts';
 import type { RevelarConfigInput } from '../../src/lib/config.ts';
 import {
 	unlockWithKey,

@@ -6,7 +6,6 @@ bun.lock
 bun.lockb
 
 # Generated
-/src/lib/generated/
 /static/media/
 /static/media-private/
 /static/downloads/

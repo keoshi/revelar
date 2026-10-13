@@ -2,8 +2,8 @@ import { existsSync, mkdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import sharp from 'sharp';
 import { rgbaToThumbHash, thumbHashToAverageRGBA } from 'thumbhash';
-import type { Srcset } from '../../src/lib/types.ts';
-import type { RevelarConfig } from '../../src/lib/config.ts';
+import type { Srcset } from '../lib/types.ts';
+import type { RevelarConfig } from '../lib/config.ts';
 
 export type Derivatives = {
 	avif: Srcset;

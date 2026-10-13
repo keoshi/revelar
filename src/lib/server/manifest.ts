@@ -3,10 +3,10 @@ import { resolve } from 'node:path';
 import { EMPTY_MANIFEST, type Manifest, type AlbumSummary } from '#lib/types.ts';
 import { albumHref } from '#lib/utils/href.ts';
 
-/** REVELAR_SITE_ROOT lets the e2e suite build from its own ingest output instead of the real one. */
+/** Written by ingest into the site root's .cache/ (REVELAR_SITE_ROOT, else the working directory). */
 const MANIFEST_PATH = resolve(
 	process.env.REVELAR_SITE_ROOT ?? process.cwd(),
-	'src/lib/generated/manifest.json'
+	'.cache/manifest.json'
 );
 
 let cached: Manifest | undefined;

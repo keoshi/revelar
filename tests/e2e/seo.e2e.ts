@@ -62,7 +62,7 @@ test.describe('SEO and feeds', () => {
 	test('private pages are noindex and have no Open Graph image', async ({ page }) => {
 		const manifest = JSON.parse(
 			readFileSync(
-				join(process.env.REVELAR_SITE_ROOT ?? 'tests/e2e/.site', 'src/lib/generated/manifest.json'),
+				join(process.env.REVELAR_SITE_ROOT ?? 'tests/e2e/.site', '.cache/manifest.json'),
 				'utf8'
 			)
 		);

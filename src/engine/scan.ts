@@ -1,7 +1,7 @@
 import { readdirSync, statSync } from 'node:fs';
 import { basename, extname, join, resolve } from 'node:path';
 import sharp from 'sharp';
-import { slugify, naturalCompare } from '../../src/lib/utils/text.ts';
+import { slugify, naturalCompare } from '../lib/utils/text.ts';
 
 export type ScannedFile = {
 	abs: string;

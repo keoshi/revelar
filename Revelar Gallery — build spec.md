@@ -469,6 +469,8 @@ export default defineConfig({
 | `npm run share <album>`               | Print the private album URL and the `#k=` key link   |
 | `npm run check` / `test` / `test:e2e` | svelte-check, Vitest, Playwright                     |
 
+**As built (engine split, Oct 13, 2026).** Revelar is an npm package with a `revelar` command rather than only a template to clone, as groundwork for a desktop companion app for non-technical users. A site root is any folder with `revelar.config.ts` and `photos/`; the package's checkout is one too, so the table above still applies there. Layout: `bin/revelar.js` (loads the TypeScript source through tsx) → `src/cli/index.ts` (`init`, `ingest`, `build [--no-ingest]`, `dev`, `preview`, `share`, all with `--root` and `--config`); `src/index.ts` is the programmatic API (`runIngest`, `buildSite`, `devServer`, `shareLinks`, `defineConfig`); the pipeline moved from `scripts/ingest/` to `src/engine/`; configs import `defineConfig` from `'revelar/config'`. In `vite.config.ts` the package is Vite's root while the site root (`REVELAR_SITE_ROOT`, else the working directory) supplies the config, `.cache/manifest.json` (no longer `src/lib/generated/`), `static/`, Kit's `.svelte-kit/` and `build/`. SvelteKit resolves its own paths against the working directory, so the engine changes into the package directory for the duration of each Vite call. Verified by packing the package, installing it in an empty folder and running `revelar init` and `revelar build` there.
+
 **Deployment**
 
 - Output is a plain `build/` folder; the README documents Netlify, Cloudflare Pages, Vercel, GitHub Pages and rsync/FTP.
@@ -528,6 +530,7 @@ Recorded on Oct 13, 2026. Each is deliberate; do not "fix" them back without a d
 | JS budget     | ≤ 45 KB gzip on the album page                   | About 52 KB; test asserts ≤ 55 KB                                                                                                            |
 | Config        | One file at the root                             | Plus `site.authorUrl` (footer link, creator URL) and `REVELAR_CONFIG` for alternate config files                                             |
 | Site settings | `location: approximate`, placeholder author/URL  | The owner's site uses `location: show`, author Filipe Varela with https://keoshi.com, base URL `https://dev.keoshi.com/revelar`                |
+| Packaging     | A template repository with npm scripts           | An npm package with a `revelar` CLI and a programmatic API; any folder with a config and `photos/` is a site root (see Project structure, As built) |
 | Output layout | One full page per photo                          | Thin photo shells plus one `album.json` per album; no `__data.json` files (see Deployment, As built)                                          |
 
 ## Open questions

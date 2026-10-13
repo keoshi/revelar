@@ -6,7 +6,7 @@ const PASSWORD = process.env.REVELAR_TEST_PW ?? 'correct horse battery staple';
 const SITE_ROOT = process.env.REVELAR_SITE_ROOT ?? 'tests/e2e/.site';
 
 function manifest() {
-	return JSON.parse(readFileSync(join(SITE_ROOT, 'src/lib/generated/manifest.json'), 'utf8')) as {
+	return JSON.parse(readFileSync(join(SITE_ROOT, '.cache/manifest.json'), 'utf8')) as {
 		privateAlbums: { token: string }[];
 	};
 }

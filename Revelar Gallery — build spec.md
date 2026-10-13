@@ -293,7 +293,7 @@ Limits to state in the README: security equals password strength (recommend 16+ 
 ### EXIF info panel
 
 - Toggled with the info button or I. Desktop: a 320 px panel sliding in from the right, shrinking the stage (not overlaying it). Mobile: a bottom sheet at 50% height.
-- Contents, each row hidden when empty: title, caption, date (localised, e.g. "14 March 2025, 07:12"), camera (make + model, de-duplicated so "SONY ILCE-7M4" becomes "Sony α7 IV" via a small alias map), lens, exposure line ("35 mm · ƒ/2.8 · 1/250 s · ISO 400 · −0.3 EV"), dimensions in megapixels, keywords as chips, location (place name is out of scope for v1; show a mini static map link instead), download.
+- Contents, each row hidden when empty: title, caption, date (localised, e.g. "14 March 2025, 07:12"), camera (make + model, de-duplicated so "SONY ILCE-7M4" becomes "Sony α7 IV" via a small alias map), lens, exposure line ("35 mm · ƒ/2.8 · 1/250 s · ISO 400 · −0.3 EV"), dimensions in megapixels, keywords as chips, location (place name is out of scope for v1; show a mini static map link instead), download. **As built:** the location row has a live, non-interactive MapLibre mini map (created when the panel first opens, reused across photos) that links to the album map focused on the photo via `#photo=<id>`, plus the coordinates as an OpenStreetMap link.
 - Focal length shown in mm; all units metric.
 
 ### Map of photo locations

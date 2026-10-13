@@ -185,6 +185,9 @@
 	transition={site.viewer.transition}
 	filmstripEnabled={site.viewer.filmstrip}
 	exifPanel={album.exifPanel && site.defaults.exifPanel}
+	map={site.map.enabled
+		? { styleLight: site.map.styleLight, styleDark: site.map.styleDark }
+		: undefined}
 	{getThumbEl}
 	{downloadFor}
 	resolveSrc={viewerSrc}

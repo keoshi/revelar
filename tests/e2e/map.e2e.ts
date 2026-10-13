@@ -34,6 +34,23 @@ test.describe('maps', () => {
 		expect(workerErrors).toEqual([]);
 	});
 
+	test('#photo= opens the album map at street level on that photo', async ({ page }) => {
+		await page.goto('/lisbon-walks/map/');
+		const href = await page.locator('.locations li a').first().getAttribute('href');
+		const id = href!.match(/\/([0-9a-f]{10})\/$/)![1];
+		await page.goto(`/lisbon-walks/map/#photo=${id}`);
+		await expect
+			.poll(
+				() =>
+					page.locator('.map').evaluate((el) => {
+						const map = (el as HTMLElement & { revelarMap?: { getZoom(): number } }).revelarMap;
+						return map ? map.getZoom() : 0;
+					}),
+				{ timeout: 20000 }
+			)
+			.toBeGreaterThanOrEqual(15);
+	});
+
 	test('album header links to the map only when photos have locations', async ({ page }) => {
 		await page.goto('/lisbon-walks/');
 		await expect(page.locator('.album-header a', { hasText: 'Map' })).toHaveAttribute(

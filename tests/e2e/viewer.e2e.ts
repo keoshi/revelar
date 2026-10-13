@@ -136,6 +136,26 @@ test.describe('downloads and info panel', () => {
 		await expect(page.locator('.info.open')).toHaveCount(0);
 	});
 
+	test('info panel shows a mini map for a geotagged photo, linking to the album map', async ({
+		page
+	}) => {
+		// The album map lists the geotagged photos; take the first one's page.
+		await page.goto('/lisbon-walks/map/');
+		const photoHref = await page.locator('.locations li a').first().getAttribute('href');
+		const id = photoHref!.match(/\/([0-9a-f]{10})\/$/)![1];
+		await page.goto(photoHref!);
+		await expect(page.locator(READY)).toBeVisible();
+		await page.keyboard.press('i');
+		const mini = page.locator('.info.open a.mini-map');
+		await expect(mini).toBeVisible();
+		await expect(mini).toHaveAttribute('href', new RegExp(`/lisbon-walks/map/#photo=${id}$`));
+		// MapLibre creates its canvas synchronously once loaded; tiles may or may not arrive.
+		await expect(mini.locator('.maplibregl-canvas')).toBeAttached({ timeout: 20000 });
+		// A photo without a location has no mini map.
+		await page.keyboard.press('ArrowRight');
+		await expect(page.locator('.info.open .mini-map')).toHaveCount(0);
+	});
+
 	test('filmstrip starts collapsed on small screens and the counter reveals it', async ({
 		browser
 	}) => {

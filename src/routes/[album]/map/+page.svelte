@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
 	import MapView, { type MapPhoto } from '#lib/components/MapView.svelte';
 	import { albumHref, photoHref } from '#lib/utils/href.ts';
@@ -9,6 +10,14 @@
 	const photos = $derived<MapPhoto[]>(
 		data.photos.map((p) => ({ ...p, href: photoHref(data.slug, p.id) }))
 	);
+
+	// `#photo=<id>` (from the info panel's mini map) opens the map on that photo.
+	let focus = $state<{ lng: number; lat: number } | undefined>();
+	onMount(() => {
+		const id = new URLSearchParams(window.location.hash.slice(1)).get('photo');
+		const photo = id ? photos.find((p) => p.id === id) : undefined;
+		if (photo) focus = { lng: photo.gps.lng, lat: photo.gps.lat };
+	});
 </script>
 
 <svelte:head>
@@ -28,6 +37,7 @@
 		bounds={data.bounds}
 		styleLight={data.site.map.styleLight}
 		styleDark={data.site.map.styleDark}
+		{focus}
 		onSelect={(p) => goto(p.href as `/${string}`)}
 	/>
 	<h2 class="list-title">Photos on this map</h2>

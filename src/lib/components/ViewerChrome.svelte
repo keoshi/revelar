@@ -4,7 +4,7 @@
 	import Controls from './Controls.svelte';
 	import Caption from './Caption.svelte';
 	import Filmstrip from './Filmstrip.svelte';
-	import InfoPanel from './InfoPanel.svelte';
+	import InfoPanel, { type InfoMapSettings } from './InfoPanel.svelte';
 
 	type Props = {
 		albumState: AlbumState;
@@ -18,6 +18,8 @@
 			photo: Photo
 		) => { href?: string; name?: string; bytes?: number; onClick?: () => void } | undefined;
 		thumbSrc?: (photo: Photo) => Promise<string> | string;
+		/** mini map in the info panel; undefined when maps are disabled */
+		map?: InfoMapSettings;
 		onClose: () => void;
 		onPrev: () => void;
 		onNext: () => void;
@@ -38,6 +40,7 @@
 		progressKey,
 		downloadFor,
 		thumbSrc,
+		map,
 		onClose,
 		onPrev,
 		onNext,
@@ -95,7 +98,14 @@
 	</div>
 
 	{#if exifPanel && photo}
-		<InfoPanel {photo} open={albumState.infoOpen} {language} {download} onClose={onToggleInfo} />
+		<InfoPanel
+			{photo}
+			open={albumState.infoOpen}
+			{language}
+			{download}
+			{map}
+			onClose={onToggleInfo}
+		/>
 	{/if}
 
 	<div class="visually-hidden" aria-live="polite" aria-atomic="true">{announcement}</div>
@@ -138,5 +148,13 @@
 
 	.info-open :global([data-controls]) {
 		right: var(--info-width, 0);
+	}
+
+	/* Below 640 px the panel is a bottom sheet, so the stage keeps its full width. */
+	@media (max-width: 639px) {
+		.info-open .bottom,
+		.info-open :global([data-controls]) {
+			right: 0;
+		}
 	}
 </style>

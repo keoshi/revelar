@@ -15,6 +15,7 @@
 	import { prefersReducedMotion, supportsAvif } from '../utils/formats.ts';
 	import { withBase } from '../utils/href.ts';
 	import ViewerChrome from './ViewerChrome.svelte';
+	import type { InfoMapSettings } from './InfoPanel.svelte';
 
 	type Props = {
 		albumState: AlbumState;
@@ -31,6 +32,8 @@
 		/** private albums: resolve a decrypted object URL for a photo at (at least) the given width */
 		resolveSrc?: (photo: Photo, width: number) => Promise<string>;
 		thumbSrc?: (photo: Photo) => Promise<string> | string;
+		/** mini map in the info panel; undefined when maps are disabled */
+		map?: InfoMapSettings;
 		onIndexChange: (index: number) => void;
 		/** the user asked to close (Esc, button, swipe); AlbumPage decides how the URL changes */
 		onRequestClose: () => void;
@@ -51,6 +54,7 @@
 		downloadFor,
 		resolveSrc,
 		thumbSrc,
+		map,
 		onIndexChange,
 		onRequestClose,
 		onClosed,
@@ -209,6 +213,7 @@
 							},
 							downloadFor,
 							thumbSrc,
+							map,
 							onClose: requestClose,
 							onPrev: () => userNav(() => navigateBy(-1)),
 							onNext: () => userNav(() => navigateBy(1)),

@@ -9,10 +9,8 @@
 	 */
 	import { onMount } from 'svelte';
 	import type { Map as MapLibreMap } from 'maplibre-gl';
-	// MapLibre looks for its worker next to its own module URL, which after bundling is a chunk
-	// with no such neighbour. Bundle the worker as its own hashed file and point MapLibre at it.
-	import mapWorkerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url';
 	import type { FeatureCollection, Point } from 'geojson';
+	import { currentTheme, loadMapLibre, watchTheme } from '../utils/maplibre.ts';
 	import type { PhotoGps } from '../types.ts';
 	import type { PhotoSources } from '../utils/sources.ts';
 	import { expandSources } from '../utils/sources.ts';
@@ -34,23 +32,29 @@
 		bounds: [[number, number], [number, number]];
 		styleLight: string;
 		styleDark: string;
+		/** open centred on this point at street level instead of fitting `bounds` */
+		focus?: { lng: number; lat: number };
 		onSelect: (photo: MapPhoto) => void;
 	};
 
-	let { photos, bounds, styleLight, styleDark, onSelect }: Props = $props();
+	let { photos, bounds, styleLight, styleDark, focus, onSelect }: Props = $props();
+
+	const FOCUS_ZOOM = 16;
 
 	let container: HTMLDivElement | undefined = $state();
+	let map = $state.raw<MapLibreMap | undefined>();
 	let failed = $state(false);
+
+	$effect(() => {
+		const f = focus;
+		const m = map;
+		if (f && m) m.jumpTo({ center: [f.lng, f.lat], zoom: FOCUS_ZOOM });
+	});
 
 	const SOURCE = 'revelar-photos';
 	/** Keep coincident photos as a counted cluster up to street level rather than a stack of markers. */
 	const CLUSTER_MAX_ZOOM = 19;
 
-	function currentTheme(): 'light' | 'dark' {
-		const forced = document.documentElement.dataset.theme;
-		if (forced === 'light' || forced === 'dark') return forced;
-		return window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
-	}
 	function styleUrl(): string {
 		return currentTheme() === 'light' ? styleLight : styleDark;
 	}
@@ -113,26 +117,23 @@
 		let cancelled = false;
 		(async () => {
 			if (!container) return;
-			let maplibre: typeof import('maplibre-gl');
+			let maplibre: Awaited<ReturnType<typeof loadMapLibre>>;
 			try {
-				[maplibre] = await Promise.all([
-					import('maplibre-gl'),
-					import('maplibre-gl/dist/maplibre-gl.css')
-				]);
+				maplibre = await loadMapLibre();
 			} catch {
 				failed = true;
 				return;
 			}
 			if (cancelled) return;
-			maplibre.setWorkerUrl(mapWorkerUrl);
 			const byId = new Map(photos.map((p) => [p.id, p]));
 			let m: MapLibreMap;
 			try {
 				m = new maplibre.Map({
 					container,
 					style: styleUrl(),
-					bounds,
-					fitBoundsOptions: { padding: 48, maxZoom: 15 },
+					...(focus
+						? { center: [focus.lng, focus.lat], zoom: FOCUS_ZOOM }
+						: { bounds, fitBoundsOptions: { padding: 48, maxZoom: 15 } }),
 					attributionControl: { compact: true }
 				});
 			} catch {
@@ -264,19 +265,13 @@
 							: nextStyle
 				});
 			};
-			const observer = new MutationObserver(swap);
-			observer.observe(document.documentElement, {
-				attributes: true,
-				attributeFilter: ['data-theme']
-			});
-			const mq = window.matchMedia('(prefers-color-scheme: light)');
-			mq.addEventListener('change', swap);
+			const unwatch = watchTheme(swap);
 			cleanup = () => {
 				popup?.remove();
-				observer.disconnect();
-				mq.removeEventListener('change', swap);
+				unwatch();
 				m.remove();
 			};
+			map = m;
 			if (cancelled) cleanup();
 		})();
 		return () => {

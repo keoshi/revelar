@@ -3,16 +3,27 @@
 	import { formatBytes } from '../utils/text.ts';
 	import { formatCamera, formatDate, formatExposure, formatMegapixels } from '../utils/exif.ts';
 	import Icon from './Icon.svelte';
+	import MiniMap from './MiniMap.svelte';
+
+	/** Map styles for the mini map, and the album map URL when that page exists. */
+	export type InfoMapSettings = { styleLight: string; styleDark: string; href?: string };
 
 	type Props = {
 		photo: Photo;
 		open: boolean;
 		language: string;
 		download?: { href?: string; name?: string; bytes?: number; onClick?: () => void };
+		map?: InfoMapSettings;
 		onClose: () => void;
 	};
 
-	let { photo, open, language, download, onClose }: Props = $props();
+	let { photo, open, language, download, map, onClose }: Props = $props();
+
+	// The mini map (and MapLibre) is only created once the panel has been opened.
+	let shown = $state(false);
+	$effect(() => {
+		if (open) shown = true;
+	});
 
 	const camera = $derived(formatCamera(photo.exif?.make, photo.exif?.model));
 	const exposure = $derived(formatExposure(photo.exif));
@@ -103,6 +114,14 @@
 			<div class="row">
 				<dt>Location</dt>
 				<dd>
+					{#if map && shown}
+						<MiniMap
+							gps={photo.gps}
+							styleLight={map.styleLight}
+							styleDark={map.styleDark}
+							href={map.href ? `${map.href}#photo=${photo.id}` : undefined}
+						/>
+					{/if}
 					<a class="map-link" href={mapHref} target="_blank" rel="noopener noreferrer">
 						<Icon name="map" size={16} />
 						<span class="tabular">{photo.gps.lat}, {photo.gps.lng}</span>

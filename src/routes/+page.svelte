@@ -1,4 +1,5 @@
 <script lang="ts">
+	import AlbumCover from '#lib/components/AlbumCover.svelte';
 	import type { PageProps } from './$types';
 
 	let { data }: PageProps = $props();
@@ -7,6 +8,18 @@
 <svelte:head>
 	<title>{data.site.title}</title>
 	<meta name="description" content={data.site.description} />
+	<link rel="canonical" href="{data.site.baseUrl}/" />
+	<meta property="og:title" content={data.site.title} />
+	<meta property="og:description" content={data.site.description} />
+	{#if data.albums[0]}
+		<meta
+			property="og:image"
+			content={data.site.baseUrl +
+				('base' in data.albums[0].cover.sources
+					? `${data.albums[0].cover.sources.base}-${data.albums[0].cover.sources.jpegWidth}.jpg`
+					: data.albums[0].cover.sources.jpeg)}
+		/>
+	{/if}
 </svelte:head>
 
 <section class="container home">
@@ -24,9 +37,10 @@
 			</p>
 		</div>
 	{:else}
+		<h1 class="visually-hidden">Albums</h1>
 		<ul class="covers">
-			{#each data.albums as album (album.slug)}
-				<li>{album.title}</li>
+			{#each data.albums as album, i (album.slug)}
+				<li><AlbumCover {album} language={data.site.language} priority={i < 3} /></li>
 			{/each}
 		</ul>
 	{/if}
@@ -39,6 +53,27 @@
 
 	.intro {
 		margin-bottom: 32px;
+	}
+
+	.covers {
+		list-style: none;
+		margin: 0;
+		padding: 0;
+		display: grid;
+		grid-template-columns: 1fr;
+		gap: 32px 24px;
+	}
+
+	@media (min-width: 640px) {
+		.covers {
+			grid-template-columns: repeat(2, 1fr);
+		}
+	}
+
+	@media (min-width: 1100px) {
+		.covers {
+			grid-template-columns: repeat(3, 1fr);
+		}
 	}
 
 	.empty {

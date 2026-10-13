@@ -1,4 +1,5 @@
 /** Shared manifest types. Produced by `scripts/ingest.ts`, consumed by routes. */
+import type { PhotoSources } from './utils/sources.ts';
 
 export type Srcset = { url: string; width: number }[];
 
@@ -30,7 +31,8 @@ export type Photo = {
 	keywords: string[];
 	thumbhash: string;
 	color: string;
-	sources: { avif: Srcset; webp: Srcset; jpeg: string };
+	/** explicit in the manifest; may be compacted by server loads before reaching the client */
+	sources: PhotoSources;
 	exif?: PhotoExif;
 	gps?: PhotoGps;
 	download?: PhotoDownload;

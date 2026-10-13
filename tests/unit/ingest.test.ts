@@ -8,6 +8,7 @@ import { generateFixtures } from '../fixtures/generate.ts';
 import { runIngest, type IngestReport } from '../../scripts/ingest/index.ts';
 import type { AlbumSummary } from '../../src/lib/types.ts';
 import type { RevelarConfigInput } from '../../src/lib/config.ts';
+import { expandSources } from '../../src/lib/utils/sources.ts';
 
 const config: RevelarConfigInput = {
 	site: { title: 'Test', baseUrl: 'https://example.com' },
@@ -126,9 +127,10 @@ describe('album assembly', () => {
 describe('derivatives', () => {
 	it('never upscales and includes the original width when it is below the largest configured width', () => {
 		const p = lisbon.photos.find((p) => p.file === 'portrait.jpg')!; // 900 px wide
-		expect(p.sources.avif.map((s) => s.width)).toEqual([320, 640, 900]);
-		expect(p.sources.webp.map((s) => s.width)).toEqual([320, 640, 900]);
-		expect(p.sources.jpeg).toMatch(/-900\.jpg$/);
+		const src = expandSources(p.sources);
+		expect(src.avif.map((s) => s.width)).toEqual([320, 640, 900]);
+		expect(src.webp.map((s) => s.width)).toEqual([320, 640, 900]);
+		expect(src.jpeg).toMatch(/-900\.jpg$/);
 	});
 
 	it('writes AVIF and WebP files under static/media/<album>/', () => {
@@ -244,11 +246,13 @@ describe('incremental cache', () => {
 			.find((a) => a.slug === 'iceland')!
 			.photos.find((p) => p.file === '002.jpg')!;
 		expect(after.id).toBe(before.id);
-		expect(after.sources.jpeg).not.toBe(before.sources.jpeg);
+		expect(expandSources(after.sources).jpeg).not.toBe(expandSources(before.sources).jpeg);
 		expect(report.stats.encoded).toBe(1);
 		expect(report.removed).toBeGreaterThan(0);
 		const dir = join(root, 'static', 'media', 'iceland');
-		expect(readdirSync(dir).some((f) => before.sources.jpeg.endsWith(f))).toBe(false);
+		expect(readdirSync(dir).some((f) => expandSources(before.sources).jpeg.endsWith(f))).toBe(
+			false
+		);
 	});
 });
 
@@ -285,6 +289,6 @@ describe('downloads', () => {
 		const p = report.manifest.albums
 			.find((a) => a.slug === 'lisbon-walks')!
 			.photos.find((p) => p.file === 'landscape.jpg')!;
-		expect(p.download).toMatchObject({ kind: 'large', url: p.sources.jpeg });
+		expect(p.download).toMatchObject({ kind: 'large', url: expandSources(p.sources).jpeg });
 	});
 });

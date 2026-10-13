@@ -19,6 +19,7 @@ import type {
 	PrivateAlbumPayload
 } from '../../src/lib/types.ts';
 import { naturalCompare } from '../../src/lib/utils/text.ts';
+import { expandSources } from '../../src/lib/utils/sources.ts';
 import {
 	PBKDF2_ITERATIONS,
 	deriveKek,
@@ -550,15 +551,18 @@ export async function processAlbum(album: ScannedAlbum, ctx: Context): Promise<A
 		}
 	}
 	const remap = (url: string) => urlMap.get(url) ?? url;
-	const privatePhotos: Photo[] = photos.map((p) => ({
-		...p,
-		sources: {
-			avif: p.sources.avif.map((s) => ({ ...s, url: remap(s.url) })),
-			webp: p.sources.webp.map((s) => ({ ...s, url: remap(s.url) })),
-			jpeg: remap(p.sources.jpeg)
-		},
-		download: p.download ? { ...p.download, url: remap(p.download.url) } : undefined
-	}));
+	const privatePhotos: Photo[] = photos.map((p) => {
+		const src = expandSources(p.sources);
+		return {
+			...p,
+			sources: {
+				avif: src.avif.map((s) => ({ ...s, url: remap(s.url) })),
+				webp: src.webp.map((s) => ({ ...s, url: remap(s.url) })),
+				jpeg: remap(src.jpeg)
+			},
+			download: p.download ? { ...p.download, url: remap(p.download.url) } : undefined
+		};
+	});
 	const payload: PrivateAlbumPayload = {
 		slug: album.slug,
 		title: albumTitle,

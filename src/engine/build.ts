@@ -3,52 +3,9 @@
  * project root and the site root supplying config, manifest, static files and the output dir
  * (see vite.config.ts), then trims the output.
  */
-import {
-	existsSync,
-	mkdirSync,
-	readdirSync,
-	readFileSync,
-	rmSync,
-	statSync,
-	writeFileSync
-} from 'node:fs';
+import { existsSync, readdirSync, rmSync, statSync } from 'node:fs';
 import { join, resolve } from 'node:path';
-import { loadConfig, PACKAGE_ROOT, siteRoot } from './config.ts';
-
-/**
- * Kit's working directory lives in the site root (vite.config.ts sets outDir). Its server
- * output is ES modules, and Node decides the module type from the nearest package.json, which
- * in a standalone site folder may not say "type": "module"; a package.json inside the
- * directory settles it regardless of the user's own.
- */
-function prepareKitDir(): void {
-	const root = siteRoot();
-	const dir = join(root, '.svelte-kit');
-	mkdirSync(dir, { recursive: true });
-	const pkg = join(dir, 'package.json');
-	// Only when needed: a package.json inside .svelte-kit also hides the enclosing package's
-	// `imports` map (#lib/*) from the generated route types, which matters in this checkout.
-	if (nearestPackageType(root) === 'module') {
-		if (existsSync(pkg)) rmSync(pkg);
-	} else if (!existsSync(pkg)) writeFileSync(pkg, '{ "type": "module" }\n');
-}
-
-function nearestPackageType(from: string): string | undefined {
-	let dir = from;
-	for (;;) {
-		const pkg = join(dir, 'package.json');
-		if (existsSync(pkg)) {
-			try {
-				return (JSON.parse(readFileSync(pkg, 'utf8')) as { type?: string }).type;
-			} catch {
-				return undefined;
-			}
-		}
-		const parent = join(dir, '..');
-		if (parent === dir) return undefined;
-		dir = parent;
-	}
-}
+import { loadConfig, PACKAGE_ROOT } from './config.ts';
 
 /**
  * SvelteKit resolves its own paths (outDir, generated entries, files.*) against the working
@@ -57,7 +14,6 @@ function nearestPackageType(from: string): string | undefined {
  * site root known to vite.config.ts and the server loads.
  */
 export async function inPackageDir<T>(fn: () => Promise<T>): Promise<T> {
-	prepareKitDir();
 	const previous = process.cwd();
 	process.chdir(PACKAGE_ROOT);
 	try {

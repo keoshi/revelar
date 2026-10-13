@@ -4,6 +4,7 @@ import { sveltekit } from '@sveltejs/kit/vite';
 import { join, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import type { RevelarConfigInput } from './src/lib/config.ts';
+import { kitOutDir } from './src/engine/config.ts';
 
 /**
  * Two roots. The package root (this folder) is Vite's project root: src/routes, src/lib and
@@ -78,8 +79,9 @@ export default defineConfig({
 			// rendered for /album/photo/ would then resolve against /album/ (header and map links
 			// broke after closing a deep-linked viewer on a subpath deployment).
 			paths: { base: basePath(), relative: false },
-			// Kit's working directory (generated types, build output) belongs to the site root.
-			outDir: join(siteRoot, '.svelte-kit'),
+			// Kit's working directory stays inside the package (see kitOutDir): its server output
+			// imports externals that must resolve from the package's node_modules.
+			outDir: kitOutDir(siteRoot),
 			files: { assets: join(siteRoot, 'static') },
 			// CSS stays in hashed, immutable files shared by every page rather than being inlined:
 			// with one shell per photo, inlining would repeat ~15 KB of styles in each.

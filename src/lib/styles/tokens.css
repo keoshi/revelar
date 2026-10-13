@@ -1,0 +1,87 @@
+/* Revelar design tokens. Dark is the default; light switches by prefers-color-scheme
+   or an explicit data-theme attribute set by the manual toggle. */
+:root {
+	--bg: #0e0e0e;
+	--bg-stage: #000000;
+	--surface: #1a1a1a;
+	--surface-2: #242424;
+	--text: #ececec;
+	--text-muted: #9a9a9a;
+	--hairline: rgb(255 255 255 / 0.08);
+	--accent: var(--accent-dark, #e8c37a);
+	--scrim: rgb(0 0 0 / 0.55);
+
+	--font-sans:
+		'Inter Variable', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+	--font-serif: 'Newsreader Variable', ui-serif, Georgia, 'Times New Roman', serif;
+	--font-ui: var(--font-sans);
+	--font-titles: var(--font-serif);
+
+	--text-xs: 12px;
+	--text-sm: 14px;
+	--text-md: 16px;
+	--text-lg: 20px;
+	--text-xl: 28px;
+	--text-2xl: 40px;
+
+	--radius: 6px;
+	--gutter: 24px;
+	--content-max: 1600px;
+
+	--dur-ui: 160ms;
+	--dur-image: 240ms;
+	--dur-crossfade: 400ms;
+	--ease-out: cubic-bezier(0.2, 0, 0, 1);
+
+	--focus-ring: 0 0 0 2px var(--bg), 0 0 0 4px var(--accent);
+
+	color-scheme: dark;
+}
+
+@media (prefers-color-scheme: light) {
+	:root:not([data-theme='dark']) {
+		--bg: #f6f5f2;
+		--bg-stage: #ecebe7;
+		--surface: #ffffff;
+		--surface-2: #f0efeb;
+		--text: #1a1a1a;
+		--text-muted: #6b6b6b;
+		--hairline: rgb(0 0 0 / 0.08);
+		--accent: var(--accent-light, #8a5a00);
+		--scrim: rgb(255 255 255 / 0.6);
+		color-scheme: light;
+	}
+}
+
+:root[data-theme='light'] {
+	--bg: #f6f5f2;
+	--bg-stage: #ecebe7;
+	--surface: #ffffff;
+	--surface-2: #f0efeb;
+	--text: #1a1a1a;
+	--text-muted: #6b6b6b;
+	--hairline: rgb(0 0 0 / 0.08);
+	--accent: var(--accent-light, #8a5a00);
+	--scrim: rgb(255 255 255 / 0.6);
+	color-scheme: light;
+}
+
+/* The fullscreen viewer always uses the dark stage, regardless of theme. */
+.stage-dark {
+	--bg: #0e0e0e;
+	--bg-stage: #000000;
+	--surface: #1a1a1a;
+	--surface-2: #242424;
+	--text: #ececec;
+	--text-muted: #9a9a9a;
+	--hairline: rgb(255 255 255 / 0.08);
+	--accent: var(--accent-dark, #e8c37a);
+	--scrim: rgb(0 0 0 / 0.55);
+	color-scheme: dark;
+}
+
+@media (max-width: 639px) {
+	:root {
+		--gutter: 16px;
+	}
+}

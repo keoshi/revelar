@@ -43,7 +43,10 @@ test.describe('accessibility (axe-core)', () => {
 
 	test('password gate', async ({ page }) => {
 		const manifest = JSON.parse(
-			readFileSync(join(process.cwd(), 'src/lib/generated/manifest.json'), 'utf8')
+			readFileSync(
+				join(process.env.REVELAR_SITE_ROOT ?? 'tests/e2e/.site', 'src/lib/generated/manifest.json'),
+				'utf8'
+			)
 		);
 		await page.goto(`/p/${manifest.privateAlbums[0].token}/`);
 		await expect(page.getByRole('dialog')).toBeVisible();

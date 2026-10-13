@@ -2,7 +2,11 @@ import { existsSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { EMPTY_MANIFEST, type Manifest, type AlbumSummary } from '#lib/types.ts';
 
-const MANIFEST_PATH = resolve(process.cwd(), 'src/lib/generated/manifest.json');
+/** REVELAR_SITE_ROOT lets the e2e suite build from its own ingest output instead of the real one. */
+const MANIFEST_PATH = resolve(
+	process.env.REVELAR_SITE_ROOT ?? process.cwd(),
+	'src/lib/generated/manifest.json'
+);
 
 let cached: Manifest | undefined;
 

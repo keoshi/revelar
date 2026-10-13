@@ -61,7 +61,10 @@ test.describe('SEO and feeds', () => {
 
 	test('private pages are noindex and have no Open Graph image', async ({ page }) => {
 		const manifest = JSON.parse(
-			readFileSync(join(process.cwd(), 'src/lib/generated/manifest.json'), 'utf8')
+			readFileSync(
+				join(process.env.REVELAR_SITE_ROOT ?? 'tests/e2e/.site', 'src/lib/generated/manifest.json'),
+				'utf8'
+			)
 		);
 		await page.goto(`/p/${manifest.privateAlbums[0].token}/`);
 		await expect(page.locator('meta[name="robots"]')).toHaveAttribute('content', /noindex/);

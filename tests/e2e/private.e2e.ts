@@ -3,11 +3,10 @@ import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 
 const PASSWORD = process.env.REVELAR_TEST_PW ?? 'correct horse battery staple';
+const SITE_ROOT = process.env.REVELAR_SITE_ROOT ?? 'tests/e2e/.site';
 
 function manifest() {
-	return JSON.parse(
-		readFileSync(join(process.cwd(), 'src/lib/generated/manifest.json'), 'utf8')
-	) as {
+	return JSON.parse(readFileSync(join(SITE_ROOT, 'src/lib/generated/manifest.json'), 'utf8')) as {
 		privateAlbums: { token: string }[];
 	};
 }
@@ -89,7 +88,7 @@ test.describe('private albums', () => {
 	test('a #k= key link unlocks without a password', async ({ page, context }) => {
 		const { token } = manifest().privateAlbums[0];
 		const keys = JSON.parse(
-			readFileSync(join(process.cwd(), '.cache/private-keys.json'), 'utf8')
+			readFileSync(join(SITE_ROOT, '.cache/private-keys.json'), 'utf8')
 		) as Record<string, { dek: string }>;
 		const dek = Buffer.from(keys['secret-garden'].dek, 'base64').toString('base64url');
 		await context.clearCookies();

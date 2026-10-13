@@ -34,8 +34,13 @@ export default defineConfig(
 		}
 	},
 	{
-		// Override or add rule settings here, such as:
-		// 'svelte/button-has-type': 'error'
-		rules: {}
+		rules: {
+			'svelte/button-has-type': 'error',
+			// All hrefs and shallow-routing calls go through src/lib/utils/href.ts, which applies the base path via resolve().
+			'svelte/no-navigation-without-resolve': [
+				'error',
+				{ ignoreLinks: true, ignorePushState: true, ignoreReplaceState: true }
+			]
+		}
 	}
 );

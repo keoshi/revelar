@@ -5,4 +5,6 @@
 	let { data }: PageProps = $props();
 </script>
 
-<AlbumPage album={data.album} site={data.site} hasMap={data.hasMap} initialPhoto={data.photoId} />
+{#key data.album.slug}
+	<AlbumPage album={data.album} site={data.site} hasMap={data.hasMap} initialPhoto={data.photoId} />
+{/key}

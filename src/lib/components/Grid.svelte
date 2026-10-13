@@ -174,6 +174,7 @@
 		<a
 			class="tile"
 			data-tile
+			data-index={i}
 			data-aspect={photo.aspect}
 			href={href(photo)}
 			tabindex={i === focusIndex ? 0 : -1}

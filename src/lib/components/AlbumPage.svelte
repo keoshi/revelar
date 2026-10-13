@@ -1,10 +1,15 @@
 <script lang="ts">
-	import { albumHref, withBase } from '../utils/href.ts';
-	import type { AlbumSummary } from '../types.ts';
+	import { onMount, tick } from 'svelte';
+	import { pushState, replaceState } from '$app/navigation';
+	import { page } from '$app/state';
+	import type { AlbumSummary, Photo } from '../types.ts';
 	import type { SiteSettings } from '../config.ts';
+	import { createAlbumState } from '../state/album.svelte.ts';
 	import { expandSources } from '../utils/sources.ts';
+	import { albumHref, photoHref, withBase } from '../utils/href.ts';
 	import AlbumHeader from './AlbumHeader.svelte';
 	import Grid from './Grid.svelte';
+	import Viewer from './Viewer.svelte';
 
 	type Props = {
 		album: AlbumSummary;
@@ -16,11 +21,16 @@
 
 	let { album, site, hasMap, initialPhoto }: Props = $props();
 
+	// svelte-ignore state_referenced_locally -- one store per album page; the page is keyed by slug
+	const albumState = createAlbumState(album, { filmstrip: site.viewer.filmstrip });
+	let grid: Grid | undefined = $state();
+	let viewer: Viewer | undefined = $state();
+	let hydrated = $state(false);
+
 	const current = $derived(
 		initialPhoto ? album.photos.find((p) => p.id === initialPhoto) : undefined
 	);
 	const currentIndex = $derived(current ? album.photos.indexOf(current) : -1);
-
 	const description = $derived(
 		current?.caption ??
 			album.description ??
@@ -34,6 +44,87 @@
 		current ? `${current.title ?? `Photo ${currentIndex + 1}`} · ${album.title}` : album.title
 	);
 	const ogImage = $derived(expandSources((current ?? album.cover).sources).jpeg);
+
+	function indexOf(id: string | undefined): number {
+		if (!id) return -1;
+		return album.photos.findIndex((p) => p.id === id);
+	}
+
+	// ---- shallow routing ------------------------------------------------------
+	// page.state.photo is the single source of truth once hydrated: opening from the
+	// grid pushes state, the viewer replaces state as it moves, Back/Forward pop it,
+	// and the effect below keeps the album store in sync (pushState is async in Kit 3).
+	let pendingOpen: { autoplay: boolean; fromGrid: boolean } | undefined;
+
+	function openFromGrid(i: number, autoplay = false) {
+		pendingOpen = { autoplay, fromGrid: true };
+		void pushState(photoHref(album.slug, album.photos[i].id), {
+			photo: album.photos[i].id,
+			viewerPushed: true
+		});
+	}
+
+	function onIndexChange(i: number) {
+		const id = album.photos[i]?.id;
+		if (!id || page.state.photo === id) return;
+		void replaceState(photoHref(album.slug, id), {
+			photo: id,
+			viewerPushed: page.state.viewerPushed
+		});
+	}
+
+	function onRequestClose() {
+		if (page.state.viewerPushed) history.back();
+		else void replaceState(albumHref(album.slug), {});
+		albumState.close();
+	}
+
+	function onClosed() {
+		grid?.focusTile(albumState.index);
+	}
+
+	$effect(() => {
+		if (!hydrated) return;
+		const id = page.state.photo;
+		const idx = indexOf(id);
+		if (!id || idx < 0) {
+			if (albumState.mode === 'viewer') albumState.close();
+			return;
+		}
+		if (albumState.mode === 'grid') {
+			const opts = pendingOpen ?? { autoplay: false, fromGrid: false };
+			pendingOpen = undefined;
+			albumState.open(idx, opts);
+		} else if (idx !== albumState.index) {
+			albumState.goTo(idx);
+		}
+	});
+
+	onMount(async () => {
+		if (initialPhoto && indexOf(initialPhoto) >= 0) {
+			await replaceState('', { photo: initialPhoto, viewerPushed: false });
+		}
+		await tick();
+		hydrated = true;
+	});
+
+	function getThumbEl(i: number): HTMLElement | null {
+		return document.querySelector<HTMLElement>(`[data-tile][data-index="${i}"] img`);
+	}
+
+	function downloadFor(photo: Photo) {
+		if (!photo.download) return undefined;
+		const stem = photo.file.replace(/\.[^.]+$/, '');
+		const ext =
+			photo.download.kind === 'large' || photo.download.url.endsWith('.jpg')
+				? 'jpg'
+				: photo.file.split('.').pop();
+		return {
+			href: withBase(photo.download.url),
+			name: `${album.slug}-${stem}.${ext}`,
+			bytes: photo.download.bytes
+		};
+	}
 </script>
 
 <svelte:head>
@@ -61,10 +152,17 @@
 		language={site.language}
 		albumDownload={album.albumDownload}
 		mapHref={hasMap ? `${albumHref(album.slug)}map/` : undefined}
+		onPlay={() => openFromGrid(0, true)}
 	/>
-	<Grid photos={album.photos} albumSlug={album.slug} rowHeight={site.viewer.gridRowHeight} />
-	{#if current}
-		<!-- Plain markup for crawlers and no-JS visitors; the viewer replaces it once hydrated. -->
+	<Grid
+		bind:this={grid}
+		photos={album.photos}
+		albumSlug={album.slug}
+		rowHeight={site.viewer.gridRowHeight}
+		onOpen={(i) => openFromGrid(i)}
+	/>
+	{#if current && !hydrated}
+		<!-- Plain markup for crawlers and no-JS visitors; the viewer takes over once hydrated. -->
 		<figure class="deep-link">
 			<img
 				src={withBase(ogImage)}
@@ -80,6 +178,23 @@
 		</figure>
 	{/if}
 </section>
+
+<Viewer
+	bind:this={viewer}
+	{albumState}
+	albumSlug={album.slug}
+	albumTitle={album.title}
+	language={site.language}
+	slideshowInterval={site.viewer.slideshowInterval}
+	transition={site.viewer.transition}
+	filmstripEnabled={site.viewer.filmstrip}
+	exifPanel={album.exifPanel && site.defaults.exifPanel}
+	{getThumbEl}
+	{downloadFor}
+	{onIndexChange}
+	{onRequestClose}
+	{onClosed}
+/>
 
 <style>
 	.album {

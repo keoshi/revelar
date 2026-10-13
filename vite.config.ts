@@ -88,7 +88,9 @@ export default defineConfig({
 			}
 		})
 	],
-	// MapLibre spawns its worker from its own module URL; the dev pre-bundle breaks that.
+	// MapLibre is large and self-contained; keeping it out of the dev pre-bundle avoids a slow
+	// re-optimisation when the map page is first opened. (Its worker URL is set explicitly in
+	// MapView.svelte, so the pre-bundle's module URL no longer matters.)
 	// `$config` (used by src/lib/server/site.ts) resolves to the active config file; its type is
 	// declared in src/config.d.ts.
 	resolve: { alias: { $config: configPath } },

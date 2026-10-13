@@ -9,6 +9,9 @@
 	 */
 	import { onMount } from 'svelte';
 	import type { Map as MapLibreMap } from 'maplibre-gl';
+	// MapLibre looks for its worker next to its own module URL, which after bundling is a chunk
+	// with no such neighbour. Bundle the worker as its own hashed file and point MapLibre at it.
+	import mapWorkerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url';
 	import type { FeatureCollection, Point } from 'geojson';
 	import type { PhotoGps } from '../types.ts';
 	import type { PhotoSources } from '../utils/sources.ts';
@@ -121,6 +124,7 @@
 				return;
 			}
 			if (cancelled) return;
+			maplibre.setWorkerUrl(mapWorkerUrl);
 			const byId = new Map(photos.map((p) => [p.id, p]));
 			let m: MapLibreMap;
 			try {

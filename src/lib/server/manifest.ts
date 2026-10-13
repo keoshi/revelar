@@ -1,4 +1,4 @@
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, readFileSync, statSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { EMPTY_MANIFEST, type Manifest, type AlbumSummary } from '#lib/types.ts';
 
@@ -9,9 +9,14 @@ const MANIFEST_PATH = resolve(
 );
 
 let cached: Manifest | undefined;
+let cachedMtime = 0;
 
 /** Reads the manifest written by `scripts/ingest.ts`. Server-only; never shipped to the client. */
 export function loadManifest(): Manifest {
+	if (cached && import.meta.env.DEV && existsSync(MANIFEST_PATH)) {
+		// In dev the watcher re-ingests on changes; pick up the new manifest without a restart.
+		if (statSync(MANIFEST_PATH).mtimeMs !== cachedMtime) cached = undefined;
+	}
 	if (cached) return cached;
 	if (!existsSync(MANIFEST_PATH)) {
 		console.warn(
@@ -21,6 +26,7 @@ export function loadManifest(): Manifest {
 		return cached;
 	}
 	cached = JSON.parse(readFileSync(MANIFEST_PATH, 'utf8')) as Manifest;
+	cachedMtime = statSync(MANIFEST_PATH).mtimeMs;
 	return cached;
 }
 

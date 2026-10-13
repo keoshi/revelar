@@ -38,7 +38,7 @@ photos/
 
 Accepted formats: JPEG, PNG, WebP, AVIF, TIFF and HEIC (HEIC only where the bundled libvips supports it; otherwise the file is skipped with a warning).
 
-The slug is the folder name, lowercased and slugified, with an optional `YYYY-MM-DD-` or `YYYY-` prefix stripped and used as the album date. The slugs `p` and `map` are reserved and get an `-album` suffix.
+The slug is the folder name, lowercased and slugified, with an optional `YYYY-MM-DD`, `YYYY-MM` or `YYYY` prefix (followed by `-`, `_` or a space, as in `2026-10 Porto`) stripped and used as the album date. The slugs `p` and `map` are reserved and get an `-album` suffix.
 
 Each photo gets a stable id from its path (renaming a file changes the id, editing pixels does not). Derivative filenames carry a content hash, so edits bust caches.
 

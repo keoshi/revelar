@@ -1,4 +1,5 @@
 import { defineConfig } from 'vitest/config';
+import type { Plugin } from 'vite';
 import adapter from '@sveltejs/adapter-static';
 import { sveltekit } from '@sveltejs/kit/vite';
 import { resolve } from 'node:path';
@@ -24,8 +25,26 @@ function basePath(): '' | `/${string}` {
 	return path === '' ? '' : (`/${path.replace(/^\/+/, '')}` as `/${string}`);
 }
 
+/** Dev only: reload open pages when the ingest script rewrites the manifest. */
+function manifestReload(): Plugin {
+	const manifest = resolve(siteRoot ?? process.cwd(), 'src/lib/generated/manifest.json');
+	return {
+		name: 'revelar-manifest-reload',
+		apply: 'serve',
+		configureServer(server) {
+			server.watcher.add(manifest);
+			const reload = (file: string) => {
+				if (file === manifest) server.ws.send({ type: 'full-reload' });
+			};
+			server.watcher.on('change', reload);
+			server.watcher.on('add', reload);
+		}
+	};
+}
+
 export default defineConfig({
 	plugins: [
+		manifestReload(),
 		sveltekit({
 			compilerOptions: {
 				// Force runes mode for the project, except for libraries. Can be removed in svelte 6.

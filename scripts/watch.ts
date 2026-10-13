@@ -9,8 +9,6 @@ import { loadConfig, ROOT } from './ingest/config.js';
 const config = await loadConfig();
 const photosDir = resolve(ROOT, config.photosDir);
 
-await runIngest();
-
 let pending: NodeJS.Timeout | undefined;
 let running = false;
 let queued = false;
@@ -44,12 +42,17 @@ chokidar
 		pending = setTimeout(() => void reingest(), 300);
 	});
 
+// Vite starts first so the dev server is reachable while the (possibly long) first ingest
+// runs; the manifest watcher in vite.config.ts reloads open pages when ingest finishes.
 const vite = spawn('npx', ['vite', 'dev', ...process.argv.slice(2)], {
 	stdio: 'inherit',
 	cwd: ROOT,
 	shell: process.platform === 'win32'
 });
 vite.on('exit', (code) => process.exit(code ?? 0));
+
+console.log('Ingesting photos in the background; open pages reload when the manifest is updated.');
+void reingest();
 process.on('SIGINT', () => {
 	vite.kill('SIGINT');
 	process.exit(0);

@@ -40,13 +40,15 @@ export function heicSupported(): boolean {
 	return Boolean(sharp.format.heif?.input?.file);
 }
 
-/** Split `2025-03-14-lisbon` / `2025-lisbon` into a date and the remaining name. */
+/**
+ * Split a folder name into an optional date prefix and the album name:
+ * `2025-03-14-lisbon`, `2025-03 Lisbon`, `2025_lisbon` → date 2025-03-14 / 2025-03 / 2025.
+ */
 export function parseFolderName(folder: string): { name: string; date?: string } {
-	const full = folder.match(/^((?:19|20)\d{2})-(\d{2})-(\d{2})-(.+)$/);
-	if (full) return { name: full[4], date: `${full[1]}-${full[2]}-${full[3]}` };
-	const year = folder.match(/^((?:19|20)\d{2})-(.+)$/);
-	if (year) return { name: year[2], date: year[1] };
-	return { name: folder };
+	const m = folder.match(/^((?:19|20)\d{2})(?:-(\d{2})(?:-(\d{2}))?)?[-_ ]+(.+)$/);
+	if (!m) return { name: folder };
+	const date = [m[1], m[2], m[3]].filter(Boolean).join('-');
+	return { name: m[4], date };
 }
 
 export function scanPhotos(photosDir: string, warn: (msg: string) => void): ScannedAlbum[] {

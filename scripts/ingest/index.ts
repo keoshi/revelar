@@ -35,7 +35,9 @@ export type IngestReport = {
 
 export async function runIngest(opts: IngestOptions = {}): Promise<IngestReport> {
 	const started = performance.now();
-	const root = opts.root ?? ROOT;
+	// Always absolute: cache entries and the prune keep-set store derivative paths, and a
+	// relative root would make them disagree with a later run that passes an absolute one.
+	const root = resolve(opts.root ?? ROOT);
 	const log = opts.quiet ? () => {} : (msg: string) => console.log(msg);
 	const warnings: string[] = [];
 	const errors: string[] = [];
@@ -46,6 +48,17 @@ export async function runIngest(opts: IngestOptions = {}): Promise<IngestReport>
 	const error = (msg: string) => {
 		errors.push(msg);
 		console.error(`  error ${msg}`);
+	};
+
+	// Encoding a large album can take minutes; show where it is. A TTY gets a line updated in
+	// place, anything else (CI logs) a line every 25 files.
+	const tty = !opts.quiet && Boolean(process.stdout.isTTY);
+	const progress = (slug: string, done: number, total: number) => {
+		if (opts.quiet) return;
+		if (tty) {
+			process.stdout.write(`\r  ${slug.padEnd(28)} ${done}/${total}`);
+			if (done === total) process.stdout.write(`\r${' '.repeat(32 + String(total).length * 2)}\r`);
+		} else if (done % 25 === 0 && done < total) log(`  ${slug.padEnd(28)} ${done}/${total}`);
 	};
 
 	const config = opts.config ? validateConfig(opts.config) : await loadConfig();
@@ -74,6 +87,7 @@ export async function runIngest(opts: IngestOptions = {}): Promise<IngestReport>
 		force: Boolean(opts.force),
 		warn,
 		error,
+		progress,
 		stats: { albums: 0, photos: 0, encoded: 0, reused: 0, encryptedFiles: 0, zips: 0 },
 		dirs,
 		tokens,

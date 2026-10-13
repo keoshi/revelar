@@ -6,6 +6,7 @@ import exifr from 'exifr';
 import sharp from 'sharp';
 import { generateFixtures } from '../fixtures/generate.ts';
 import { runIngest, type IngestReport } from '../../scripts/ingest/index.ts';
+import { parseFolderName } from '../../scripts/ingest/scan.ts';
 import type { AlbumSummary } from '../../src/lib/types.ts';
 import type { RevelarConfigInput } from '../../src/lib/config.ts';
 import { expandSources } from '../../src/lib/utils/sources.ts';
@@ -27,6 +28,19 @@ beforeAll(async () => {
 	first = await runIngest({ root, config, quiet: true });
 	lisbon = first.manifest.albums.find((a) => a.slug === 'lisbon-walks')!;
 }, 120_000);
+
+describe('parseFolderName', () => {
+	it('splits date prefixes of any precision from the album name', () => {
+		expect(parseFolderName('2025-03-14-lisbon-walks')).toEqual({
+			name: 'lisbon-walks',
+			date: '2025-03-14'
+		});
+		expect(parseFolderName('2026-10 Porto-Vigo')).toEqual({ name: 'Porto-Vigo', date: '2026-10' });
+		expect(parseFolderName('2025_lisbon')).toEqual({ name: 'lisbon', date: '2025' });
+		expect(parseFolderName('2024-100-photos')).toEqual({ name: '100-photos', date: '2024' });
+		expect(parseFolderName('Porto')).toEqual({ name: 'Porto' });
+	});
+});
 
 describe('scan', () => {
 	it('turns subfolders into albums and ignores drafts and stray files', () => {

@@ -8,7 +8,7 @@ import {
 	readdirSync
 } from 'node:fs';
 import { createHash } from 'node:crypto';
-import { basename, extname, join, relative } from 'node:path';
+import { basename, extname, join, relative, resolve } from 'node:path';
 import { marked } from 'marked';
 import type pLimit from 'p-limit';
 import type { RevelarConfig } from '../../src/lib/config.ts';
@@ -43,6 +43,7 @@ import {
 } from './metadata.ts';
 import { loadSidecar, normaliseDate, type PhotoOverride, type Sidecar } from './sidecar.ts';
 import type { ScannedAlbum, ScannedFile } from './scan.ts';
+import { parseFolderName } from './scan.ts';
 import { writeStoreZip } from './zip.ts';
 
 export type Stats = {
@@ -63,6 +64,8 @@ export type Context = {
 	force: boolean;
 	warn: (msg: string) => void;
 	error: (msg: string) => void;
+	/** called after each file of an album finishes (encoded or reused) */
+	progress: (slug: string, done: number, total: number) => void;
 	stats: Stats;
 	dirs: {
 		root: string;
@@ -361,6 +364,7 @@ export async function processAlbum(album: ScannedAlbum, ctx: Context): Promise<A
 	const downloadsUrl = `/downloads/${album.slug}`;
 
 	// Process every file (bounded concurrency), keeping cache entries alive for pruning.
+	let done = 0;
 	const results = await Promise.all(
 		album.files.map((file) =>
 			ctx.limit(async () => {
@@ -369,14 +373,15 @@ export async function processAlbum(album: ScannedAlbum, ctx: Context): Promise<A
 				} catch (e) {
 					ctx.warn(`${file.rel}: ${(e as Error).message}; skipped`);
 					return undefined;
+				} finally {
+					ctx.progress(album.slug, ++done, album.files.length);
 				}
 			})
 		)
 	);
 
 	const albumTitle =
-		sidecar.title?.trim() ||
-		album.folder.replace(/^(?:19|20)\d{2}(?:-\d{2}-\d{2})?-/, '').replace(/[-_]+/g, ' ');
+		sidecar.title?.trim() || parseFolderName(album.folder).name.replace(/[-_]+/g, ' ');
 	const items: Processed[] = [];
 	for (const r of results) {
 		if (!r) continue;
@@ -456,7 +461,7 @@ export async function processAlbum(album: ScannedAlbum, ctx: Context): Promise<A
 			downloadEntries.push({ path: download.file, name: download.name, bytes: download.bytes });
 			ctx.keep.add(download.file);
 		}
-		for (const f of d.files) ctx.keep.add(f);
+		for (const f of d.files) ctx.keep.add(resolve(f));
 		photos.push(photo);
 	}
 

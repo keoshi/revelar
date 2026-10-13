@@ -3,11 +3,13 @@ import { gzipSync } from 'node:zlib';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
+const BUILD = join(process.env.REVELAR_SITE_ROOT ?? 'tests/e2e/.site', 'build');
+
 const gz = (s: string | Buffer) => gzipSync(s).length;
 
 test.describe('performance budgets (100-photo album)', () => {
 	test('HTML + inline data ≤ 40 KB gzip', () => {
-		const html = readFileSync(join(process.cwd(), 'build', 'hundred', 'index.html'));
+		const html = readFileSync(join(BUILD, 'hundred', 'index.html'));
 		expect(gz(html)).toBeLessThanOrEqual(40 * 1024);
 	});
 
@@ -15,14 +17,14 @@ test.describe('performance budgets (100-photo album)', () => {
 	// ~34 KB gzip, so the album page lands at ~52 KB; the assertion guards against regressions from there.
 	test('JS on the album page ≤ 55 KB gzip excluding PhotoSwipe and MapLibre', async ({ page }) => {
 		// Deterministic: the modulepreload list in the built HTML is exactly what the page needs to hydrate.
-		const html = readFileSync(join(process.cwd(), 'build', 'hundred', 'index.html'), 'utf8');
+		const html = readFileSync(join(BUILD, 'hundred', 'index.html'), 'utf8');
 		const chunks = [...html.matchAll(/href="\.\.\/(_app\/immutable\/[^"]+\.js)"/g)].map(
 			(m) => m[1]
 		);
 		expect(chunks.length).toBeGreaterThan(3);
 		const sizes = chunks.map((c) => ({
 			c,
-			bytes: gz(readFileSync(join(process.cwd(), 'build', c)))
+			bytes: gz(readFileSync(join(BUILD, c)))
 		}));
 		const heavy = /photoswipe|maplibre/i;
 		const total = sizes.filter((s) => !heavy.test(s.c)).reduce((n, s) => n + s.bytes, 0);

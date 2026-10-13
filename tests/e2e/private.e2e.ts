@@ -33,7 +33,7 @@ test.describe('unlisted albums', () => {
 
 test.describe('private albums', () => {
 	test('nothing from the private album appears in plaintext in build/', () => {
-		const files = walk(join(process.cwd(), 'build')).filter(
+		const files = walk(join(SITE_ROOT, 'build')).filter(
 			(f) => !/\.(avif|webp|jpg|png|zip|woff2|bin)$/.test(f)
 		);
 		for (const f of files) {
@@ -44,7 +44,7 @@ test.describe('private albums', () => {
 			expect(text, f).not.toContain('Secret garden');
 		}
 		const { token } = manifest().privateAlbums[0];
-		const bins = walk(join(process.cwd(), 'build', 'media-private', token));
+		const bins = walk(join(SITE_ROOT, 'build', 'media-private', token));
 		expect(bins.length).toBeGreaterThan(6);
 		for (const b of bins) {
 			const head = readFileSync(b).subarray(0, 12).toString('latin1');

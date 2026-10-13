@@ -8,6 +8,7 @@ import revelar from './revelar.config.ts';
 // The e2e suite ingests fixtures into its own root (see tests/e2e/prepare.ts) so it never
 // touches photos/ or the real generated output.
 const siteRoot = process.env.REVELAR_SITE_ROOT ? resolve(process.env.REVELAR_SITE_ROOT) : undefined;
+const buildDir = siteRoot ? resolve(siteRoot, 'build') : 'build';
 
 // paths.base is derived from site.baseUrl so the site works from a subpath
 // (e.g. https://user.github.io/photos → /photos). BASE_PATH overrides it.
@@ -51,7 +52,7 @@ export default defineConfig({
 				runes: ({ filename }) =>
 					filename.split(/[/\\]/).includes('node_modules') ? undefined : true
 			},
-			adapter: adapter({ pages: 'build', assets: 'build', precompress: false, strict: true }),
+			adapter: adapter({ pages: buildDir, assets: buildDir, precompress: false, strict: true }),
 			paths: { base: basePath() },
 			...(siteRoot ? { files: { assets: resolve(siteRoot, 'static') } } : {}),
 			// Page CSS files are small; inlining them removes render-blocking round trips.

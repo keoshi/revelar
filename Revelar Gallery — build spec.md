@@ -2,6 +2,8 @@
 
 Oct 13, 2026 · @Filipe Varela
 
+> **Status.** Built on Oct 13, 2026, through all ten milestones below. This is the original spec, amended where the implementation deliberately differs; those amendments are marked **As built** inline and summarised in [As built: deviations from this spec](#as-built-deviations-from-this-spec). The live site is at https://dev.keoshi.com/revelar/ and the code is on GitHub at https://github.com/keoshi/revelar.
+
 ## Overview
 
 Revelar (Portuguese for "to develop", as in film) is a static, photo-first gallery website where dropping photos into folders and running one build command produces a complete, polished site. It is a modern successor to SlideShowPro (Todd Dominey, 2005): the same "folder in, beautiful gallery out" promise, rebuilt with SvelteKit, modern image formats and no plugin runtime.
@@ -42,9 +44,11 @@ The static-host constraint shapes two features: private albums use client-side e
 
 Use the latest stable release of each package at scaffold time and commit the lockfile. Do not use pre-release majors (for example SvelteKit 3 `@next`).
 
+**As built:** SvelteKit 3.0 had shipped as stable by scaffold time, so the project is on Kit 3 (configuration lives in `vite.config.ts`, `#lib/*` subpath imports with explicit `.ts` extensions, async `pushState`). Node 24 is used locally.
+
 | Layer                   | Package                                                                      | Why                                                                                                             |
 | ----------------------- | ---------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
-| Framework               | `@sveltejs/kit` 2.x, `svelte` 5.x, `@sveltejs/adapter-static`                | Prerendered output, runes for state, tiny runtime ([SvelteKit releases](https://releases.sh/svelte/sveltekit))  |
+| Framework               | `@sveltejs/kit` 3.x, `svelte` 5.x, `@sveltejs/adapter-static`                | Prerendered output, runes for state, tiny runtime ([SvelteKit releases](https://releases.sh/svelte/sveltekit))  |
 | Language                | TypeScript (strict), Node 22 LTS or newer                                    | Typed manifest shared by build script and UI                                                                    |
 | Scaffolding             | `npx sv create` (minimal template, TS, Prettier, ESLint, Vitest, Playwright) | Official CLI                                                                                                    |
 | Image processing        | `sharp`                                                                      | libvips-based resizing to AVIF/WebP/JPEG with correct ICC handling                                              |
@@ -203,7 +207,7 @@ Every route is prerendered (`export const prerender = true` in the root layout; 
 
 | Route               | Purpose                                                           | Notes                                                                 |
 | ------------------- | ----------------------------------------------------------------- | --------------------------------------------------------------------- |
-| `/`                 | Home: grid of album covers, newest first (or `config.albumOrder`) | Public albums only; site title, optional intro text                   |
+| `/`                 | Home: grid of album covers, newest first (or `config.albumOrder`) | Public albums only; site title, optional intro text. **As built:** a site with exactly one public album prerenders `/` as a redirect to that album, and the header title links there |
 | `/[album]/`         | Album: justified grid with title, date, description, count        | Always the first view of an album; Play and Map actions in the header |
 | `/[album]/[photo]/` | Album grid with the fullscreen viewer open on one photo           | Prerendered per photo so links unfurl with the right Open Graph image |
 | `/[album]/map/`     | Map of the album's geotagged photos                               | Only generated when ≥1 photo has displayable GPS                      |
@@ -241,7 +245,7 @@ One immersive viewer replaces a separate slideshow and lightbox; the filmstrip l
 - Filmstrip: along the bottom, 72 px square-cropped thumbnails (56 px on mobile). The active thumb is centred with smooth scroll and shown at full opacity with an underline; others sit at 55%. Drag- and wheel-scrollable, virtualised past 200 items, toggled with T. Collapsed by default below 640 px width, revealed by a tap on the counter.
 - Controls: close, counter ("12 / 48"), previous, next, play/pause, info, download (when enabled), filmstrip toggle, native fullscreen (Fullscreen API where supported; on iOS the viewer is already edge-to-edge).
 - Chrome (controls, caption, filmstrip) auto-hides after 2.5 s of inactivity; any pointer move or tap brings it back.
-- Transitions: PhotoSwipe's slide on manual navigation. During autoplay, a 400 ms crossfade (`cubic-bezier(0.2, 0, 0, 1)`), starting only after `img.decode()` resolves. If the crossfade fights PhotoSwipe's slide model, fall back to its slide transition and note it. `prefers-reduced-motion` makes all changes instant.
+- Transitions: PhotoSwipe's slide on manual navigation. During autoplay, a 400 ms crossfade (`cubic-bezier(0.2, 0, 0, 1)`), starting only after `img.decode()` resolves. If the crossfade fights PhotoSwipe's slide model, fall back to its slide transition and note it. `prefers-reduced-motion` makes all changes instant. **As built:** `config.viewer.transition` applies to manual navigation as well as autoplay (`crossfade`, the default, fades through an opaque layer in 240 ms when navigating and 400 ms between slideshow photos; `slide` keeps PhotoSwipe's slide; `none` is instant). Swipes always follow the finger.
 - Autoplay: advances every 5 s (`config.viewer.slideshowInterval`) with a thin progress line on the controls; pauses on any interaction, when the tab is hidden, or when the info panel opens. Loops at the end.
 - Caption: bottom-left over a subtle gradient scrim, above the filmstrip; title (semibold) and caption, at most 3 lines, expandable.
 - Preloading: next and previous photos at the viewport's resolved size; during autoplay, also the one after next.
@@ -298,6 +302,7 @@ Limits to state in the README: security equals password strength (recommend 16+ 
 - Markers are circular photo thumbnails (40 px), clustered with MapLibre's built-in GeoJSON clustering; cluster badges show counts. Clicking a marker opens that photo in the fullscreen viewer; clicking a cluster zooms in.
 - Initial view fits `bounds` with 48 px padding.
 - Lazy: the map library is dynamically imported only on map routes.
+- **As built:** markers are 56 px DOM thumbnails positioned by MapLibre (the GL sprite atlas did not reliably show images added at runtime). Clustering runs to zoom 19; clicking a cluster whose photos share one point (common with rounded coordinates) opens a popup grid of its thumbnails instead of zooming. MapLibre's worker is bundled as its own hashed file and set with `setWorkerUrl`, because the default lookup next to the module URL breaks once the module is bundled.
 
 **GPS privacy** (site default `location: show | approximate | hide`, overridable per album and photo):
 
@@ -333,7 +338,7 @@ Slideshow and lightbox always use the dark stage regardless of theme, so photos 
 
 **Typography**
 
-- One variable sans for UI (`Inter Variable` self-hosted, or system UI stack via config) and an optional serif for album titles (`Newsreader` or system serif).
+- One variable sans for UI (`Inter Variable` self-hosted, or system UI stack via config) and an optional serif for album titles (`Newsreader` or system serif). **As built:** Inter only; the serif and `theme.fontTitles` were dropped on Oct 13, 2026.
 - Scale: 12 / 14 / 16 / 20 / 28 / 40 px; album titles 40/28 px; captions 14 px with 1.5 line height; exposure data uses tabular figures.
 
 **Layout**
@@ -361,7 +366,7 @@ Slideshow and lightbox always use the dark stage regardless of theme, so photos 
 | LCP                                                           | ≤ 2.0 s                                                 |
 | CLS                                                           | ≤ 0.01 (every image has width/height from the manifest) |
 | INP                                                           | ≤ 150 ms                                                |
-| JS on album page (gzip, excluding PhotoSwipe and MapLibre)    | ≤ 45 KB                                                 |
+| JS on album page (gzip, excluding PhotoSwipe and MapLibre)    | ≤ 45 KB (**as built:** about 52 KB, of which 34 KB is the Svelte 5 runtime plus the Kit 3 client baseline; the e2e test asserts ≤ 55 KB) |
 | HTML + inline data for a 100-photo album (gzip)               | ≤ 40 KB                                                 |
 | Lighthouse Performance / Accessibility / Best Practices / SEO | ≥ 95 each                                               |
 
@@ -384,8 +389,9 @@ export default defineConfig({
 	site: {
 		title: 'Photographs',
 		description: 'Selected work',
-		baseUrl: 'https://photos.example.com', // required for canonical/OG
+		baseUrl: 'https://photos.example.com', // required for canonical/OG; its path becomes paths.base
 		author: 'Your Name',
+		authorUrl: 'https://example.com', // as built: linked from the footer and used as the creator URL
 		copyright: '© Your Name',
 		language: 'en',
 		intro: '' // Markdown shown on home
@@ -395,7 +401,7 @@ export default defineConfig({
 	albumManualOrder: [], // slugs, when manual
 	defaults: {
 		sort: 'date-asc',
-		downloads: 'none', // none | large | original
+		downloads: 'large', // none | large | original (as built: defaults to large, so album zips are on)
 		location: 'approximate', // show | approximate | hide
 		exifPanel: true
 	},
@@ -415,8 +421,7 @@ export default defineConfig({
 	theme: {
 		mode: 'system', // system | dark | light
 		accent: '#e8c37a',
-		fontSans: 'inter', // inter | system
-		fontTitles: 'serif' // serif | sans
+		fontSans: 'inter' // inter | system (as built: no fontTitles; Inter is the only typeface)
 	},
 	map: {
 		enabled: true,
@@ -471,6 +476,13 @@ export default defineConfig({
 - Ship a `_headers` file (Netlify/Cloudflare) setting `Cache-Control: public, max-age=31536000, immutable` for `/media*` and a short cache for HTML.
 - Large libraries: document that photos can live outside the repo (`photosDir` absolute path) and that a local build + rsync is the recommended path for thousands of photos.
 
+**As built**
+
+- `site.baseUrl` may include a path; it becomes `paths.base`, so the site works from a subfolder (`BASE_PATH` overrides it). All links are relative, so a build also survives being dropped into a different folder, but canonical, Open Graph, sitemap and RSS URLs only match when `baseUrl` is right.
+- `REVELAR_CONFIG=path/to/config.ts` selects another config file for ingest, dev and build. The e2e suite uses `tests/e2e/revelar.config.ts` and its own site root (`tests/e2e/.site`), so it never touches `photos/`, `build/` or the owner's settings.
+- Media (`media/`, `downloads/`) are content-hashed and unaffected by config or code changes; a redeploy after such changes only needs the HTML, `__data.json`, `_app/` and feed files.
+- The first deployment is a hand upload to `https://dev.keoshi.com/revelar/` (nginx).
+
 ## Build plan and acceptance criteria
 
 Claude Code should build in these milestones, committing at the end of each and stopping to report before moving on. Each milestone is done only when its checks pass.
@@ -500,9 +512,27 @@ Claude Code should build in these milestones, committing at the end of each and 
 - [ ] Zero axe-core violations.
 - [ ] Works in the latest two versions of Safari (macOS and iOS), Chrome and Firefox.
 
+## As built: deviations from this spec
+
+Recorded on Oct 13, 2026. Each is deliberate; do not "fix" them back without a decision.
+
+| Area          | Spec                                             | As built                                                                                                                                     |
+| ------------- | ------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| Framework     | SvelteKit 2.x                                    | SvelteKit 3.0 (current stable at scaffold time)                                                                                              |
+| Typography    | Inter plus optional serif for titles             | Inter Variable only                                                                                                                          |
+| Transitions   | Slide on manual navigation, crossfade in autoplay | `viewer.transition` applies to both; crossfade by default                                                                                    |
+| Downloads     | Default `none`                                   | Default `large`, so album zips are built unless turned off                                                                                   |
+| Home page     | Grid of album covers                             | Single-album sites redirect `/` to the album                                                                                                 |
+| Map markers   | 40 px GL sprites                                 | 56 px DOM thumbnails; clusters to zoom 19; popup grid for photos sharing one point; worker shipped as a hashed file                            |
+| JS budget     | ≤ 45 KB gzip on the album page                   | About 52 KB; test asserts ≤ 55 KB                                                                                                            |
+| Config        | One file at the root                             | Plus `site.authorUrl` (footer link, creator URL) and `REVELAR_CONFIG` for alternate config files                                             |
+| Site settings | `location: approximate`, placeholder author/URL  | The owner's site uses `location: show`, author Filipe Varela with https://keoshi.com, base URL `https://dev.keoshi.com/revelar`                |
+
+Known follow-up: every prerendered photo page embeds the whole album's data (about 575 KB of HTML each for a 274-photo album). Loading album data once from a shared JSON file would cut the output size by roughly 200 MB for that album.
+
 ## Open questions
 
-- [ ] Name is Revelar (decided); domain still to choose.
+- [x] Name is Revelar (decided). Domain: `https://dev.keoshi.com/revelar/` for now; a final domain is still to choose.
 - [ ] Default album view: grid first, viewer on demand (decided).
 - [ ] Should the home page show album covers only, or a featured photo hero above them?
 - [ ] Self-host map tiles as a PMTiles file later, to remove the OpenFreeMap dependency?

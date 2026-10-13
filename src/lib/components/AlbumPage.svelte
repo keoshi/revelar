@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { onMount, tick, untrack } from 'svelte';
-	import { pushState, replaceState } from '$app/navigation';
+	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
 	import type { AlbumSummary, Photo } from '../types.ts';
 	import type { SiteSettings } from '../config.ts';
@@ -21,7 +21,12 @@
 		inlineScript?: string;
 	};
 
-	let { album, site, hasMap, initialPhoto, inlineScript }: Props = $props();
+	let { album: albumProp, site, hasMap, initialPhoto, inlineScript }: Props = $props();
+	// The page re-keys this component per album, so the album is fixed for its lifetime. Reading
+	// the prop once also keeps teardown safe: navigating to a route without album data updates
+	// the props before the component unmounts.
+	// svelte-ignore state_referenced_locally
+	const album = albumProp;
 
 	// One store per album page; the page component is keyed by slug.
 	// svelte-ignore state_referenced_locally
@@ -101,29 +106,30 @@
 	// ---- shallow routing ------------------------------------------------------
 	// page.state.photo is the single source of truth once hydrated: opening from the
 	// grid pushes state, the viewer replaces state as it moves, Back/Forward pop it,
-	// and the effect below keeps the album store in sync (pushState is async in Kit 3).
+	// and the effect below keeps the album store in sync (shallow goto is async in Kit 3).
 	let pendingOpen: { autoplay: boolean; fromGrid: boolean } | undefined;
 
 	function openFromGrid(i: number, autoplay = false) {
 		pendingOpen = { autoplay, fromGrid: true };
-		void pushState(photoHref(album.slug, album.photos[i].id), {
-			photo: album.photos[i].id,
-			viewerPushed: true
+		void goto(photoHref(album.slug, album.photos[i].id), {
+			shallow: true,
+			state: { photo: album.photos[i].id, viewerPushed: true }
 		});
 	}
 
 	function onIndexChange(i: number) {
 		const id = album.photos[i]?.id;
 		if (!id || page.state.photo === id) return;
-		void replaceState(photoHref(album.slug, id), {
-			photo: id,
-			viewerPushed: page.state.viewerPushed
+		void goto(photoHref(album.slug, id), {
+			shallow: true,
+			replace: true,
+			state: { photo: id, viewerPushed: page.state.viewerPushed }
 		});
 	}
 
 	function onRequestClose() {
 		if (page.state.viewerPushed) history.back();
-		else void replaceState(albumHref(album.slug), {});
+		else void goto(albumHref(album.slug), { shallow: true, replace: true, state: {} });
 		albumState.close();
 	}
 
@@ -137,7 +143,7 @@
 	}
 
 	// URL state drives the album state (Back/Forward, deep links). Only page.state.photo is
-	// tracked: while replaceState is still settling after a viewer move, the album state is
+	// tracked: while a shallow goto is still settling after a viewer move, the album state is
 	// ahead of the URL and reacting to it here would bounce the viewer back and forth.
 	$effect(() => {
 		if (!hydrated) return;
@@ -158,7 +164,11 @@
 
 	onMount(async () => {
 		if (initialPhoto && indexOf(initialPhoto) >= 0) {
-			await replaceState('', { photo: initialPhoto, viewerPushed: false });
+			await goto(page.url.href, {
+				shallow: true,
+				replace: true,
+				state: { photo: initialPhoto, viewerPushed: false }
+			});
 		}
 		await tick();
 		hydrated = true;

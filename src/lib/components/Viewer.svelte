@@ -618,6 +618,9 @@
 			clearTimeout(chromeTimer);
 			document.removeEventListener('visibilitychange', onVisibility);
 			document.removeEventListener('fullscreenchange', onFullscreenChange);
+			// Teardown (e.g. navigating away): PhotoSwipe still fires `close`, which must not
+			// be mistaken for the user asking to close and rewrite the URL mid-navigation.
+			closingRequested = true;
 			pswp?.destroy();
 		};
 	});

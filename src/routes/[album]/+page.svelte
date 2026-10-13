@@ -5,11 +5,15 @@
 	let { data }: PageProps = $props();
 </script>
 
-{#key data.album.slug}
-	<AlbumPage
-		album={data.album}
-		site={data.site}
-		hasMap={data.hasMap}
-		inlineScript={data.inlineScript}
-	/>
-{/key}
+<!-- During a client-side navigation to a route without album data, this component can
+     receive the next page's data before it is torn down; render nothing then. -->
+{#if data.album}
+	{#key data.album.slug}
+		<AlbumPage
+			album={data.album}
+			site={data.site}
+			hasMap={data.hasMap}
+			inlineScript={data.inlineScript}
+		/>
+	{/key}
+{/if}

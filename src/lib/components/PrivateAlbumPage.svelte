@@ -1,7 +1,7 @@
 <script lang="ts">
 	/** Decrypted private album: grid + viewer fed by object URLs, hash-based photo state. */
 	import { onMount, tick, untrack } from 'svelte';
-	import { pushState, replaceState } from '$app/navigation';
+	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
 	import type { Photo, PrivateAlbumPayload } from '../types.ts';
 	import type { SiteSettings } from '../config.ts';
@@ -49,16 +49,23 @@
 	let pendingOpen: { autoplay: boolean; fromGrid: boolean } | undefined;
 	function openFromGrid(i: number, autoplay = false) {
 		pendingOpen = { autoplay, fromGrid: true };
-		void pushState(hashFor(album.photos[i].id), { photo: album.photos[i].id, viewerPushed: true });
+		void goto(hashFor(album.photos[i].id), {
+			shallow: true,
+			state: { photo: album.photos[i].id, viewerPushed: true }
+		});
 	}
 	function onIndexChange(i: number) {
 		const id = album.photos[i]?.id;
 		if (!id || page.state.photo === id) return;
-		void replaceState(hashFor(id), { photo: id, viewerPushed: page.state.viewerPushed });
+		void goto(hashFor(id), {
+			shallow: true,
+			replace: true,
+			state: { photo: id, viewerPushed: page.state.viewerPushed }
+		});
 	}
 	function onRequestClose() {
 		if (page.state.viewerPushed) history.back();
-		else void replaceState(hashFor(undefined), {});
+		else void goto(hashFor(undefined), { shallow: true, replace: true, state: {} });
 		albumState.close();
 	}
 	function onClosed() {
@@ -66,7 +73,7 @@
 	}
 
 	// URL state drives the album state (Back/Forward, deep links). Only page.state.photo is
-	// tracked: while replaceState is still settling after a viewer move, the album state is
+	// tracked: while a shallow goto is still settling after a viewer move, the album state is
 	// ahead of the URL and reacting to it here would bounce the viewer back and forth.
 	$effect(() => {
 		if (!hydrated) return;
@@ -88,7 +95,11 @@
 	onMount(() => {
 		(async () => {
 			if (initialPhoto && indexOf(initialPhoto) >= 0)
-				await replaceState('', { photo: initialPhoto, viewerPushed: false });
+				await goto(page.url.href, {
+					shallow: true,
+					replace: true,
+					state: { photo: initialPhoto, viewerPushed: false }
+				});
 			await tick();
 			hydrated = true;
 		})();

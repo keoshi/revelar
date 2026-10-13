@@ -76,7 +76,7 @@
 	let inflightIndex: number | undefined;
 	/** bumped on every navigation; a crossfade whose token is stale never swaps the slide */
 	let navToken = 0;
-	let overlays: HTMLImageElement[] = [];
+	let overlays: HTMLElement[] = [];
 	let ready = false;
 	let pendingClose = false;
 	let pendingIndex: number | undefined;
@@ -477,7 +477,6 @@
 		const img = document.createElement('img');
 		img.alt = '';
 		img.decoding = 'async';
-		img.className = 'revelar-crossfade';
 		if (resolveSrc) img.src = await resolveSrc(photo, displayW * dpr);
 		else {
 			const s = expandSources(photo.sources);
@@ -491,22 +490,28 @@
 			// fall through: still show it
 		}
 		if (!pswp || token !== navToken) return;
-		Object.assign(img.style, {
+		// The overlay is opaque (stage background + photo) so the outgoing photo fades out
+		// underneath exactly as the incoming one fades in, whatever their aspect ratios.
+		const layer = document.createElement('div');
+		layer.className = 'revelar-crossfade';
+		Object.assign(layer.style, {
 			position: 'absolute',
 			left: '0',
 			top: '0',
 			width: `${viewport.x}px`,
 			height: `${viewport.y}px`,
-			objectFit: 'contain',
+			background: 'var(--bg-stage, #000)',
 			opacity: '0',
 			zIndex: '5',
 			pointerEvents: 'none',
 			transition: `opacity ${fade}ms var(--ease-out)`
 		});
-		stage.appendChild(img);
-		overlays.push(img);
+		Object.assign(img.style, { width: '100%', height: '100%', objectFit: 'contain' });
+		layer.appendChild(img);
+		stage.appendChild(layer);
+		overlays.push(layer);
 		await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
-		img.style.opacity = '1';
+		layer.style.opacity = '1';
 		await new Promise((r) => setTimeout(r, fade));
 		if (!pswp || token !== navToken) return;
 		programmaticTarget = nextIndex;

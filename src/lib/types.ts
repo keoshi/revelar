@@ -64,6 +64,9 @@ export type AlbumSummary = {
 		| { inBrowser: true; bytes: number; files: number };
 };
 
+/** An album without its photo list; photo pages ship this inline and fetch `album.json` for the rest. */
+export type AlbumMeta = Omit<AlbumSummary, 'photos'>;
+
 export type PrivateAlbumEntry = {
 	slug: string;
 	token: string;

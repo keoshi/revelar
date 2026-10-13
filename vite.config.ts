@@ -59,10 +59,14 @@ export default defineConfig({
 					filename.split(/[/\\]/).includes('node_modules') ? undefined : true
 			},
 			adapter: adapter({ pages: buildDir, assets: buildDir, precompress: false, strict: true }),
-			paths: { base: basePath() },
+			// Absolute paths: the viewer changes the URL with shallow routing, and relative hrefs
+			// rendered for /album/photo/ would then resolve against /album/ (header and map links
+			// broke after closing a deep-linked viewer on a subpath deployment).
+			paths: { base: basePath(), relative: false },
 			...(siteRoot ? { files: { assets: resolve(siteRoot, 'static') } } : {}),
-			// Page CSS files are small; inlining them removes render-blocking round trips.
-			inlineStyleThreshold: 8192,
+			// CSS stays in hashed, immutable files shared by every page rather than being inlined:
+			// with one shell per photo, inlining would repeat ~15 KB of styles in each.
+			inlineStyleThreshold: 0,
 			prerender: {
 				// Endpoints are not discovered by crawling; list them (and the optional global map) explicitly.
 				entries: ['*', '/robots.txt', '/sitemap.xml', '/rss.xml', '/map/'],

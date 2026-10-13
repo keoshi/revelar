@@ -478,9 +478,10 @@ export default defineConfig({
 
 **As built**
 
-- `site.baseUrl` may include a path; it becomes `paths.base`, so the site works from a subfolder (`BASE_PATH` overrides it). All links are relative, so a build also survives being dropped into a different folder, but canonical, Open Graph, sitemap and RSS URLs only match when `baseUrl` is right.
+- `site.baseUrl` may include a path; it becomes `paths.base`, so the site works from a subfolder (`BASE_PATH` overrides it). Links and asset URLs are absolute under that path (`paths.relative: false`): relative hrefs rendered for a photo page resolved wrongly once the viewer's shallow routing changed the URL. A build is therefore tied to its base URL, as its canonical, Open Graph, sitemap and RSS URLs already were.
 - `REVELAR_CONFIG=path/to/config.ts` selects another config file for ingest, dev and build. The e2e suite uses `tests/e2e/revelar.config.ts` and its own site root (`tests/e2e/.site`), so it never touches `photos/`, `build/` or the owner's settings.
-- Media (`media/`, `downloads/`) are content-hashed and unaffected by config or code changes; a redeploy after such changes only needs the HTML, `__data.json`, `_app/` and feed files.
+- Media (`media/`, `downloads/`) are content-hashed and unaffected by config or code changes; a redeploy after such changes only needs the HTML, `album.json`, `_app/` and feed files, a few megabytes in total.
+- Photo pages are thin shells. Each `/<album>/<id>/index.html` carries only its own photo (image, caption, Open Graph, JSON-LD) and fetches the album's photo list from `/<album>/album.json`, a prerendered endpoint, before opening the viewer. The album page keeps its server-rendered grid with the data inline. SvelteKit's per-page `__data.json` files are deleted after the build (`scripts/postbuild.ts`); links are plain page loads (`data-sveltekit-reload`) and the viewer's shallow routing never fetches data.
 - The first deployment is a hand upload to `https://dev.keoshi.com/revelar/` (nginx).
 
 ## Build plan and acceptance criteria
@@ -527,8 +528,7 @@ Recorded on Oct 13, 2026. Each is deliberate; do not "fix" them back without a d
 | JS budget     | ≤ 45 KB gzip on the album page                   | About 52 KB; test asserts ≤ 55 KB                                                                                                            |
 | Config        | One file at the root                             | Plus `site.authorUrl` (footer link, creator URL) and `REVELAR_CONFIG` for alternate config files                                             |
 | Site settings | `location: approximate`, placeholder author/URL  | The owner's site uses `location: show`, author Filipe Varela with https://keoshi.com, base URL `https://dev.keoshi.com/revelar`                |
-
-Known follow-up: every prerendered photo page embeds the whole album's data (about 575 KB of HTML each for a 274-photo album). Loading album data once from a shared JSON file would cut the output size by roughly 200 MB for that album.
+| Output layout | One full page per photo                          | Thin photo shells plus one `album.json` per album; no `__data.json` files (see Deployment, As built)                                          |
 
 ## Open questions
 

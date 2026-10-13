@@ -2,9 +2,9 @@
 	import { onMount, tick, untrack } from 'svelte';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
-	import type { AlbumSummary, Photo } from '../types.ts';
+	import type { AlbumMeta, Photo } from '../types.ts';
 	import type { SiteSettings } from '../config.ts';
-	import { createAlbumState } from '../state/album.svelte.ts';
+	import { createAlbumState, type AlbumState } from '../state/album.svelte.ts';
 	import { expandSources } from '../utils/sources.ts';
 	import { albumHref, photoHref, withBase } from '../utils/href.ts';
 	import AlbumHeader from './AlbumHeader.svelte';
@@ -13,7 +13,11 @@
 	import LazyViewer from './LazyViewer.svelte';
 
 	type Props = {
-		album: AlbumSummary;
+		album: AlbumMeta;
+		/** the photo list; the album page has it inline, a photo page passes it once album.json loads */
+		photos?: Photo[];
+		/** deep link: the one photo the server rendered inline, shown until the viewer opens over it */
+		deepLink?: { photo: Photo; index: number; failed?: boolean };
 		site: SiteSettings;
 		hasMap: boolean;
 		/** photo id to open in the viewer on load (deep link) */
@@ -21,30 +25,43 @@
 		inlineScript?: string;
 	};
 
-	let { album: albumProp, site, hasMap, initialPhoto, inlineScript }: Props = $props();
+	let {
+		album: albumProp,
+		photos,
+		deepLink,
+		site,
+		hasMap,
+		initialPhoto,
+		inlineScript
+	}: Props = $props();
 	// The page re-keys this component per album, so the album is fixed for its lifetime. Reading
 	// the prop once also keeps teardown safe: navigating to a route without album data updates
 	// the props before the component unmounts.
 	// svelte-ignore state_referenced_locally
 	const album = albumProp;
 
-	// One store per album page; the page component is keyed by slug.
+	// One store per album page (the page component is keyed by slug), created as soon as the
+	// photo list is available: inline on the album page, after the album.json fetch on a photo page.
 	// svelte-ignore state_referenced_locally
-	const albumState = createAlbumState(album, { filmstrip: site.viewer.filmstrip });
+	let albumState = $state.raw<AlbumState | undefined>(
+		photos ? createAlbumState({ photos }, { filmstrip: site.viewer.filmstrip }) : undefined
+	);
+	$effect(() => {
+		if (photos && !albumState)
+			albumState = createAlbumState({ photos }, { filmstrip: site.viewer.filmstrip });
+	});
 	let grid: Grid | undefined = $state();
 	let hydrated = $state(false);
 	/** deep links: show the photo as a plain figure until the viewer has opened over it */
 	// svelte-ignore state_referenced_locally
-	let showDeepLink = $state(Boolean(initialPhoto));
+	let showDeepLink = $state(Boolean(deepLink));
 
-	const current = $derived(
-		initialPhoto ? album.photos.find((p) => p.id === initialPhoto) : undefined
-	);
-	const currentIndex = $derived(current ? album.photos.indexOf(current) : -1);
+	const current = $derived(deepLink?.photo);
+	const currentIndex = $derived(deepLink?.index ?? -1);
 	const description = $derived(
 		current?.caption ??
 			album.description ??
-			album.photos.find((p) => p.caption)?.caption ??
+			photos?.find((p) => p.caption)?.caption ??
 			site.description
 	);
 	const canonical = $derived(
@@ -88,7 +105,7 @@
 			description: album.description,
 			dateCreated: album.date,
 			numberOfItems: album.count,
-			image: album.photos.slice(0, 12).map((p) => abs(expandSources(p.sources).jpeg)),
+			image: (photos ?? []).slice(0, 12).map((p) => abs(expandSources(p.sources).jpeg)),
 			creator: site.author
 				? { '@type': 'Person', name: site.author, url: site.authorUrl || undefined }
 				: undefined,
@@ -103,8 +120,8 @@
 	);
 
 	function indexOf(id: string | undefined): number {
-		if (!id) return -1;
-		return album.photos.findIndex((p) => p.id === id);
+		if (!id || !photos) return -1;
+		return photos.findIndex((p) => p.id === id);
 	}
 
 	// ---- shallow routing ------------------------------------------------------
@@ -114,15 +131,17 @@
 	let pendingOpen: { autoplay: boolean; fromGrid: boolean } | undefined;
 
 	function openFromGrid(i: number, autoplay = false) {
+		const id = photos?.[i]?.id;
+		if (!id) return;
 		pendingOpen = { autoplay, fromGrid: true };
-		void goto(photoHref(album.slug, album.photos[i].id), {
+		void goto(photoHref(album.slug, id), {
 			shallow: true,
-			state: { photo: album.photos[i].id, viewerPushed: true }
+			state: { photo: id, viewerPushed: true }
 		});
 	}
 
 	function onIndexChange(i: number) {
-		const id = album.photos[i]?.id;
+		const id = photos?.[i]?.id;
 		if (!id || page.state.photo === id) return;
 		void goto(photoHref(album.slug, id), {
 			shallow: true,
@@ -134,12 +153,12 @@
 	function onRequestClose() {
 		if (page.state.viewerPushed) history.back();
 		else void goto(albumHref(album.slug), { shallow: true, replace: true, state: {} });
-		albumState.close();
+		albumState?.close();
 	}
 
 	function onClosed() {
 		showDeepLink = false;
-		grid?.focusTile(albumState.index);
+		if (albumState) grid?.focusTile(albumState.index);
 	}
 
 	function onOpened() {
@@ -150,24 +169,25 @@
 	// tracked: while a shallow goto is still settling after a viewer move, the album state is
 	// ahead of the URL and reacting to it here would bounce the viewer back and forth.
 	$effect(() => {
-		if (!hydrated) return;
+		const state = albumState;
+		if (!hydrated || !state) return;
 		const id = page.state.photo;
 		const idx = indexOf(id);
 		untrack(() => {
 			if (!id || idx < 0) {
-				if (albumState.mode === 'viewer') albumState.close();
+				if (state.mode === 'viewer') state.close();
 				return;
 			}
-			if (albumState.mode === 'grid') {
+			if (state.mode === 'grid') {
 				const opts = pendingOpen ?? { autoplay: false, fromGrid: false };
 				pendingOpen = undefined;
-				albumState.open(idx, opts);
-			} else if (idx !== albumState.index) albumState.goTo(idx);
+				state.open(idx, opts);
+			} else if (idx !== state.index) state.goTo(idx);
 		});
 	});
 
 	onMount(async () => {
-		if (initialPhoto && indexOf(initialPhoto) >= 0) {
+		if (initialPhoto) {
 			await goto(page.url.href, {
 				shallow: true,
 				replace: true,
@@ -235,6 +255,12 @@
 			<figcaption>
 				{#if current.title}<strong>{current.title}</strong>{/if}
 				{#if current.caption}<span>{current.caption}</span>{/if}
+				<a class="deep-link-album" href={albumHref(album.slug)}
+					>Photo {currentIndex + 1} of {album.count} · all photos</a
+				>
+				{#if deepLink?.failed}
+					<span class="deep-link-error">The rest of the album could not be loaded.</span>
+				{/if}
 			</figcaption>
 		</figure>
 	{/if}
@@ -249,37 +275,41 @@
 		mapHref={hasMap ? `${albumHref(album.slug)}map/` : undefined}
 		onPlay={() => openFromGrid(0, true)}
 	/>
-	<Grid
-		bind:this={grid}
-		photos={album.photos}
-		albumSlug={album.slug}
-		rowHeight={site.viewer.gridRowHeight}
-		onOpen={(i) => openFromGrid(i)}
-		{inlineScript}
-	/>
+	{#if photos}
+		<Grid
+			bind:this={grid}
+			{photos}
+			albumSlug={album.slug}
+			rowHeight={site.viewer.gridRowHeight}
+			onOpen={(i) => openFromGrid(i)}
+			{inlineScript}
+		/>
+	{/if}
 </section>
 
-<LazyViewer
-	{albumState}
-	language={site.language}
-	slideshowInterval={site.viewer.slideshowInterval}
-	transition={site.viewer.transition}
-	filmstripEnabled={site.viewer.filmstrip}
-	exifPanel={album.exifPanel && site.defaults.exifPanel}
-	map={site.map.enabled
-		? {
-				styleLight: site.map.styleLight,
-				styleDark: site.map.styleDark,
-				href: hasMap ? `${albumHref(album.slug)}map/` : undefined
-			}
-		: undefined}
-	{getThumbEl}
-	{downloadFor}
-	{onIndexChange}
-	{onRequestClose}
-	{onClosed}
-	{onOpened}
-/>
+{#if albumState}
+	<LazyViewer
+		{albumState}
+		language={site.language}
+		slideshowInterval={site.viewer.slideshowInterval}
+		transition={site.viewer.transition}
+		filmstripEnabled={site.viewer.filmstrip}
+		exifPanel={album.exifPanel && site.defaults.exifPanel}
+		map={site.map.enabled
+			? {
+					styleLight: site.map.styleLight,
+					styleDark: site.map.styleDark,
+					href: hasMap ? `${albumHref(album.slug)}map/` : undefined
+				}
+			: undefined}
+		{getThumbEl}
+		{downloadFor}
+		{onIndexChange}
+		{onRequestClose}
+		{onClosed}
+		{onOpened}
+	/>
+{/if}
 
 <style>
 	.album {
@@ -288,6 +318,14 @@
 
 	.deep-link {
 		margin: 0 0 24px;
+	}
+
+	.deep-link-album,
+	.deep-link-error {
+		display: block;
+		margin-top: 6px;
+		font-size: var(--text-xs);
+		color: var(--text-muted);
 	}
 
 	.deep-link-stage {

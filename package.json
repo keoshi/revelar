@@ -6,8 +6,8 @@
 	"scripts": {
 		"ingest": "tsx scripts/ingest.ts",
 		"dev": "tsx scripts/watch.ts",
-		"build": "tsx scripts/ingest.ts && vite build",
-		"build:site": "vite build",
+		"build": "tsx scripts/ingest.ts && npm run build:site",
+		"build:site": "vite build && tsx scripts/postbuild.ts",
 		"preview": "vite preview",
 		"share": "tsx scripts/share.ts",
 		"prepare": "svelte-kit sync || echo ''",

@@ -145,7 +145,7 @@ The ingest step is incremental: unchanged originals (same size, mtime and conten
 - Viewer shortcuts: `←`/`→` previous/next, `Space` play/pause the slideshow, `I` info panel, `T` filmstrip, `D` download, `F` fullscreen, `Esc` close. Chrome hides after 2.5 s of inactivity.
 - The info panel shows title, caption, date, camera, lens, exposure, size, keywords, download and, for geotagged photos, a mini map (loaded on first open) that links to the album map centred on that photo. Approximate locations are drawn as a soft disc rather than a pin.
 - A site with a single public album sends the home page straight to that album, and the header title links there.
-- Every photo has its own URL (`/album/<id>/`) that opens the viewer directly and unfurls with the right image when shared.
+- Every photo has its own URL (`/album/<id>/`) that opens the viewer directly and unfurls with the right image when shared. These pages are small shells: the photo, its caption and metadata are inline, and the rest of the album is fetched from the album's `album.json` while the viewer opens.
 - A manual light/dark toggle in the header is remembered on the device; the viewer always uses a dark stage.
 
 ## Downloads
@@ -178,6 +178,21 @@ The output is a plain `build/` folder; `npm run build` does the whole thing. Not
 
 For thousands of photos, keep `photos/` outside the repo (`photosDir`), build locally and rsync; the incremental cache makes rebuilds cheap. In CI, cache `.cache/` and `static/media*` keyed on a hash of `photos/` and pass private-album passwords as secrets. A template lives in `.github/workflows/build.yml`.
 
+**What a rebuild changes.** The output is deliberately small outside the images:
+
+```
+index.html                   home (or a redirect when there is a single album)
+<album>/index.html           the album page with its grid, data inline
+<album>/album.json           the album's photo list, fetched once by photo pages
+<album>/<id>/index.html      one small shell per photo: its image, caption, Open Graph and JSON-LD
+<album>/map/index.html       the album map
+_app/                        hashed JavaScript and CSS
+media/, downloads/           content-hashed derivatives and zips: written once, never rewritten
+rss.xml sitemap.xml robots.txt _headers
+```
+
+Media and downloads only change when photos or image settings change. Everything else is a few megabytes in total and is rewritten on every build (the shells reference the hashed scripts), so after a code or config change you re-upload everything except `media/` and `downloads/`. SvelteKit's per-page `__data.json` files are not shipped: links are plain page loads and the viewer moves between photos without fetching anything.
+
 ## Project structure
 
 ```
@@ -186,11 +201,12 @@ photos/                      your albums (gitignored by default)
 scripts/ingest.ts            pipeline entry: scan → metadata → encode → manifest → prune
 scripts/ingest/              scan, sidecar, metadata, encode, albums, cache, zip, prune
 scripts/watch.ts, share.ts   dev watcher, private share links
+scripts/postbuild.ts         trims the build output (drops __data.json files)
 src/lib/components/          Picture, Grid, Viewer, Filmstrip, Controls, InfoPanel, MapView, PasswordGate…
 src/lib/state/album.svelte.ts  runes store shared by grid and viewer
 src/lib/crypto/              isomorphic AES-GCM helpers, browser unlock, decrypt worker
 src/lib/generated/           manifest.json written by ingest (gitignored)
-src/routes/                  /, /[album]/, /[album]/[photo]/, /[album]/map/, /map/, /p/[token]/, feeds
+src/routes/                  /, /[album]/, /[album]/album.json, /[album]/[photo]/, /[album]/map/, /map/, /p/[token]/, feeds
 static/media*, downloads     generated, gitignored
 .cache/                      ingest cache, private tokens and keys
 tests/                       Vitest unit tests, Playwright e2e, synthetic fixture generator
@@ -198,4 +214,4 @@ tests/                       Vitest unit tests, Playwright e2e, synthetic fixtur
 
 ## Measured performance
 
-Lighthouse (mobile, simulated 4G) on the fixture site: Accessibility, Best Practices and SEO score 100 on every page; Performance scores 97 (home), 94 (album), 94 (photo page) and 93 (100-photo album), with CLS 0 everywhere. The album page ships about 52 KB of gzipped JavaScript before PhotoSwipe and MapLibre, of which 34 KB is the Svelte 5 runtime and SvelteKit 3 client; PhotoSwipe loads on first open and MapLibre only on map routes. The HTML for a 100-photo album is under 20 KB gzipped.
+Lighthouse (mobile, simulated 4G) on the fixture site: Accessibility, Best Practices and SEO score 100 on every page; Performance scores 97 (home), 94 (album), 94 (photo page) and 93 (100-photo album), with CLS 0 everywhere. The album page ships about 52 KB of gzipped JavaScript before PhotoSwipe and MapLibre, of which 34 KB is the Svelte 5 runtime and SvelteKit 3 client; PhotoSwipe loads on first open and MapLibre only on map routes. The HTML for a 100-photo album is under 20 KB gzipped. A photo page is a 12 KB shell (4 KB gzipped) plus the album's `album.json`, which is 24 KB gzipped for a 274-photo album; styles live in hashed, immutable CSS files shared by every page. For that 274-photo album the whole output apart from images and zips is 336 files and 7.5 MB.

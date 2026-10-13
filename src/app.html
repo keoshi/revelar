@@ -13,7 +13,9 @@
 		</script>
 		%sveltekit.head%
 	</head>
-	<body data-sveltekit-preload-data="hover">
-		<div style="display: contents">%sveltekit.body%</div>
+	<body>
+		<!-- Every page is prerendered and light, and the photo viewer uses shallow routing, so
+		     links are plain page loads: no __data.json files are needed (or shipped). -->
+		<div style="display: contents" data-sveltekit-reload>%sveltekit.body%</div>
 	</body>
 </html>

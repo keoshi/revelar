@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { gzipSync } from 'node:zlib';
-import { readFileSync } from 'node:fs';
+import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 const BUILD = join(process.env.REVELAR_SITE_ROOT ?? 'tests/e2e/.site', 'build');
@@ -13,14 +13,29 @@ test.describe('performance budgets (100-photo album)', () => {
 		expect(gz(html)).toBeLessThanOrEqual(40 * 1024);
 	});
 
+	test('photo pages are thin shells; the photo list lives in album.json; no __data.json', () => {
+		const albumJson = JSON.parse(readFileSync(join(BUILD, 'hundred', 'album.json'), 'utf8'));
+		expect(albumJson.photos).toHaveLength(100);
+		const ids: string[] = albumJson.photos.map((p: { id: string }) => p.id);
+		const html = readFileSync(join(BUILD, 'hundred', ids[0], 'index.html'), 'utf8');
+		expect(gz(html)).toBeLessThanOrEqual(8 * 1024);
+		// Only this photo is inline: no other photo's id appears in the page.
+		expect(ids.slice(1).filter((id) => html.includes(id))).toEqual([]);
+		expect(html).toContain('<figure class="deep-link');
+		expect(html).toContain(`album.json`);
+		// Links are full page loads, so SvelteKit's per-page data files are not shipped.
+		const dataFiles = readdirSync(BUILD, { recursive: true }).filter((f) =>
+			String(f).endsWith('__data.json')
+		);
+		expect(dataFiles).toEqual([]);
+	});
+
 	// The spec budget is 45 KB. Measured baseline for the Svelte 5 runtime + SvelteKit 3 client alone is
 	// ~34 KB gzip, so the album page lands at ~52 KB; the assertion guards against regressions from there.
 	test('JS on the album page ≤ 55 KB gzip excluding PhotoSwipe and MapLibre', async ({ page }) => {
 		// Deterministic: the modulepreload list in the built HTML is exactly what the page needs to hydrate.
 		const html = readFileSync(join(BUILD, 'hundred', 'index.html'), 'utf8');
-		const chunks = [...html.matchAll(/href="\.\.\/(_app\/immutable\/[^"]+\.js)"/g)].map(
-			(m) => m[1]
-		);
+		const chunks = [...html.matchAll(/href="\/(_app\/immutable\/[^"]+\.js)"/g)].map((m) => m[1]);
 		expect(chunks.length).toBeGreaterThan(3);
 		const sizes = chunks.map((c) => ({
 			c,

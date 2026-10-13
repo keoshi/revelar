@@ -11,6 +11,7 @@
 	{#key data.album.slug}
 		<AlbumPage
 			album={data.album}
+			photos={data.album.photos}
 			site={data.site}
 			hasMap={data.hasMap}
 			inlineScript={data.inlineScript}

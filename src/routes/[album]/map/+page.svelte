@@ -1,6 +1,5 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { goto } from '$app/navigation';
 	import MapView, { type MapPhoto } from '#lib/components/MapView.svelte';
 	import { albumHref, photoHref } from '#lib/utils/href.ts';
 	import type { PageProps } from './$types';
@@ -38,7 +37,7 @@
 		styleLight={data.site.map.styleLight}
 		styleDark={data.site.map.styleDark}
 		{focus}
-		onSelect={(p) => goto(p.href as `/${string}`)}
+		onSelect={(p) => window.location.assign(p.href)}
 	/>
 	<h2 class="list-title">Photos on this map</h2>
 	<ul class="locations">

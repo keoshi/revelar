@@ -2,6 +2,25 @@
 
 Revelar (Portuguese for "to develop", as in film) is a static, photo-first gallery site. Drop folders of photos into `photos/`, run one build command, and get a complete, fast site: responsive AVIF/WebP derivatives, ThumbHash placeholders, a justified grid, a fullscreen viewer with filmstrip and slideshow, EXIF info, maps, downloads, and password-protected albums. Built with SvelteKit (prerendered with `adapter-static`), Svelte 5 and sharp. No server, database or CMS: adding photos means adding files and rebuilding.
 
+Live example: [dev.keoshi.com/revelar](https://dev.keoshi.com/revelar/).
+
+## Screenshots
+
+![Album page: justified grid of photos with Play, Download album and Map actions, dark theme](docs/screenshots/album-grid-dark.jpg)
+
+![Fullscreen viewer with the filmstrip along the bottom and controls at the top](docs/screenshots/viewer.jpg)
+
+![Viewer with the info panel open, showing caption, date, camera, lens, exposure and location](docs/screenshots/viewer-info.jpg)
+
+![Map of photo locations with thumbnail markers and clusters](docs/screenshots/map.jpg)
+
+<p>
+  <img src="docs/screenshots/mobile-grid.jpg" width="300" alt="Album grid on a phone">
+  <img src="docs/screenshots/mobile-viewer.jpg" width="300" alt="Fullscreen viewer on a phone">
+</p>
+
+![Album page in the light theme](docs/screenshots/album-grid-light.jpg)
+
 ## Requirements
 
 - Node.js 22 or newer (24 recommended)

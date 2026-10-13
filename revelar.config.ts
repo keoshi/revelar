@@ -4,7 +4,7 @@ export default defineConfig({
 	site: {
 		title: 'Revelar',
 		description: 'Selected work',
-		baseUrl: 'https://dev.keoshi.com/porto-vigo', // required for canonical/OG URLs; path becomes paths.base
+		baseUrl: 'https://dev.keoshi.com/revelar', // required for canonical/OG URLs; path becomes paths.base
 		author: 'Filipe Varela',
 		authorUrl: 'https://keoshi.com',
 		copyright: '© Filipe Varela',

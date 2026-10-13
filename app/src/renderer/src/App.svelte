@@ -4,6 +4,7 @@
 		engine,
 		activity,
 		watchEvents,
+		onSiteChanged,
 		type Screen,
 		type SiteState
 	} from './lib/engine.svelte.ts';
@@ -50,6 +51,7 @@
 
 	onMount(() => {
 		const stop = watchEvents();
+		const stopSite = onSiteChanged(() => void refreshAlbums());
 		void (async () => {
 			const settings = await window.revelar.settings.get();
 			if (settings.lastRoot) {
@@ -60,7 +62,10 @@
 				}
 			}
 		})();
-		return stop;
+		return () => {
+			stop();
+			stopSite();
+		};
 	});
 </script>
 

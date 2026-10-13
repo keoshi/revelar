@@ -54,9 +54,20 @@ export const activity = $state({
 	log: [] as { level: string; message: string }[]
 });
 
+let siteListeners: (() => void)[] = [];
+/** Called when files or folders change in the open site's photos/ (the engine watches it). */
+export function onSiteChanged(fn: () => void): () => void {
+	siteListeners = [...siteListeners, fn];
+	return () => {
+		siteListeners = siteListeners.filter((f) => f !== fn);
+	};
+}
+
 export function watchEvents(): () => void {
 	return bridge().on(({ event, data }) => {
-		if (event === 'ingest') {
+		if (event === 'site') {
+			for (const fn of siteListeners) fn();
+		} else if (event === 'ingest') {
 			const e = data as IngestEvent;
 			if (e.type === 'progress') {
 				activity.slug = e.slug;

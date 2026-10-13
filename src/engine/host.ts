@@ -7,6 +7,7 @@
  *                                 ← { event, data }   (progress, logs)
  */
 import { resolve } from 'node:path';
+import chokidar, { type FSWatcher } from 'chokidar';
 import { runIngest, type IngestEvent } from './ingest.ts';
 import { buildSite, previewSite } from './build.ts';
 import { shareLinks } from './share.ts';
@@ -71,6 +72,25 @@ export function startHost(): void {
 	const emit = (event: string, data: unknown) => t.send({ event, data });
 	let preview: { url: string; close: () => Promise<void> } | undefined;
 
+	// The open site's photos/ is watched so the app can refresh when folders or files are added
+	// in Finder or Explorer; the album list is cheap to rebuild, so one debounced event suffices.
+	let watcher: FSWatcher | undefined;
+	let changed: NodeJS.Timeout | undefined;
+	async function watchPhotos(photosDir: string) {
+		await watcher?.close();
+		watcher = chokidar
+			.watch(photosDir, {
+				ignoreInitial: true,
+				depth: 1,
+				awaitWriteFinish: { stabilityThreshold: 800 },
+				ignored: /(^|[/\\])\../
+			})
+			.on('all', () => {
+				clearTimeout(changed);
+				changed = setTimeout(() => emit('site', { type: 'changed' }), 400);
+			});
+	}
+
 	const str = (v: unknown, name: string): string => {
 		if (typeof v !== 'string' || !v) throw new Error(`${name} is required`);
 		return v;
@@ -89,6 +109,7 @@ export function startHost(): void {
 			const root = rootOf(p);
 			if (!isSite(root)) return { root, isSite: false };
 			const config = await readConfig(root);
+			await watchPhotos(resolve(root, config.photosDir));
 			return { root, isSite: true, config, albums: await listAlbums(root) };
 		},
 		async 'site.albums'(p) {

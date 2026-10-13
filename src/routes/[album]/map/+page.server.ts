@@ -1,6 +1,7 @@
 import { error } from '@sveltejs/kit';
 import { findAlbum, loadManifest } from '#lib/server/manifest.ts';
 import { siteConfig } from '#lib/server/site.ts';
+import { compactSources, type ImageSources } from '#lib/utils/sources.ts';
 import type { EntryGenerator, PageServerLoad } from './$types';
 
 export const entries: EntryGenerator = () => {
@@ -27,10 +28,7 @@ export const load: PageServerLoad = ({ params }) => {
 				title: p.title,
 				alt: p.alt,
 				gps: p.gps!,
-				cover: p.sources,
-				width: p.width,
-				height: p.height,
-				thumbhash: p.thumbhash,
+				sources: compactSources(p.sources as ImageSources),
 				color: p.color
 			}))
 	};

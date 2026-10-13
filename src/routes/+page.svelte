@@ -1,5 +1,6 @@
 <script lang="ts">
 	import AlbumCover from '#lib/components/AlbumCover.svelte';
+	import { withBase } from '#lib/utils/href.ts';
 	import type { PageProps } from './$types';
 
 	let { data }: PageProps = $props();
@@ -38,6 +39,9 @@
 		</div>
 	{:else}
 		<h1 class="visually-hidden">Albums</h1>
+		{#if data.hasGlobalMap}
+			<p class="global-map"><a href={withBase('/map/')}>Map of all photos →</a></p>
+		{/if}
 		<ul class="covers">
 			{#each data.albums as album, i (album.slug)}
 				<li><AlbumCover {album} language={data.site.language} priority={i < 3} /></li>
@@ -53,6 +57,12 @@
 
 	.intro {
 		margin-bottom: 32px;
+	}
+
+	.global-map {
+		margin-bottom: 24px;
+		font-size: var(--text-sm);
+		color: var(--text-muted);
 	}
 
 	.covers {

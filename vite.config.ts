@@ -29,7 +29,14 @@ export default defineConfig({
 			},
 			adapter: adapter({ pages: 'build', assets: 'build', precompress: false, strict: true }),
 			paths: { base: basePath() },
-			prerender: { handleHttpError: 'fail', handleMissingId: 'warn' }
+			prerender: {
+				handleHttpError: ({ path, status, message }) => {
+					// /map/ only exists when the global map is enabled; a 404 there is expected.
+					if (status === 404 && path.replace(/\/$/, '') === `${basePath()}/map`) return;
+					throw new Error(message);
+				},
+				handleMissingId: 'warn'
+			}
 		})
 	],
 	build: { target: 'es2022' },

@@ -16,7 +16,7 @@ export default defineConfig({
 	defaults: {
 		sort: 'date-asc', // date-asc | date-desc | filename | manual
 		downloads: 'large', // none | large | original (album zips are built at ingest when not none)
-		location: 'approximate', // show | approximate | hide
+		location: 'show', // show | approximate | hide
 		exifPanel: true
 	},
 	images: {

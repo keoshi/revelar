@@ -236,8 +236,9 @@ tests/                       Vitest unit tests, Playwright e2e, synthetic fixtur
 The engine runs in a utility process (see `bin/revelar-host.js` and `src/engine/host.ts`, a small request/response protocol with progress events) so image encoding never blocks the window. To try it from this checkout:
 
 ```sh
-npm install               # installs the app workspace and Electron too
+npm install               # at the repo root: installs the app workspace and Electron too
 npm run build -w app && npm start -w app
+# or, from inside app/: npm run build && npm start
 ```
 
 It is a proof of concept: no installer, code signing or auto-update yet, and Netlify is the only publish target so far.

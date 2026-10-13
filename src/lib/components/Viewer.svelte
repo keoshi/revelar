@@ -35,6 +35,8 @@
 		onRequestClose: () => void;
 		/** PhotoSwipe has fully closed */
 		onClosed: () => void;
+		/** the opening animation finished */
+		onOpened?: () => void;
 	};
 
 	let {
@@ -50,7 +52,8 @@
 		thumbSrc,
 		onIndexChange,
 		onRequestClose,
-		onClosed
+		onClosed,
+		onOpened
 	}: Props = $props();
 
 	const INFO_WIDTH = 320;
@@ -215,6 +218,8 @@
 		});
 		instance.on('bindEvents', () => {
 			const el = instance.element!;
+			el.setAttribute('aria-label', 'Photo viewer');
+			el.setAttribute('aria-roledescription', 'carousel');
 			el.addEventListener('pointermove', onActivity);
 			el.addEventListener('pointerdown', onUserInteraction);
 			el.addEventListener('wheel', onUserInteraction, { passive: true });
@@ -266,6 +271,7 @@
 		});
 		instance.on('openingAnimationEnd', () => {
 			ready = true;
+			onOpened?.();
 			instance.element?.classList.add('revelar-ready');
 			if (pendingClose) {
 				pendingClose = false;

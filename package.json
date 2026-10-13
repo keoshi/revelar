@@ -17,7 +17,8 @@
 		"format": "prettier --write .",
 		"test": "vitest --run",
 		"test:unit": "vitest",
-		"test:e2e": "playwright test"
+		"test:e2e": "playwright test",
+		"lighthouse": "npx --yes @lhci/cli@latest autorun"
 	},
 	"devDependencies": {
 		"@axe-core/playwright": "^4.13.0",

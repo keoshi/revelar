@@ -1,0 +1,46 @@
+# Template: build the site in CI and upload build/ as an artifact (or deploy it).
+# Cache .cache/ and static/media* keyed on the photos so unchanged derivatives are reused.
+name: Build site
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: Hash photos
+        id: photos
+        run: echo "hash=$(find photos -type f -print0 | sort -z | xargs -0 sha256sum | sha256sum | cut -c1-16)" >> "$GITHUB_OUTPUT"
+      - name: Restore derivatives
+        uses: actions/cache@v4
+        with:
+          path: |
+            .cache/ingest.json
+            .cache/derivatives
+            static/media
+            static/media-private
+            static/downloads
+          key: revelar-${{ steps.photos.outputs.hash }}
+          restore-keys: revelar-
+      - name: Build
+        env:
+          # One secret per private album, named as in album.yaml's password_env
+          ALBUM_PW: ${{ secrets.ALBUM_PW }}
+        run: npm run build
+      - uses: actions/upload-artifact@v4
+        with:
+          name: site
+          path: build
+      # Deploy examples (pick one):
+      # - GitHub Pages: actions/upload-pages-artifact + actions/deploy-pages
+      # - Netlify: netlify/actions/cli with `deploy --dir=build --prod`
+      # - rsync: `rsync -az --delete build/ user@host:/var/www/photos/`

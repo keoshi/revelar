@@ -29,6 +29,8 @@ export default defineConfig({
 			},
 			adapter: adapter({ pages: 'build', assets: 'build', precompress: false, strict: true }),
 			paths: { base: basePath() },
+			// Page CSS files are small; inlining them removes render-blocking round trips.
+			inlineStyleThreshold: 8192,
 			prerender: {
 				// Endpoints are not discovered by crawling; list them (and the optional global map) explicitly.
 				entries: ['*', '/robots.txt', '/sitemap.xml', '/rss.xml', '/map/'],

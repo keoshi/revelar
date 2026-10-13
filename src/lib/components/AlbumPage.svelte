@@ -9,6 +9,7 @@
 	import { albumHref, photoHref, withBase } from '../utils/href.ts';
 	import AlbumHeader from './AlbumHeader.svelte';
 	import Grid from './Grid.svelte';
+	import Picture from './Picture.svelte';
 	import LazyViewer from './LazyViewer.svelte';
 
 	type Props = {
@@ -27,6 +28,9 @@
 	const albumState = createAlbumState(album, { filmstrip: site.viewer.filmstrip });
 	let grid: Grid | undefined = $state();
 	let hydrated = $state(false);
+	/** deep links: show the photo as a plain figure until the viewer has opened over it */
+	// svelte-ignore state_referenced_locally
+	let showDeepLink = $state(Boolean(initialPhoto));
 
 	const current = $derived(
 		initialPhoto ? album.photos.find((p) => p.id === initialPhoto) : undefined
@@ -124,7 +128,12 @@
 	}
 
 	function onClosed() {
+		showDeepLink = false;
 		grid?.focusTile(albumState.index);
+	}
+
+	function onOpened() {
+		showDeepLink = false;
 	}
 
 	$effect(() => {
@@ -189,6 +198,29 @@
 </svelte:head>
 
 <section class="container album">
+	{#if current && showDeepLink}
+		<!-- Deep link: the photo is painted first (and is the LCP); the viewer opens over it once hydrated. -->
+		<figure class="deep-link">
+			<div class="deep-link-stage" style:aspect-ratio="{current.width} / {current.height}">
+				<Picture
+					sources={current.sources}
+					alt={current.alt}
+					width={current.width}
+					height={current.height}
+					thumbhash={current.thumbhash}
+					color={current.color}
+					sizes="100vw"
+					loading="eager"
+					priority
+					fit="contain"
+				/>
+			</div>
+			<figcaption>
+				{#if current.title}<strong>{current.title}</strong>{/if}
+				{#if current.caption}<span>{current.caption}</span>{/if}
+			</figcaption>
+		</figure>
+	{/if}
 	<AlbumHeader
 		title={album.title}
 		date={album.date}
@@ -208,22 +240,6 @@
 		onOpen={(i) => openFromGrid(i)}
 		{inlineScript}
 	/>
-	{#if current && !hydrated}
-		<!-- Plain markup for crawlers and no-JS visitors; the viewer takes over once hydrated. -->
-		<figure class="deep-link">
-			<img
-				src={withBase(ogImage)}
-				alt={current.alt}
-				width={current.width}
-				height={current.height}
-				loading="lazy"
-			/>
-			<figcaption>
-				{#if current.title}<strong>{current.title}</strong>{/if}
-				{#if current.caption}<span>{current.caption}</span>{/if}
-			</figcaption>
-		</figure>
-	{/if}
 </section>
 
 <LazyViewer
@@ -246,14 +262,17 @@
 	}
 
 	.deep-link {
-		margin: 32px 0 0;
+		margin: 0 0 24px;
 	}
 
-	.deep-link img {
-		width: 100%;
+	.deep-link-stage {
 		max-height: 80vh;
-		object-fit: contain;
+		margin-inline: auto;
 		background: var(--bg-stage);
+	}
+
+	.deep-link-stage :global(.picture) {
+		height: 100%;
 	}
 
 	.deep-link figcaption {

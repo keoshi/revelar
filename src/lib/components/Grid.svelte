@@ -194,7 +194,9 @@
 				height={photo.height}
 				thumbhash={photo.thumbhash}
 				color={photo.color}
-				sizes={layout && width ? `${Math.round(layout.boxes[i].width)}px` : ssrSizes(photo.aspect)}
+				sizes={layout && width && i >= eagerCount
+					? `${Math.round(layout.boxes[i].width)}px`
+					: ssrSizes(photo.aspect)}
 				loading={i < eagerCount ? 'eager' : 'lazy'}
 				priority={i < eagerCount}
 				resolver={resolveSrc ? (w) => resolveSrc(photo, w) : undefined}

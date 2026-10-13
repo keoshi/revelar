@@ -128,6 +128,14 @@ export async function runIngest(opts: IngestOptions = {}): Promise<IngestReport>
 	writeJsonFile(tokensPath, tokens);
 	writeJsonFile(keysPath, privateKeys);
 
+	if (privateAlbums.length) {
+		log('Private albums (password-protected; `npm run share <slug>` prints the key link):');
+		for (const [slug, token] of Object.entries(tokens)) {
+			if (ctx.privateSlugsSeen.has(slug))
+				log(`  ${slug.padEnd(28)} ${manifest.site.baseUrl}/p/${token}/`);
+		}
+	}
+
 	const ms = Math.round(performance.now() - started);
 	const bytes = dirBytes(dirs.media) + dirBytes(dirs.mediaPrivate) + dirBytes(dirs.downloads);
 	const s = ctx.stats;

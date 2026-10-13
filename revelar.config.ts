@@ -15,7 +15,7 @@ export default defineConfig({
 	albumManualOrder: [], // slugs, when manual
 	defaults: {
 		sort: 'date-asc', // date-asc | date-desc | filename | manual
-		downloads: 'none', // none | large | original
+		downloads: 'large', // none | large | original (album zips are built at ingest when not none)
 		location: 'approximate', // show | approximate | hide
 		exifPanel: true
 	},
@@ -35,8 +35,7 @@ export default defineConfig({
 	theme: {
 		mode: 'system', // system | dark | light
 		accent: '#e8c37a',
-		fontSans: 'inter', // inter | system
-		fontTitles: 'serif' // serif | sans
+		fontSans: 'inter' // inter | system
 	},
 	map: {
 		enabled: true,

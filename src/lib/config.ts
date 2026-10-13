@@ -22,7 +22,7 @@ const SiteSchema = v.object({
 
 const DefaultsSchema = v.object({
 	sort: v.optional(v.picklist(['date-asc', 'date-desc', 'filename', 'manual']), 'date-asc'),
-	downloads: v.optional(v.picklist(['none', 'large', 'original']), 'none'),
+	downloads: v.optional(v.picklist(['none', 'large', 'original']), 'large'),
 	location: v.optional(v.picklist(['show', 'approximate', 'hide']), 'approximate'),
 	exifPanel: v.optional(v.boolean(), true),
 	maxZipBytes: v.optional(v.number())
@@ -57,8 +57,7 @@ const ThemeSchema = v.object({
 	mode: v.optional(v.picklist(['system', 'dark', 'light']), 'system'),
 	accent: v.optional(hexColor, '#e8c37a'),
 	accentLight: v.optional(hexColor, '#8a5a00'),
-	fontSans: v.optional(v.picklist(['inter', 'system']), 'inter'),
-	fontTitles: v.optional(v.picklist(['serif', 'sans']), 'serif')
+	fontSans: v.optional(v.picklist(['inter', 'system']), 'inter')
 });
 
 const MapSchema = v.object({

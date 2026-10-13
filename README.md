@@ -96,7 +96,7 @@ photos:
 - `defaults.downloads`, `defaults.location` and `defaults.exifPanel` set site-wide behaviour that `album.yaml` can override.
 - `images.widths` and the quality settings control derivatives. Widths larger than the original are skipped; nothing is ever upscaled.
 - `viewer.slideshowInterval`, `viewer.transition` (`crossfade | slide | none`), `viewer.gridRowHeight` and `viewer.filmstrip`.
-- `theme.mode`, `theme.accent`, `theme.fontSans` (`inter | system`), `theme.fontTitles` (`serif | sans`).
+- `theme.mode`, `theme.accent`, `theme.fontSans` (`inter | system`). Inter Variable is the only typeface, self-hosted.
 - `map.enabled`, `map.globalMap`, and the MapLibre style URLs (OpenFreeMap by default, no API key).
 - `feeds.rss` and `feeds.sitemap`.
 
@@ -112,7 +112,7 @@ photos:
 | `npm run share <album>`     | Print a private album's URL and its `#k=` key link                   |
 | `npm run check`             | svelte-check                                                         |
 | `npm test`                  | Vitest unit tests (pipeline, layout parity, crypto)                  |
-| `npm run test:e2e`          | Playwright end-to-end tests (builds a fixture site first)            |
+| `npm run test:e2e`          | Playwright end-to-end tests (builds a fixture site in `tests/e2e/.site`) |
 | `npm run lighthouse`        | Lighthouse CI against the budgets in `lighthouserc.json`             |
 
 The ingest step is incremental: unchanged originals (same size, mtime and content hash) reuse their derivatives and metadata from `.cache/ingest.json`, so a second run over hundreds of photos takes well under a second. Derivatives that are no longer referenced are pruned.
@@ -120,15 +120,16 @@ The ingest step is incremental: unchanged originals (same size, mtime and conten
 ## Viewing
 
 - Albums always open as a justified grid. Click a photo (or press Enter on a focused tile) to open the fullscreen viewer; arrow keys move between tiles in the grid.
+- `viewer.transition` sets how photos change in the viewer, for manual navigation and the slideshow alike: `crossfade` (default; 240 ms when you navigate, 400 ms between slideshow photos, started only once the next image has decoded), `slide` (PhotoSwipe's native slide) or `none`. Swipes always follow the finger. `prefers-reduced-motion` makes every change instant.
 - Viewer shortcuts: `←`/`→` previous/next, `Space` play/pause the slideshow, `I` info panel, `T` filmstrip, `D` download, `F` fullscreen, `Esc` close. Chrome hides after 2.5 s of inactivity.
 - Every photo has its own URL (`/album/<id>/`) that opens the viewer directly and unfurls with the right image when shared.
 - A manual light/dark toggle in the header is remembered on the device; the viewer always uses a dark stage.
 
 ## Downloads
 
-Set `downloads` to `large` (the 1920 px JPEG, metadata-stripped) or `original`. With `original`, the file is copied byte for byte, except when the effective `location` setting is `hide` or `approximate`: copying would leak GPS, so the download is instead a full-resolution, maximum-quality JPEG re-encoded by sharp with metadata limited to copyright and camera fields.
+`downloads` defaults to `large` (the 1920 px JPEG, metadata-stripped); set it to `original` or `none` site-wide in `revelar.config.ts`, or per album and per photo in `album.yaml`. With `original`, the file is copied byte for byte, except when the effective `location` setting is `hide` or `approximate`: copying would leak GPS, so the download is instead a full-resolution, maximum-quality JPEG re-encoded by sharp with metadata limited to copyright and camera fields.
 
-Album downloads are store-only zips built at ingest (`static/downloads/<album>-<hash>.zip`). Some hosts cap single-file sizes (Cloudflare Pages, for example); set `defaults.maxZipBytes` to switch over-limit albums to an in-browser zip that fetches files one by one.
+Whenever downloads are enabled, the album header shows a "Download album · size" button and the viewer a per-photo download. Album downloads are store-only zips built at ingest (`static/downloads/<album>-<hash>.zip`) and rebuilt only when the album's photos or settings change. Some hosts cap single-file sizes (Cloudflare Pages, for example); set `defaults.maxZipBytes` to switch over-limit albums to an in-browser zip that fetches files one by one.
 
 ## Location privacy
 
@@ -139,7 +140,7 @@ Album downloads are store-only zips built at ingest (`static/downloads/<album>-<
 - **Unlisted** albums are built at their normal slug, excluded from the home page, global map, sitemap and RSS, and carry `noindex`. Anyone with the link can view them; images are not encrypted.
 - **Private** albums are encrypted at build. Set `visibility: private` and `password_env: SOME_VAR`, then provide the password in that environment variable when you build (the build fails if it is missing). A random album key encrypts the album's manifest slice and every derivative (AES-GCM); the key is wrapped with a key derived from the password (PBKDF2-SHA-256, 600 000 iterations). Encrypted files live under `static/media-private/<token>/` with meaningless names, and the album is served at `/p/<token>/` where `token` is random and stable across builds (kept in `.cache/private-tokens.json`; commit that file or cache it in CI so links keep working).
 - In the browser, the password derives the key, decrypts the manifest, then fetches and decrypts images in a Web Worker. "Remember on this device" keeps the unwrapped key in `sessionStorage` (default) or `localStorage` (checkbox).
-- `npm run share <album>` prints the album URL and a `#k=…` link that unlocks without a password. The fragment never reaches the server; treat the link like the password.
+- Private albums are deliberately absent from the home page and every listing, so the only way in is the link. The ingest summary prints each private album's URL (`/p/<token>/`); opening it shows a password form, and "Remember on this device" skips the form next time. `npm run share <album>` prints the same URL plus a `#k=…` link that unlocks without a password. The fragment never reaches the server; treat the link like the password.
 
 Limits to keep in mind: security equals password strength (use 16+ characters); changing the password re-encrypts the album; private albums never appear in the sitemap, RSS or global map; WebCrypto requires HTTPS (or localhost). `.cache/private-keys.json` holds the raw album keys so unchanged files are not re-encrypted on every build: keep it out of version control (it is gitignored) and out of untrusted CI caches.
 

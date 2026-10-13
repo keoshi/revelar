@@ -17,11 +17,19 @@ import { dirBytes, pruneDir } from './prune.ts';
 import { formatBytes } from '../lib/utils/text.ts';
 import type { AlbumSummary, Manifest, PrivateAlbumEntry } from '../lib/types.ts';
 
+/** Progress and log events, for callers with their own UI (the desktop app, a CI reporter). */
+export type IngestEvent =
+	| { type: 'log'; level: 'info' | 'warn' | 'error'; message: string }
+	| { type: 'progress'; slug: string; done: number; total: number }
+	| { type: 'album'; slug: string; count?: number; private?: boolean };
+
 export type IngestOptions = {
 	force?: boolean;
+	/** no console output (events are still emitted) */
 	quiet?: boolean;
 	root?: string;
 	config?: RevelarConfigInput;
+	onEvent?: (event: IngestEvent) => void;
 };
 export type IngestReport = {
 	manifest: Manifest;
@@ -38,15 +46,21 @@ export async function runIngest(opts: IngestOptions = {}): Promise<IngestReport>
 	// Always absolute: cache entries and the prune keep-set store derivative paths, and a
 	// relative root would make them disagree with a later run that passes an absolute one.
 	const root = resolve(opts.root ?? siteRoot());
-	const log = opts.quiet ? () => {} : (msg: string) => console.log(msg);
+	const emit = opts.onEvent ?? (() => {});
+	const log = (msg: string) => {
+		emit({ type: 'log', level: 'info', message: msg });
+		if (!opts.quiet) console.log(msg);
+	};
 	const warnings: string[] = [];
 	const errors: string[] = [];
 	const warn = (msg: string) => {
 		warnings.push(msg);
+		emit({ type: 'log', level: 'warn', message: msg });
 		if (!opts.quiet) console.warn(`  warn  ${msg}`);
 	};
 	const error = (msg: string) => {
 		errors.push(msg);
+		emit({ type: 'log', level: 'error', message: msg });
 		console.error(`  error ${msg}`);
 	};
 
@@ -54,6 +68,7 @@ export async function runIngest(opts: IngestOptions = {}): Promise<IngestReport>
 	// place, anything else (CI logs) a line every 25 files.
 	const tty = !opts.quiet && Boolean(process.stdout.isTTY);
 	const progress = (slug: string, done: number, total: number) => {
+		emit({ type: 'progress', slug, done, total });
 		if (opts.quiet) return;
 		if (tty) {
 			process.stdout.write(`\r  ${slug.padEnd(28)} ${done}/${total}`);
@@ -61,7 +76,10 @@ export async function runIngest(opts: IngestOptions = {}): Promise<IngestReport>
 		} else if (done % 25 === 0 && done < total) log(`  ${slug.padEnd(28)} ${done}/${total}`);
 	};
 
-	const config = opts.config ? validateConfig(opts.config) : await loadConfig();
+	// The config belongs to the root being ingested (REVELAR_CONFIG still overrides, for the e2e suite).
+	const config = opts.config
+		? validateConfig(opts.config)
+		: await loadConfig(process.env.REVELAR_CONFIG ? undefined : join(root, 'revelar.config.ts'));
 	const photosDir = resolve(root, config.photosDir);
 	const dirs = {
 		root,
@@ -113,7 +131,12 @@ export async function runIngest(opts: IngestOptions = {}): Promise<IngestReport>
 		}
 		if (result.kind !== 'skipped') {
 			const count = result.kind === 'private' ? '(private)' : `${result.summary.count} photos`;
-			log(`  ${album.slug.padEnd(28)} ${count}`);
+			emit(
+				result.kind === 'private'
+					? { type: 'album', slug: album.slug, private: true }
+					: { type: 'album', slug: album.slug, count: result.summary.count }
+			);
+			if (!opts.quiet) console.log(`  ${album.slug.padEnd(28)} ${count}`);
 		}
 	}
 

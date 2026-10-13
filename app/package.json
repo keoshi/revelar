@@ -1,0 +1,24 @@
+{
+	"name": "revelar-app",
+	"version": "0.0.1",
+	"description": "Revelar desktop app: a friendly face over the revelar engine",
+	"private": true,
+	"type": "module",
+	"main": "./out/main/index.js",
+	"scripts": {
+		"dev": "electron-vite dev",
+		"build": "electron-vite build",
+		"preview": "electron-vite preview",
+		"start": "electron-vite preview"
+	},
+	"dependencies": {
+		"revelar": "file:.."
+	},
+	"devDependencies": {
+		"@sveltejs/vite-plugin-svelte": "^7.2.0",
+		"electron": "^44.7.0",
+		"electron-vite": "^5.0.0",
+		"svelte": "^5.57.1",
+		"vite": "^7.0.0"
+	}
+}

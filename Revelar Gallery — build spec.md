@@ -531,6 +531,7 @@ Recorded on Oct 13, 2026. Each is deliberate; do not "fix" them back without a d
 | Config        | One file at the root                             | Plus `site.authorUrl` (footer link, creator URL) and `REVELAR_CONFIG` for alternate config files                                             |
 | Site settings | `location: approximate`, placeholder author/URL  | The owner's site uses `location: show`, author Filipe Varela with https://keoshi.com, base URL `https://dev.keoshi.com/revelar`                |
 | Packaging     | A template repository with npm scripts           | An npm package with a `revelar` CLI and a programmatic API; any folder with a config and `photos/` is a site root (see Project structure, As built) |
+| Desktop app   | Out of scope                                     | `app/` workspace: an Electron proof of concept (library, album editor, preview, publish to Netlify) over the engine, which runs as a utility process speaking the `src/engine/host.ts` protocol; `runIngest` emits progress events |
 | Output layout | One full page per photo                          | Thin photo shells plus one `album.json` per album; no `__data.json` files (see Deployment, As built)                                          |
 
 ## Open questions

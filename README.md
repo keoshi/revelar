@@ -226,6 +226,22 @@ vite.config.ts               SvelteKit build; the package is Vite's root, the si
 tests/                       Vitest unit tests, Playwright e2e, synthetic fixture generator
 ```
 
+## Desktop app (proof of concept)
+
+`app/` is an Electron app for people who would rather not use a terminal: a friendly face over the same site folder. It opens or creates a site, lists albums with their covers, adds a folder of photos as an album, edits titles, captions, cover, visibility and the other `album.yaml` settings, processes photos with live progress, previews the built site in place, and publishes to Netlify with a personal access token. Everything it writes is the same `photos/`, `album.yaml` and `revelar.config.ts` the CLI uses, so a site can move between the app and the terminal freely.
+
+![The app's library screen](docs/screenshots/app-library.jpg)
+![The album editor](docs/screenshots/app-album.jpg)
+
+The engine runs in a utility process (see `bin/revelar-host.js` and `src/engine/host.ts`, a small request/response protocol with progress events) so image encoding never blocks the window. To try it from this checkout:
+
+```sh
+npm install               # installs the app workspace and Electron too
+npm run build -w app && npm start -w app
+```
+
+It is a proof of concept: no installer, code signing or auto-update yet, and Netlify is the only publish target so far.
+
 ## Measured performance
 
 Lighthouse (mobile, simulated 4G) on the fixture site: Accessibility, Best Practices and SEO score 100 on every page; Performance scores 97 (home), 94 (album), 94 (photo page) and 93 (100-photo album), with CLS 0 everywhere. The album page ships about 52 KB of gzipped JavaScript before PhotoSwipe and MapLibre, of which 34 KB is the Svelte 5 runtime and SvelteKit 3 client; PhotoSwipe loads on first open and MapLibre only on map routes. The HTML for a 100-photo album is under 20 KB gzipped. A photo page is a 12 KB shell (4 KB gzipped) plus the album's `album.json`, which is 24 KB gzipped for a 274-photo album; styles live in hashed, immutable CSS files shared by every page. For that 274-photo album the whole output apart from images and zips is 336 files and 7.5 MB.

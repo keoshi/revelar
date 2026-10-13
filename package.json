@@ -20,6 +20,9 @@
 		"vite.config.ts",
 		"tsconfig.json"
 	],
+	"workspaces": [
+		"app"
+	],
 	"scripts": {
 		"revelar": "tsx src/cli/index.ts",
 		"ingest": "tsx src/cli/index.ts ingest",

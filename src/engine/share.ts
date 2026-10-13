@@ -11,7 +11,13 @@ export async function shareLinks(
 	opts: { root?: string; config?: string } = {}
 ): Promise<ShareLinks> {
 	const root = resolve(opts.root ?? process.env.REVELAR_SITE_ROOT ?? process.cwd());
-	const config = await loadConfig(opts.config ? resolve(opts.config) : undefined);
+	const config = await loadConfig(
+		opts.config
+			? resolve(opts.config)
+			: process.env.REVELAR_CONFIG
+				? undefined
+				: join(root, 'revelar.config.ts')
+	);
 	const tokens = readJsonFile<Record<string, string>>(
 		join(root, '.cache', 'private-tokens.json'),
 		{}

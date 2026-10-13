@@ -2,12 +2,13 @@
  * The `revelar` command. Runs in any folder that holds a `revelar.config.ts` and a `photos/`
  * directory (the "site root"); `--root` or REVELAR_SITE_ROOT point it elsewhere.
  */
-import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
-import { join, resolve } from 'node:path';
+import { resolve } from 'node:path';
 import { runIngest } from '../engine/ingest.ts';
 import { buildSite, previewSite } from '../engine/build.ts';
 import { devServer } from '../engine/dev.ts';
 import { shareLinks } from '../engine/share.ts';
+import { initSite } from '../engine/site.ts';
+import { startHost } from '../engine/host.ts';
 
 const USAGE = `usage: revelar <command> [options]
 
@@ -17,6 +18,7 @@ const USAGE = `usage: revelar <command> [options]
   dev [--port N]       dev server with live re-ingest of photos/
   preview [--port N]   serve build/ locally
   share <album>        print a private album's URL and its #k= key link
+  host                 serve the engine over stdin/stdout (JSON lines) for other tools
 
 options: --root <dir> (default: current directory), --config <file>, --quiet`;
 
@@ -48,32 +50,6 @@ function parse(argv: string[]): {
 	return { command, positional: rest, flags };
 }
 
-const CONFIG_TEMPLATE = `import { defineConfig } from 'revelar/config';
-
-export default defineConfig({
-	site: {
-		title: 'Photographs',
-		description: 'Selected work',
-		baseUrl: 'https://photos.example.com', // required for canonical/OG URLs; its path becomes the base path
-		author: 'Your Name',
-		authorUrl: '',
-		copyright: '© Your Name',
-		language: 'en'
-	},
-	photosDir: './photos'
-});
-`;
-
-const GITIGNORE_TEMPLATE = `node_modules
-build
-static/media
-static/media-private
-static/downloads
-.svelte-kit
-.cache/*
-!.cache/private-tokens.json
-`;
-
 export async function main(argv: string[]): Promise<number> {
 	const { command, positional, flags } = parse(argv);
 	if (!command || flags.help) {
@@ -91,16 +67,7 @@ export async function main(argv: string[]): Promise<number> {
 
 	switch (command) {
 		case 'init': {
-			mkdirSync(join(root, 'photos'), { recursive: true });
-			const written: string[] = [];
-			const write = (name: string, content: string) => {
-				const path = join(root, name);
-				if (existsSync(path)) return;
-				writeFileSync(path, content);
-				written.push(name);
-			};
-			write('revelar.config.ts', CONFIG_TEMPLATE);
-			write('.gitignore', GITIGNORE_TEMPLATE);
+			const written = initSite(root);
 			console.log(
 				written.length
 					? `Created ${written.join(', ')}. Put albums (folders of photos) in photos/ and run \`revelar build\`.`
@@ -152,6 +119,10 @@ export async function main(argv: string[]): Promise<number> {
 				`Key link (unlocks without a password — share only with people who may see the album):\n  ${keyLink}`
 			);
 			return 0;
+		}
+		case 'host': {
+			startHost();
+			return new Promise(() => {});
 		}
 		default:
 			console.error(`Unknown command "${command}".\n\n${USAGE}`);

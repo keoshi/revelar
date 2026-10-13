@@ -14,30 +14,32 @@ test.describe('performance budgets (100-photo album)', () => {
 	// The spec budget is 45 KB. Measured baseline for the Svelte 5 runtime + SvelteKit 3 client alone is
 	// ~34 KB gzip, so the album page lands at ~52 KB; the assertion guards against regressions from there.
 	test('JS on the album page ≤ 55 KB gzip excluding PhotoSwipe and MapLibre', async ({ page }) => {
-		const scripts: { url: string; bytes: number }[] = [];
-		page.on('response', async (res) => {
-			const url = res.url();
-			if (!url.includes('/_app/immutable/') || !url.endsWith('.js')) return;
-			try {
-				scripts.push({ url, bytes: gz(await res.body()) });
-			} catch {
-				// ignore
-			}
-		});
-		// Measure what the page needs to become interactive: everything up to the load event.
-		// (The viewer chunk is prefetched later during idle time by design.)
-		await page.goto('/hundred/', { waitUntil: 'load' });
-		await expect(page.locator('.grid')).toHaveAttribute('data-layout', 'abs');
-		const loaded = [...scripts];
+		// Deterministic: the modulepreload list in the built HTML is exactly what the page needs to hydrate.
+		const html = readFileSync(join(process.cwd(), 'build', 'hundred', 'index.html'), 'utf8');
+		const chunks = [...html.matchAll(/href="\.\.\/(_app\/immutable\/[^"]+\.js)"/g)].map(
+			(m) => m[1]
+		);
+		expect(chunks.length).toBeGreaterThan(3);
+		const sizes = chunks.map((c) => ({
+			c,
+			bytes: gz(readFileSync(join(process.cwd(), 'build', c)))
+		}));
 		const heavy = /photoswipe|maplibre/i;
-		const core = loaded.filter((s) => !heavy.test(s.url));
-		const total = core.reduce((n, s) => n + s.bytes, 0);
+		const total = sizes.filter((s) => !heavy.test(s.c)).reduce((n, s) => n + s.bytes, 0);
 		expect(
 			total,
-			loaded.map((s) => `${s.url.split('/').pop()} ${s.bytes}`).join('\n')
+			sizes.map((s) => `${s.c.split('/').pop()} ${s.bytes}`).join('\n')
 		).toBeLessThanOrEqual(55 * 1024);
-		// PhotoSwipe must not be loaded until the viewer opens
-		expect(loaded.some((s) => /photoswipe/i.test(s.url))).toBe(false);
+
+		// PhotoSwipe must not be fetched until the viewer opens.
+		const requested: string[] = [];
+		page.on('request', (req) => requested.push(req.url()));
+		await page.goto('/hundred/', { waitUntil: 'load' });
+		await expect(page.locator('.grid')).toHaveAttribute('data-layout', 'abs');
+		expect(requested.some((u) => /photoswipe/i.test(u))).toBe(false);
+		await page.locator('[data-tile]').first().click();
+		await expect(page.locator('.revelar-viewer.revelar-ready')).toBeVisible();
+		expect(requested.some((u) => /photoswipe/i.test(u))).toBe(true);
 	});
 
 	test('every grid image has width/height and the first row is eager with high priority', async ({

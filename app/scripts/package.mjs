@@ -83,21 +83,28 @@ cpSync(join(app, 'out'), join(stage, 'out'), { recursive: true });
 mkdirSync(join(stage, 'build'));
 cpSync(join(app, 'build/icon.png'), join(stage, 'build/icon.png'));
 // --cpu/--os pick the native builds (sharp, esbuild, rolldown) for the target, not this Mac.
+// Lifecycle scripts are skipped: esbuild's postinstall runs the binary to check its version,
+// which fails for a cross-architecture install, and esbuild loads its platform package without it.
 run(
 	'npm',
 	[
 		'install',
 		'--omit=dev',
+		'--ignore-scripts',
 		'--no-audit',
 		'--no-fund',
 		'--loglevel=error',
 		`--cpu=${arch}`,
 		'--os=darwin'
 	],
-	{
-		cwd: stage
-	}
+	{ cwd: stage }
 );
+for (const name of [
+	`@esbuild/darwin-${arch}`,
+	`@img/sharp-darwin-${arch}`,
+	`@img/sharp-libvips-darwin-${arch}`
+])
+	if (!existsSync(join(stage, 'node_modules', name))) throw new Error(`Staging is missing ${name}`);
 rmSync(join(stage, tgz));
 rmSync(join(stage, 'package-lock.json'), { force: true });
 

@@ -58,14 +58,40 @@
 			])
 		);
 		const names = detail.files.map((f) => f.name);
-		const listed =
-			(s.sort === 'manual' ? ((s.order as string[] | undefined) ?? []) : undefined) ??
-			detail.built?.photos.map((p) => p.file) ??
-			[];
-		const known = listed.filter((n) => names.includes(n));
-		order = [...known, ...names.filter((n) => !known.includes(n))];
+		if (s.sort === 'manual') {
+			const listed = ((s.order as string[] | undefined) ?? []).filter((n) => names.includes(n));
+			order = [...listed, ...names.filter((n) => !listed.includes(n))];
+		} else order = arranged(form.sort, names, detail);
 		savedOrder = order.join('\n');
 		if (selected && !names.includes(selected)) selected = undefined;
+	}
+
+	/**
+	 * The grid's order for a non-manual sort, worked out here so the editor reflects the choice
+	 * at once rather than after the next processing. Dates are known for processed photos; before
+	 * that, date orders fall back to file names.
+	 */
+	function arranged(sort: string, names: string[], detail: AlbumDetail): string[] {
+		const effective = sort || site.config.defaults.sort;
+		const byName = (a: string, b: string) =>
+			a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' });
+		const dates = new Map(detail.built?.photos.map((p) => [p.file, p.date ?? '']) ?? []);
+		const byDate = (a: string, b: string) =>
+			(dates.get(a) ?? '').localeCompare(dates.get(b) ?? '') || byName(a, b);
+		const sorted = [...names];
+		if (effective === 'date-desc') return sorted.sort((a, b) => byDate(b, a) || byName(a, b));
+		if (effective === 'date-asc') return sorted.sort(byDate);
+		return sorted.sort(byName);
+	}
+
+	/** Changing the order setting rearranges the grid; "custom" keeps whatever is showing. */
+	function sortChanged() {
+		if (!album || form.sort === 'manual') return;
+		order = arranged(
+			form.sort,
+			album.files.map((f) => f.name),
+			album
+		);
 	}
 
 	onMount(async () => {
@@ -186,7 +212,7 @@
 				</div>
 				<div class="field">
 					<label for="sort">Order</label>
-					<select id="sort" bind:value={form.sort}>
+					<select id="sort" bind:value={form.sort} onchange={sortChanged}>
 						<option value="">Site default</option>
 						<option value="date-asc">Oldest first</option>
 						<option value="date-desc">Newest first</option>

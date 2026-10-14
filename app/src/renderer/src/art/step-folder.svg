@@ -1,0 +1,7 @@
+<!-- Welcome, step 1: an empty folder with a plus. Colours come from the app's CSS variables. -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 100">
+  <path d="M28 26h34l10 10h60a6 6 0 0 1 6 6v36a6 6 0 0 1-6 6H28a6 6 0 0 1-6-6V32a6 6 0 0 1 6-6z" fill="var(--surface)" stroke="var(--text-muted)" stroke-width="2" stroke-linejoin="round"/>
+  <path d="M22 44h116" fill="none" stroke="var(--text-muted)" stroke-width="2"/>
+  <circle cx="80" cy="64" r="11" fill="var(--accent)"/>
+  <path d="M80 58.5v11M74.5 64h11" fill="none" stroke="#1a1200" stroke-width="2.2" stroke-linecap="round"/>
+</svg>

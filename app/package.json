@@ -3,6 +3,7 @@
 	"version": "0.0.1",
 	"description": "Revelar desktop app: a friendly face over the revelar engine",
 	"private": true,
+	"license": "MIT",
 	"type": "module",
 	"main": "./out/main/index.js",
 	"scripts": {

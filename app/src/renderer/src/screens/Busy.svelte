@@ -7,14 +7,16 @@
 <!-- A transient overlay while the engine works: progress stays in view and nothing underneath
      can be edited half-way through a processing run. -->
 <div class="veil" transition:fade={{ duration: 160 }} role="status" aria-live="polite">
-	<div class="card" transition:fly={{ y: 10, duration: 220 }}>
+	<div class="card" class:progress={activity.total > 0} transition:fly={{ y: 10, duration: 220 }}>
 		<span class="spinner"></span>
 		<div class="text">
 			<strong>{activity.label || 'Working'}</strong>
-			<span class="detail">
-				{#if activity.slug}{activity.slug}{/if}
-				{#if activity.total}{activity.slug ? ' · ' : ''}{activity.done} of {activity.total}{/if}
-			</span>
+			{#if activity.slug || activity.total}
+				<span class="detail">
+					{#if activity.slug}{activity.slug}{/if}
+					{#if activity.total}{activity.slug ? ' · ' : ''}{activity.done} of {activity.total}{/if}
+				</span>
+			{/if}
 		</div>
 		{#if activity.total}
 			<div class="bar"><div class="fill" style:width="{pct}%"></div></div>
@@ -37,14 +39,18 @@
 		grid-template-columns: auto 1fr;
 		gap: 8px 14px;
 		align-items: center;
-		min-width: 320px;
+		/* hugs a bare label ("Building the site"); widens for a progress bar */
+		width: fit-content;
 		max-width: 440px;
-		padding: 18px 20px;
-		background: var(--bg);
+		padding: 18px 22px;
+		background: var(--float);
 		border-radius: 14px;
 		box-shadow:
-			0 0 0 1px rgb(17 17 26 / 0.06),
-			0 20px 50px rgb(17 17 26 / 0.25);
+			0 0 0 1px var(--float-ring),
+			0 20px 50px var(--float-shadow);
+	}
+	.card.progress {
+		min-width: 320px;
 	}
 	.text {
 		display: flex;

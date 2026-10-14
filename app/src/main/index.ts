@@ -8,6 +8,7 @@ import {
 	BrowserWindow,
 	dialog,
 	ipcMain,
+	Menu,
 	nativeTheme,
 	net,
 	protocol,
@@ -19,7 +20,7 @@ import { createRequire } from 'node:module';
 import { dirname, join } from 'node:path';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { pathToFileURL } from 'node:url';
-import type { EngineEvent, Settings } from '../shared/api.ts';
+import type { AppCommand, EngineEvent, Settings } from '../shared/api.ts';
 
 const require = createRequire(import.meta.url);
 const HOST = join(dirname(require.resolve('revelar/package.json')), 'bin', 'revelar-host.js');
@@ -130,8 +131,50 @@ function createWindow(): void {
 	else void win.loadFile(join(import.meta.dirname, '../renderer/index.html'));
 }
 
+/**
+ * The application menu carries the keyboard shortcuts; the renderer does the work. The Edit
+ * roles matter: without them a custom menu would lose copy and paste in the form fields.
+ */
+function buildMenu(): void {
+	const send = (command: AppCommand) => () => win?.webContents.send('app:command', command);
+	const mac = process.platform === 'darwin';
+	const template: Electron.MenuItemConstructorOptions[] = [
+		...(mac ? [{ role: 'appMenu' as const }] : []),
+		{
+			label: 'File',
+			submenu: [
+				{ label: 'New Site…', accelerator: 'CmdOrCtrl+N', click: send('new') },
+				{ label: 'Open Site Folder…', accelerator: 'CmdOrCtrl+O', click: send('open') },
+				{ type: 'separator' },
+				{ label: 'Save', accelerator: 'CmdOrCtrl+S', click: send('save') },
+				{ type: 'separator' },
+				{ label: 'Site Settings…', accelerator: 'CmdOrCtrl+,', click: send('settings') },
+				{ type: 'separator' },
+				{ role: mac ? 'close' : 'quit' }
+			]
+		},
+		{ role: 'editMenu' },
+		{
+			label: 'View',
+			submenu: [
+				{ label: 'Library', accelerator: 'CmdOrCtrl+1', click: send('library') },
+				{ label: 'Preview', accelerator: 'CmdOrCtrl+2', click: send('preview') },
+				{ label: 'Publish', accelerator: 'CmdOrCtrl+3', click: send('publish') },
+				{ type: 'separator' },
+				{ role: 'reload' },
+				{ role: 'toggleDevTools' },
+				{ type: 'separator' },
+				{ role: 'togglefullscreen' }
+			]
+		},
+		{ role: 'windowMenu' }
+	];
+	Menu.setApplicationMenu(Menu.buildFromTemplate(template));
+}
+
 app.whenReady().then(() => {
 	if (process.platform === 'darwin' && existsSync(ICON)) app.dock?.setIcon(ICON);
+	buildMenu();
 	// Files of the open site: site://media/… and site://downloads/… map to static/, site://cache/…
 	// to .cache/ (quick previews) and site://photos/… to the originals.
 	const BASES: Record<string, string> = {

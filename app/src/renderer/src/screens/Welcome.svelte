@@ -6,6 +6,7 @@
 	import artAlbums from '../art/step-albums.svg?raw';
 	import artPublish from '../art/step-publish.svg?raw';
 	import Mark from '../lib/Mark.svelte';
+	import { KEYS } from '../lib/commands.ts';
 
 	type Props = {
 		recent: string[];
@@ -84,7 +85,7 @@
 	</ol>
 
 	<div class="actions" in:fly={{ y: 14, duration: 360, delay: 520 }}>
-		<button type="button" class="primary big" disabled={busy} onclick={create}
+		<button type="button" class="primary big" disabled={busy} title={KEYS.new} onclick={create}
 			>Create a new site</button
 		>
 		<div class="secondary">
@@ -103,7 +104,7 @@
 					</button>
 				{/each}
 			{/if}
-			<button type="button" class="link" disabled={busy} onclick={browse}
+			<button type="button" class="link" disabled={busy} title={KEYS.open} onclick={browse}
 				>Open another folder…</button
 			>
 		</div>

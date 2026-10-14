@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { fly } from 'svelte/transition';
+	import { KEYS } from '../lib/commands.ts';
 
 	type Props = {
 		title: string;
@@ -49,7 +50,9 @@
 				<strong>{title}</strong>
 				<span class="path">{short(root)}</span>
 			</div>
-			<button type="button" role="menuitem" onclick={() => pick(onSettings)}>Site settings…</button>
+			<button type="button" role="menuitem" onclick={() => pick(onSettings)}
+				>Site settings…<kbd>{KEYS.settings}</kbd></button
+			>
 			{#if others.length}
 				<div class="sep"></div>
 				<span class="label hint">Recent sites</span>
@@ -61,10 +64,10 @@
 			{/if}
 			<div class="sep"></div>
 			<button type="button" role="menuitem" onclick={() => pick(onBrowse)}
-				>Open another folder…</button
+				>Open another folder…<kbd>{KEYS.open}</kbd></button
 			>
 			<button type="button" role="menuitem" onclick={() => pick(onCreate)}
-				>Create a new site…</button
+				>Create a new site…<kbd>{KEYS.new}</kbd></button
 			>
 		</div>
 	{/if}
@@ -90,7 +93,7 @@
 		width: 7px;
 		height: 7px;
 		border-radius: 50%;
-		background: var(--accent);
+		background: var(--ok);
 	}
 	.title {
 		font-weight: 500;
@@ -108,11 +111,11 @@
 		top: calc(100% + 6px);
 		min-width: 280px;
 		padding: 6px;
-		background: var(--bg);
+		background: var(--float);
 		border-radius: 12px;
 		box-shadow:
-			0 0 0 1px rgb(17 17 26 / 0.08),
-			0 12px 32px rgb(17 17 26 / 0.18);
+			0 0 0 1px var(--float-ring),
+			0 12px 32px var(--float-shadow);
 		display: flex;
 		flex-direction: column;
 		z-index: 10;
@@ -126,10 +129,10 @@
 		font-weight: 500;
 	}
 	.menu [role='menuitem'] {
-		display: flex;
-		flex-direction: column;
-		align-items: flex-start;
-		gap: 0;
+		display: grid;
+		grid-template-columns: 1fr auto;
+		align-items: center;
+		gap: 0 16px;
 		background: none;
 		border-radius: 7px;
 		padding: 7px 10px;
@@ -141,6 +144,9 @@
 	}
 	.menu [role='menuitem']:active {
 		transform: none;
+	}
+	.menu [role='menuitem'] .path {
+		grid-column: 1;
 	}
 	.path {
 		display: block;

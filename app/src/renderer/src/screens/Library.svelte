@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { engine, run, siteUrl, type SiteState } from '../lib/engine.svelte.ts';
+	import { KEYS } from '../lib/commands.ts';
 
 	type Props = {
 		site: SiteState;
@@ -56,7 +57,9 @@
 				>
 			{/if}
 			<button type="button" onclick={addAlbum}>Add album…</button>
-			<button type="button" class="primary" onclick={onPreview}>Preview site</button>
+			<button type="button" class="primary" title={KEYS.preview} onclick={onPreview}
+				>Preview site</button
+			>
 		</div>
 	</header>
 	{#if error}<p class="error">{error}</p>{/if}

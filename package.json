@@ -2,7 +2,7 @@
 	"name": "revelar",
 	"version": "0.1.0",
 	"description": "Static, photo-first gallery: drop folders of photos in, get a fast site out",
-	"license": "UNLICENSED",
+	"license": "MIT",
 	"private": true,
 	"type": "module",
 	"bin": {

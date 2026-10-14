@@ -1,6 +1,7 @@
 // Draws the app icon from the mark: an ink tile with the mark in the accent, on the 1024 px
-// canvas macOS expects (the tile covers 824 px, with transparent margins). Run after changing
-// src/renderer/src/art/mark.svg:  node app/scripts/icon.mjs
+// canvas macOS expects (the tile covers 824 px, with transparent margins). The mark is placed
+// by its centre of mass rather than its bounding box, so the heavy left side and the thin leg
+// balance in the tile. Run after changing src/renderer/src/art/mark.svg:  node app/scripts/icon.mjs
 import sharp from 'sharp';
 import { readFileSync, writeFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
@@ -17,12 +18,29 @@ const size = 1024;
 const tile = 824;
 const off = (size - tile) / 2;
 const markW = 466;
-const markH = 288;
 const scale = (tile * 0.56) / markW;
-const w = markW * scale;
-const h = markH * scale;
-const x = (size - w) / 2;
-const y = (size - h) / 2;
+// Centre of mass of the mark's alpha, in mark units.
+const probe = await sharp(Buffer.from(markSvg))
+	.resize({ width: markW })
+	.ensureAlpha()
+	.raw()
+	.toBuffer({ resolveWithObject: true });
+let sx = 0,
+	sy = 0,
+	n = 0;
+for (let py = 0; py < probe.info.height; py++)
+	for (let px = 0; px < probe.info.width; px++) {
+		const a = probe.data[(py * probe.info.width + px) * 4 + 3];
+		if (a > 127) {
+			sx += px;
+			sy += py;
+			n++;
+		}
+	}
+const cx = sx / n;
+const cy = sy / n;
+const x = size / 2 - cx * scale;
+const y = size / 2 - cy * scale;
 
 const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}">
   <rect x="${off}" y="${off}" width="${tile}" height="${tile}" rx="185" fill="#11111a"/>

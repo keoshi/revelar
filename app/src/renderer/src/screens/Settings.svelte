@@ -1,7 +1,9 @@
 <script lang="ts">
 	import { engine, type SiteState } from '../lib/engine.svelte.ts';
 	import Seg from '../lib/Seg.svelte';
-	import { toast } from '../lib/toast.svelte.ts';
+	import { autosave } from '../lib/autosave.svelte.ts';
+	import { onCommand } from '../lib/commands.ts';
+	import { onMount } from 'svelte';
 
 	const SORTS = [
 		{ value: 'date-asc', label: 'Oldest first' },
@@ -31,7 +33,8 @@
 	};
 	let { site, onSaved, onBack }: Props = $props();
 
-	// The form starts from the config as it is when the screen opens; Save writes it back.
+	// The form starts from the config as it is when the screen opens and writes itself back a
+	// moment after each change (see autosave), so leaving the screen never loses anything.
 	// svelte-ignore state_referenced_locally
 	const c = site.config;
 	let form = $state({
@@ -51,6 +54,22 @@
 		mapEnabled: c.map.enabled
 	});
 	let error = $state('');
+	const saver = autosave(save);
+	let lastSaved = JSON.stringify($state.snapshot(form));
+	$effect(() => {
+		const now = JSON.stringify($state.snapshot(form));
+		if (now !== lastSaved) {
+			lastSaved = now;
+			saver.touch();
+		}
+	});
+	onMount(() => {
+		const stop = onCommand('save', () => void saver.flush());
+		return () => {
+			stop();
+			if (saver.pending) void saver.flush();
+		};
+	});
 
 	async function save() {
 		error = '';
@@ -85,7 +104,6 @@
 			};
 			const config = await engine.saveConfig(site.root, input);
 			onSaved(config);
-			toast('Saved');
 		} catch (e) {
 			error = e instanceof Error ? e.message : String(e);
 		}
@@ -99,7 +117,9 @@
 			<h1>Site settings</h1>
 			<p class="path">{site.root}/revelar.config.ts</p>
 		</div>
-		<button type="button" class="primary" onclick={save}>Save</button>
+		<span class="autosave" class:idle={!saver.status} aria-live="polite"
+			>{saver.status === 'saving' ? 'Saving…' : 'Saved'}</span
+		>
 	</header>
 	{#if error}<p class="error">{error}</p>{/if}
 
@@ -127,7 +147,11 @@
 				/>
 			</div>
 
-			<h2>You</h2>
+			<h2>
+				You <span class="hint"
+					>website and copyright go in the footer; the name into photo metadata</span
+				>
+			</h2>
 			<div class="r">
 				<label for="s-author">Your name</label><input id="s-author" bind:value={form.author} />
 			</div>
@@ -139,7 +163,11 @@
 				/>
 			</div>
 			<div class="r">
-				<label for="s-copy">Copyright</label><input id="s-copy" bind:value={form.copyright} />
+				<label for="s-copy">Copyright</label><input
+					id="s-copy"
+					bind:value={form.copyright}
+					placeholder="© Your Name"
+				/>
 			</div>
 		</div>
 

@@ -10,12 +10,19 @@
 	--track: #dcdce2;
 	--accent: #ff5900;
 	--accent-hover: #ff6c1f;
-	--on-accent: #11111a;
+	/* white, not ink: APCA puts white on #FF5900 at about Lc 63 against Lc 46 for ink */
+	--on-accent: #ffffff;
+	/* state that is fine (a site is open, published before): kept apart from the accent */
+	--ok: #11a37c;
 	--dot: rgb(17 17 26 / 0.11);
 	--danger: #c2372b;
 	/* a slightly raised surface, for hover states and thumbnails before they load */
 	--surface-2: color-mix(in srgb, var(--surface), var(--ink) 6%);
 	--glass: rgb(255 255 255 / 0.86);
+	/* floating panels: menus and the progress card, lifted off the page */
+	--float: var(--bg);
+	--float-ring: rgb(17 17 26 / 0.08);
+	--float-shadow: rgb(17 17 26 / 0.18);
 	--f-body: 'Geist Variable', system-ui, -apple-system, 'Segoe UI', sans-serif;
 	--f-mono: 'Geist Mono Variable', ui-monospace, 'SF Mono', Menlo, monospace;
 	--ease: cubic-bezier(0.22, 1, 0.36, 1);
@@ -34,6 +41,10 @@
 		--dot: rgb(255 255 255 / 0.08);
 		--danger: #ff7b6e;
 		--surface-2: color-mix(in srgb, var(--surface), var(--ink) 7%);
+		--float: #1c1c22;
+		--float-ring: rgb(255 255 255 / 0.08);
+		--float-shadow: rgb(0 0 0 / 0.5);
+		--ok: #2fcf9f;
 		color-scheme: dark;
 	}
 }
@@ -207,6 +218,28 @@ label {
 }
 .no-drag {
 	-webkit-app-region: no-drag;
+}
+
+/* Links and buttons that leave the app carry an arrow. */
+.ext::after {
+	content: '↗' / '';
+	display: inline-block; /* keeps the arrow out of the text underline */
+	margin-left: 0.4em;
+	font-weight: 400;
+}
+/* A quiet "Saving… / Saved" next to a heading. */
+.autosave {
+	font-size: 12.5px;
+	color: var(--muted);
+	transition: opacity 300ms var(--ease);
+}
+.autosave.idle {
+	opacity: 0;
+}
+/* Shortcut hints in menus. */
+kbd {
+	font: 11.5px var(--f-mono);
+	color: var(--muted);
 }
 
 /* Switch: a label on the left and the switch on the right. */

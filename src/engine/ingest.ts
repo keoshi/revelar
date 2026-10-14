@@ -107,6 +107,7 @@ export async function runIngest(opts: IngestOptions = {}): Promise<IngestReport>
 		cache,
 		limit: pLimit(Math.max(1, cpus().length - 1)),
 		force: Boolean(opts.force),
+		note: log,
 		warn,
 		error,
 		progress,

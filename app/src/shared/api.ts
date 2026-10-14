@@ -14,6 +14,9 @@ export type Settings = {
 	netlify?: { siteId?: string; siteName?: string; url?: string };
 };
 
+/** Commands the application menu sends to the renderer (their shortcuts live in the menu). */
+export type AppCommand = 'new' | 'open' | 'settings' | 'save' | 'library' | 'preview' | 'publish';
+
 export type RevelarBridge = {
 	/** Call an engine method (see src/engine/host.ts in the revelar package). */
 	call<T = unknown>(method: string, params?: Record<string, unknown>): Promise<T>;
@@ -31,4 +34,6 @@ export type RevelarBridge = {
 		set(name: string, value: string): Promise<void>;
 	};
 	openExternal(url: string): Promise<void>;
+	/** Subscribe to application-menu commands (⌘N, ⌘O, ⌘S…); returns an unsubscribe function. */
+	onCommand(fn: (command: AppCommand) => void): () => void;
 };

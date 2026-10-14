@@ -102,11 +102,11 @@ describe('metadata precedence', () => {
 		expect(p.alt).toBe('Sidecar alt text');
 	});
 
-	it('never invents titles from filenames and generates alt text with a warning', () => {
+	it('never invents titles from filenames and generates alt text without a warning', () => {
 		const p = byFile('plain.png');
 		expect(p.title).toBeUndefined();
 		expect(p.alt).toMatch(/^Photo \d of \d in Lisbon walks$/);
-		expect(first.warnings.some((w) => w.includes('plain.png') && w.includes('alt'))).toBe(true);
+		expect(first.warnings.some((w) => w.includes('alt'))).toBe(false);
 	});
 
 	it('uses the file mtime when nothing else has a date', () => {

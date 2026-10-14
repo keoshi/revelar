@@ -4,15 +4,16 @@
 	import type { AlbumDetail } from 'revelar';
 	import { engine, run, siteUrl, type SiteState } from '../lib/engine.svelte.ts';
 	import Seg from '../lib/Seg.svelte';
-	import { toast } from '../lib/toast.svelte.ts';
+	import { autosave } from '../lib/autosave.svelte.ts';
+	import { onCommand } from '../lib/commands.ts';
 
 	const VISIBILITIES = [
 		{ value: 'public', label: 'Public' },
 		{ value: 'unlisted', label: 'Unlisted' }
 	];
 
-	type Props = { site: SiteState; slug: string; onBack: () => void };
-	let { site, slug, onBack }: Props = $props();
+	type Props = { site: SiteState; slug: string; onBack: () => void; onSettings: () => void };
+	let { site, slug, onBack, onSettings }: Props = $props();
 
 	let album = $state<AlbumDetail | undefined>();
 	let error = $state('');
@@ -69,6 +70,7 @@
 		} else order = arranged(form.sort, names, detail);
 		savedOrder = order.join('\n');
 		if (selected && !names.includes(selected)) selected = undefined;
+		lastSaved = serialized();
 	}
 
 	/**
@@ -99,12 +101,33 @@
 		);
 	}
 
-	onMount(async () => {
-		try {
-			load(await engine.album(site.root, slug));
-		} catch (e) {
-			error = e instanceof Error ? e.message : String(e);
+	// Edits write themselves to album.yaml a moment after each change; nothing is lost by
+	// leaving the screen. `lastSaved` is compared as plain text so the effect only fires on
+	// real changes, and is set by load() so loading never counts as an edit.
+	const saver = autosave(save);
+	let lastSaved = '';
+	const serialized = () => JSON.stringify($state.snapshot({ form, photos, order }));
+	$effect(() => {
+		const now = serialized();
+		if (album && lastSaved && now !== lastSaved) {
+			lastSaved = now;
+			saver.touch();
 		}
+	});
+
+	onMount(() => {
+		void (async () => {
+			try {
+				load(await engine.album(site.root, slug));
+			} catch (e) {
+				error = e instanceof Error ? e.message : String(e);
+			}
+		})();
+		const stop = onCommand('save', () => void saver.flush());
+		return () => {
+			stop();
+			if (saver.pending) void saver.flush();
+		};
 	});
 
 	async function save() {
@@ -125,15 +148,16 @@
 					])
 				)
 			};
-			load(await engine.saveAlbum(site.root, slug, patch));
-			toast('Saved');
+			// Not reloaded into the form: an edit typed while the write was in flight would be lost.
+			await engine.saveAlbum(site.root, slug, patch);
+			savedOrder = order.join('\n');
 		} catch (e) {
 			error = e instanceof Error ? e.message : String(e);
 		}
 	}
 
 	async function process() {
-		await save();
+		await saver.flush();
 		await run('Processing photos', () => engine.ingest(site.root));
 		load(await engine.album(site.root, slug));
 	}
@@ -252,8 +276,10 @@
 				<p class="path">photos/{album.folder} · {album.files.length} photos</p>
 			</div>
 			<div class="row">
-				<button type="button" onclick={save}>Save</button>
-				<button type="button" class="primary" onclick={process}>Save and process</button>
+				<span class="autosave" class:idle={!saver.status} aria-live="polite"
+					>{saver.status === 'saving' ? 'Saving…' : 'Saved'}</span
+				>
+				<button type="button" class="primary" onclick={process}>Process photos</button>
 			</div>
 		</header>
 
@@ -313,7 +339,10 @@
 						<option value="hide">Hidden</option>
 					</select>
 				</div>
-				<p class="hint">"Site default" follows the site settings (site menu, top right).</p>
+				<p class="hint">
+					"Site default" follows the
+					<button type="button" class="link inline" onclick={onSettings}>site settings</button>.
+				</p>
 			</aside>
 
 			<div class="pane photos" bind:this={pane}>
@@ -457,24 +486,47 @@
 		padding: 6px;
 		margin: -6px;
 	}
-	.lbl {
+	/* The three panes share one head line (label, drag hint, empty space over the preview),
+	   so the first input, the grid and the big preview all start on the same line. */
+	.album label,
+	.lbl,
+	.lead {
 		display: block;
 		font-size: 13px;
+		line-height: 20px;
+		margin: 0 0 6px;
+	}
+	.lbl {
 		font-weight: 500;
-		margin-bottom: 5px;
+	}
+	.detail-inner,
+	.detail .empty {
+		padding-top: 26px;
 	}
 	.field .hint {
 		margin-top: 5px;
 	}
 	.lead {
-		margin-bottom: 10px;
-		min-height: 18px;
+		min-height: 20px;
+	}
+	.form textarea {
+		/* a little slack so the form fits the default window without a scrollbar */
+		min-height: 60px;
+	}
+	.link.inline {
+		padding: 0;
+		font-size: inherit;
+		text-decoration: underline;
+		text-underline-offset: 2px;
+	}
+	.row .autosave {
+		margin-right: 4px;
 	}
 	.thumbs {
 		display: grid;
 		grid-template-columns: repeat(auto-fill, minmax(104px, 1fr));
 		gap: 10px;
-		padding: 2px 2px 8px;
+		padding: 0 0 8px;
 	}
 	.thumb {
 		animation: rise 360ms var(--ease) both;

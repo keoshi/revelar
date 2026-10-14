@@ -80,7 +80,7 @@ Titles and captions come from the files themselves, so Lightroom or Capture One 
 | Keywords | —                      | `dc:subject`                           | Keywords          | —                  | none                                      |
 | GPS      | —                      | —                                      | —                 | GPS tags           | none                                      |
 
-Camera fields (make, model, lens, focal length, aperture, shutter, ISO, exposure compensation) come from EXIF only. The build warns for every photo whose alt text had to be generated.
+Camera fields (make, model, lens, focal length, aperture, shutter, ISO, exposure compensation) come from EXIF only. The build notes, once per album, how many photos had their alt text generated.
 
 ### `album.yaml`
 
@@ -230,7 +230,7 @@ tests/                       Vitest unit tests, Playwright e2e, synthetic fixtur
 
 ## Desktop app (proof of concept)
 
-`app/` is an Electron app for people who would rather not use a terminal: a friendly face over the same site folder. It creates or opens a site (recent ones are one click away), lists albums with their covers, follows folders added in Finder, adds a folder of photos as an album, edits titles, captions, cover, visibility and the other `album.yaml` settings, arranges photos by dragging them, keeps site-wide settings (name, address, defaults, theme) in a form, processes photos with live progress, previews the built site in place, and publishes to Netlify, Vercel, Cloudflare Pages or GitHub Pages with a token from the account. Publishing sets `site.baseUrl` to the live address by itself unless the site has its own domain. Photos show up before processing through quick previews. Everything it writes is the same `photos/`, `album.yaml` and `revelar.config.ts` the CLI uses, so a site can move between the app and the terminal freely.
+`app/` is an Electron app for people who would rather not use a terminal: a friendly face over the same site folder. It creates or opens a site (recent ones are one click away), lists albums with their covers, follows folders added in Finder, adds a folder of photos as an album, edits titles, captions, cover, visibility and the other `album.yaml` settings, arranges photos by dragging them, keeps site-wide settings (name, address, defaults, theme) in a form (edits save themselves), processes photos with live progress, previews the built site in place, and publishes to Netlify, Vercel, Cloudflare Pages or GitHub Pages with a token from the account. Publishing sets `site.baseUrl` to the live address by itself unless the site has its own domain. Photos show up before processing through quick previews. Everything it writes is the same `photos/`, `album.yaml` and `revelar.config.ts` the CLI uses, so a site can move between the app and the terminal freely.
 
 ![The welcome screen](docs/screenshots/app-welcome.jpg)
 ![The app's library screen](docs/screenshots/app-library.jpg)
@@ -246,7 +246,7 @@ npm run build -w app && npm start -w app
 # or, from inside app/: npm run build && npm start
 ```
 
-The app follows the system appearance, light or dark, with one accent colour and the Geist typefaces bundled in. Its tokens live in `app/src/renderer/src/app.css`, the mark in `app/src/renderer/src/art/mark.svg`, and `node app/scripts/icon.mjs` redraws the app icon from it.
+The app follows the system appearance, light or dark, with one accent colour and the Geist typefaces bundled in. The main menu carries keyboard shortcuts for the common moves (⌘N new site, ⌘O open, ⌘1/2/3 for the screens, ⌘, settings). Its tokens live in `app/src/renderer/src/app.css`, the mark in `app/src/renderer/src/art/mark.svg`, and `node app/scripts/icon.mjs` redraws the app icon from it.
 
 It is a proof of concept: no installer, code signing or auto-update yet. Of the four publish targets only Netlify has been exercised against a live account; Vercel, Cloudflare Pages and GitHub Pages follow their documented APIs but are untested.
 

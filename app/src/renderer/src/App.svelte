@@ -20,7 +20,7 @@
 	import Busy from './screens/Busy.svelte';
 	import Mark from './lib/Mark.svelte';
 	import Seg from './lib/Seg.svelte';
-	import { toastState } from './lib/toast.svelte.ts';
+	import { onCommand, runCommand, KEYS } from './lib/commands.ts';
 
 	let site = $state<SiteState | undefined>();
 	let screen = $state<Screen>('welcome');
@@ -67,15 +67,24 @@
 		screen = to;
 	}
 	const NAV = [
-		{ value: 'library', label: 'Library' },
-		{ value: 'preview', label: 'Preview' },
-		{ value: 'publish', label: 'Publish' }
+		{ value: 'library', label: 'Library', title: KEYS.library },
+		{ value: 'preview', label: 'Preview', title: KEYS.preview },
+		{ value: 'publish', label: 'Publish', title: KEYS.publish }
 	];
 	const navValue = $derived(screen === 'album' ? 'library' : screen);
 
 	onMount(() => {
 		const stop = watchEvents();
 		const stopSite = onSiteChanged(() => void refreshAlbums());
+		const stopMenu = window.revelar.onCommand(runCommand);
+		const stops = [
+			onCommand('new', () => void create()),
+			onCommand('open', () => void browse()),
+			onCommand('library', () => site && go('library')),
+			onCommand('preview', () => site && go('preview')),
+			onCommand('publish', () => site && go('publish')),
+			onCommand('settings', () => site && go('settings'))
+		];
 		void (async () => {
 			const settings = await window.revelar.settings.get();
 			recent = settings.recentRoots ?? (settings.lastRoot ? [settings.lastRoot] : []);
@@ -91,6 +100,8 @@
 		return () => {
 			stop();
 			stopSite();
+			stopMenu();
+			for (const s of stops) s();
 		};
 	});
 </script>
@@ -133,7 +144,12 @@
 						onPreview={() => go('preview')}
 					/>
 				{:else if screen === 'album' && albumSlug}
-					<Album {site} slug={albumSlug} onBack={() => (refreshAlbums(), go('library'))} />
+					<Album
+						{site}
+						slug={albumSlug}
+						onBack={() => (refreshAlbums(), go('library'))}
+						onSettings={() => go('settings')}
+					/>
 				{:else if screen === 'preview'}
 					<Preview {site} />
 				{:else if screen === 'publish'}
@@ -149,7 +165,6 @@
 		{/key}
 	</main>
 
-	<div class="toast" class:on={toastState.on} aria-live="polite">{toastState.text}</div>
 	{#if activity.busy}<Busy />{/if}
 	{#if !activity.busy && activity.log.some((e) => e.level !== 'info')}
 		<StatusBar />
@@ -166,7 +181,8 @@
 		display: flex;
 		align-items: center;
 		gap: 24px;
-		padding: 0 14px 0 88px;
+		/* clear of the traffic lights, which end around 70 px */
+		padding: 0 14px 0 104px;
 		height: 50px;
 		flex: none;
 	}
@@ -199,27 +215,5 @@
 	}
 	.banner {
 		margin-bottom: 12px;
-	}
-	.toast {
-		position: fixed;
-		left: 50%;
-		bottom: 24px;
-		z-index: 25;
-		transform: translateX(-50%) translateY(8px);
-		background: var(--ink);
-		color: var(--bg);
-		font-weight: 500;
-		font-size: 13px;
-		padding: 9px 16px;
-		border-radius: 999px;
-		opacity: 0;
-		pointer-events: none;
-		transition:
-			opacity 200ms var(--ease),
-			transform 300ms var(--ease);
-	}
-	.toast.on {
-		opacity: 1;
-		transform: translateX(-50%) translateY(0);
 	}
 </style>

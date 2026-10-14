@@ -51,6 +51,9 @@ export const engine = {
 /** Live progress of the running ingest / publish, for the status bar. */
 export const activity = $state({
 	busy: false,
+	/** false for steps with nothing to count (building): progress events are ignored then,
+	 *  which also keeps a late event from the previous step off the fresh card */
+	counts: true,
 	label: '',
 	slug: '',
 	done: 0,
@@ -74,6 +77,7 @@ export function watchEvents(): () => void {
 		} else if (event === 'ingest') {
 			const e = data as IngestEvent;
 			if (e.type === 'progress') {
+				if (!activity.counts) return;
 				activity.slug = e.slug;
 				activity.done = e.done;
 				activity.total = e.total;
@@ -83,7 +87,7 @@ export function watchEvents(): () => void {
 		} else if (event === 'publish') {
 			const e = data as PublishEvent;
 			if (e.type === 'status') activity.label = e.message;
-			else {
+			else if (activity.counts) {
 				activity.done = e.done;
 				activity.total = e.total;
 			}
@@ -91,8 +95,13 @@ export function watchEvents(): () => void {
 	});
 }
 
-export async function run<T>(label: string, fn: () => Promise<T>): Promise<T> {
+export async function run<T>(
+	label: string,
+	fn: () => Promise<T>,
+	opts: { counts?: boolean } = {}
+): Promise<T> {
 	activity.busy = true;
+	activity.counts = opts.counts ?? true;
 	activity.label = label;
 	activity.slug = '';
 	activity.done = 0;

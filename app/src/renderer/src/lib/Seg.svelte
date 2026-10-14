@@ -1,6 +1,6 @@
 <script lang="ts">
 	/** Segmented control: two or three mutually exclusive options, the chosen one raised. */
-	type Option = { value: string; label: string };
+	type Option = { value: string; label: string; title?: string };
 	type Props = {
 		options: Option[];
 		value: string;
@@ -18,8 +18,11 @@
 
 <div class="seg" role="group" aria-label={label} {id} style:--n={options.length}>
 	{#each options as o (o.value)}
-		<button type="button" aria-pressed={value === o.value} onclick={() => pick(o.value)}
-			>{o.label}</button
+		<button
+			type="button"
+			aria-pressed={value === o.value}
+			title={o.title}
+			onclick={() => pick(o.value)}>{o.label}</button
 		>
 	{/each}
 </div>

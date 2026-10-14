@@ -62,6 +62,8 @@ export type Context = {
 	cache: IngestCache;
 	limit: ReturnType<typeof pLimit>;
 	force: boolean;
+	/** plain progress notes, not counted as warnings */
+	note: (msg: string) => void;
 	warn: (msg: string) => void;
 	error: (msg: string) => void;
 	/** called after each file of an album finishes (encoded or reused) */
@@ -414,11 +416,12 @@ export async function processAlbum(album: ScannedAlbum, ctx: Context): Promise<A
 
 	const photos: Photo[] = [];
 	const downloadEntries: { path: string; name: string; bytes: number }[] = [];
+	let generatedAlts = 0;
 	for (let i = 0; i < sorted.length; i++) {
 		const p = sorted[i];
 		if (p.altGenerated) {
 			p.meta.alt = `Photo ${i + 1} of ${total} in ${albumTitle}`;
-			ctx.warn(`${p.file.rel}: no alt text in metadata or sidecar; using "${p.meta.alt}"`);
+			generatedAlts++;
 		}
 		const location = p.override?.location ?? albumLocation;
 		const downloads: DownloadKind = p.override?.downloads ?? albumDownloads;
@@ -464,6 +467,10 @@ export async function processAlbum(album: ScannedAlbum, ctx: Context): Promise<A
 		for (const f of d.files) ctx.keep.add(resolve(f));
 		photos.push(photo);
 	}
+	if (generatedAlts)
+		ctx.note(
+			`${albumTitle}: ${generatedAlts} ${generatedAlts === 1 ? 'photo has' : 'photos have'} no alt text (caption or title); using "Photo n of ${total} in ${albumTitle}"`
+		);
 
 	// Album-level data
 	const dates = photos

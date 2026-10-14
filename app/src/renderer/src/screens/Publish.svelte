@@ -193,7 +193,7 @@
 					{provider.tokenHelp}.
 					<button
 						type="button"
-						class="link inline"
+						class="link inline ext"
 						onclick={() => window.revelar.openExternal(provider.tokenUrl)}>Get one</button
 					>
 				</p>
@@ -246,7 +246,10 @@
 					disabled={!token || busy || (provider.needsAccount && !account)}
 					onclick={publish}>{liveUrl ? 'Publish update' : 'Publish'}</button
 				>
-				{#if liveUrl}<button type="button" onclick={() => window.revelar.openExternal(liveUrl)}
+				{#if liveUrl}<button
+						type="button"
+						class="ext"
+						onclick={() => window.revelar.openExternal(liveUrl)}
 						>Open {liveUrl.replace(/^https?:\/\//, '')}</button
 					>{/if}
 			</div>
@@ -308,7 +311,7 @@
 		width: 6px;
 		height: 6px;
 		border-radius: 50%;
-		background: var(--accent);
+		background: var(--ok);
 	}
 	.form {
 		display: flex;

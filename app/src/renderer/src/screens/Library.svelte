@@ -43,7 +43,7 @@
 	<header class="head">
 		<div>
 			<h1>{site.config.site.title}</h1>
-			<p class="muted small">
+			<p class="hint">
 				{site.albums.length}
 				{site.albums.length === 1 ? 'album' : 'albums'} ·
 				{#if pending}{pending} to process{:else}everything processed{/if}
@@ -62,9 +62,9 @@
 	{#if error}<p class="error">{error}</p>{/if}
 
 	{#if site.albums.length === 0}
-		<div class="empty rise">
+		<div class="empty board rise">
 			<p>No albums yet.</p>
-			<p class="muted">
+			<p class="hint">
 				Add a folder of photos, or drop folders into <code>{site.root}/photos</code>. They appear
 				here as soon as they land.
 			</p>
@@ -78,7 +78,7 @@
 					style:animation-delay="{Math.min(i, 12) * 40}ms"
 					onclick={() => onOpenAlbum(album.slug)}
 				>
-					<div class="cover" style:background={album.built?.coverColor ?? 'var(--surface-2)'}>
+					<div class="cover" style:background={album.built?.coverColor ?? 'var(--surface)'}>
 						{#if cover(album)}<img src={siteUrl(cover(album)!)} alt="" loading="lazy" />{/if}
 						{#if !album.built || album.built.count !== album.files}<span class="badge"
 								>not processed</span
@@ -88,7 +88,7 @@
 					</div>
 					<div class="meta">
 						<strong>{album.title}</strong>
-						<span class="muted small"
+						<span class="meta-line"
 							>{album.date ?? ''}{album.date ? ' · ' : ''}{album.files} photos</span
 						>
 					</div>
@@ -109,34 +109,39 @@
 	.grid {
 		display: grid;
 		grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-		gap: 16px;
+		gap: 20px 16px;
 	}
 	.card {
 		padding: 0;
 		background: none;
-		border: 0;
 		text-align: left;
-		border-radius: var(--radius);
-		overflow: hidden;
+		border-radius: 12px;
+	}
+	.card:hover {
+		background: none;
+	}
+	.card:active:not(:disabled) {
+		transform: none;
 	}
 	.cover {
 		position: relative;
 		aspect-ratio: 3 / 2;
-		border-radius: var(--radius);
+		border-radius: 12px;
 		overflow: hidden;
 		transition:
-			transform 220ms var(--ease),
-			box-shadow 220ms var(--ease);
+			transform 250ms var(--ease),
+			box-shadow 250ms var(--ease);
 	}
 	.card:hover .cover {
 		transform: translateY(-2px);
-		box-shadow: 0 10px 24px rgb(0 0 0 / 0.4);
+		box-shadow: 0 10px 24px rgb(17 17 26 / 0.18);
 	}
 	.card:focus-visible {
 		outline: none;
 	}
 	.card:focus-visible .cover {
 		outline: 2px solid var(--accent);
+		outline-offset: 2px;
 	}
 	.cover img {
 		width: 100%;
@@ -149,30 +154,37 @@
 		transform: scale(1.03);
 	}
 	.badge {
-		position: absolute;
-		left: 8px;
-		bottom: 8px;
-		font-size: 11px;
-		padding: 2px 7px;
-		border-radius: 999px;
-		background: rgb(0 0 0 / 0.6);
-		color: #fff;
-		backdrop-filter: blur(6px);
+		left: 10px;
+		bottom: 10px;
 	}
 	.badge.vis {
 		left: auto;
-		right: 8px;
+		right: 10px;
 	}
 	.meta {
 		display: flex;
 		flex-direction: column;
-		padding: 8px 2px;
+		gap: 2px;
+		padding: 10px 2px 0;
+	}
+	.meta strong {
+		font-weight: 500;
+	}
+	.meta-line {
+		font: 11.5px var(--f-mono);
+		color: var(--muted);
+		font-variant-numeric: tabular-nums;
 	}
 	.empty {
-		padding: 48px;
+		padding: 56px 48px;
 		text-align: center;
-		border: 1px dashed var(--hairline);
-		border-radius: var(--radius);
+		display: flex;
+		flex-direction: column;
+		gap: 6px;
+		align-items: center;
+	}
+	.empty .hint {
+		max-width: 420px;
 	}
 	code {
 		user-select: text;

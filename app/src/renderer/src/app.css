@@ -1,19 +1,49 @@
+/* Tokens and base styles, following the index84 design guide: cool neutrals, one accent used for
+   state and action, Geist for text and Geist Mono for numbers and paths. */
 :root {
-	--bg: #0e0e0e;
-	--surface: #1a1a1a;
-	--surface-2: #242424;
-	--text: #ececec;
-	--text-muted: #9a9a9a;
-	--hairline: rgb(255 255 255 / 0.08);
-	--accent: #e8c37a;
-	--danger: #e07a7a;
-	--radius: 6px;
-	--ease: cubic-bezier(0.2, 0, 0, 1);
-	--font: 'Inter Variable', ui-sans-serif, system-ui, sans-serif;
-	color-scheme: dark;
+	--bg: #ffffff;
+	--surface: #f4f4f6;
+	--ink: #11111a;
+	--muted: #66666a;
+	--faint: #a0a0a6;
+	--line: #e8e8ec;
+	--track: #dcdce2;
+	--accent: #ff5900;
+	--accent-hover: #ff6c1f;
+	--on-accent: #11111a;
+	--dot: rgb(17 17 26 / 0.11);
+	--danger: #c2372b;
+	/* a slightly raised surface, for hover states and thumbnails before they load */
+	--surface-2: color-mix(in srgb, var(--surface), var(--ink) 6%);
+	--glass: rgb(255 255 255 / 0.86);
+	--f-body: 'Geist Variable', system-ui, -apple-system, 'Segoe UI', sans-serif;
+	--f-mono: 'Geist Mono Variable', ui-monospace, 'SF Mono', Menlo, monospace;
+	--ease: cubic-bezier(0.22, 1, 0.36, 1);
+	--radius: 10px;
+	color-scheme: light;
 }
-* {
+@media (prefers-color-scheme: dark) {
+	:root {
+		--bg: #0d0d10;
+		--surface: #17171c;
+		--ink: #f1f1f4;
+		--muted: #9a9aa2;
+		--faint: #66666e;
+		--line: #24242b;
+		--track: #34343c;
+		--dot: rgb(255 255 255 / 0.08);
+		--danger: #ff7b6e;
+		--surface-2: color-mix(in srgb, var(--surface), var(--ink) 7%);
+		color-scheme: dark;
+	}
+}
+*,
+*::before,
+*::after {
 	box-sizing: border-box;
+}
+[hidden] {
+	display: none !important;
 }
 html,
 body,
@@ -22,49 +52,67 @@ body,
 	margin: 0;
 }
 body {
-	font: 14px/1.5 var(--font);
+	font: 14px/1.5 var(--f-body);
 	background: var(--bg);
-	color: var(--text);
+	color: var(--ink);
 	-webkit-font-smoothing: antialiased;
 	user-select: none;
+}
+::selection {
+	background: var(--accent);
+	color: var(--on-accent);
+}
+:focus-visible {
+	outline: 2px solid var(--accent);
+	outline-offset: 2px;
 }
 h1,
 h2,
 h3 {
 	margin: 0;
 	font-weight: 600;
-	letter-spacing: -0.01em;
+	letter-spacing: -0.015em;
+	text-wrap: balance;
 }
 h1 {
-	font-size: 22px;
+	font-size: 20px;
 }
 h2 {
-	font-size: 16px;
+	font-size: 14px;
+	font-weight: 500;
 }
 p {
 	margin: 0;
 }
 a {
-	color: var(--accent);
+	color: var(--muted);
+}
+a:hover {
+	color: var(--ink);
+}
+code,
+.mono {
+	font-family: var(--f-mono);
+	font-size: 12px;
+	font-variant-numeric: tabular-nums;
 }
 button {
-	font: inherit;
-	color: var(--text);
-	background: var(--surface-2);
-	border: 1px solid var(--hairline);
+	font: 500 14px var(--f-body);
+	color: var(--ink);
+	background: var(--surface);
+	border: 0;
 	border-radius: var(--radius);
-	padding: 7px 14px;
+	padding: 9px 14px;
 	cursor: pointer;
 	white-space: nowrap;
-}
-button {
 	transition:
-		background 160ms var(--ease),
-		transform 160ms var(--ease),
-		opacity 160ms var(--ease);
+		background 150ms,
+		color 150ms,
+		transform 200ms var(--ease),
+		opacity 150ms;
 }
 button:hover {
-	background: #2e2e2e;
+	background: var(--surface-2);
 }
 button:active:not(:disabled) {
 	transform: scale(0.98);
@@ -75,67 +123,84 @@ button:disabled {
 }
 button.primary {
 	background: var(--accent);
-	color: #1a1200;
-	border-color: transparent;
+	color: var(--on-accent);
 	font-weight: 600;
 }
 button.primary:hover {
-	background: #f0d08f;
+	background: var(--accent-hover);
 }
 button.link {
 	background: none;
-	border: 0;
-	color: var(--text-muted);
+	color: var(--muted);
 	padding: 4px 6px;
+	font-size: 12.5px;
 }
 button.link:hover {
-	color: var(--text);
+	color: var(--ink);
 }
 input,
 textarea,
 select {
-	font: inherit;
-	color: var(--text);
+	font: 14px var(--f-body);
+	color: var(--ink);
 	background: var(--surface);
-	border: 1px solid var(--hairline);
+	border: 0;
 	border-radius: var(--radius);
-	padding: 7px 10px;
+	padding: 9px 12px;
 	width: 100%;
 	user-select: text;
 }
-input:focus,
-textarea:focus,
-select:focus,
-button:focus-visible {
-	outline: 2px solid var(--accent);
-	outline-offset: 1px;
+input::placeholder,
+textarea::placeholder {
+	color: var(--faint);
+}
+select {
+	cursor: pointer;
+	padding-right: 30px;
+	appearance: none;
+	background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 10 10'%3E%3Cpath d='M2 3.5l3 3 3-3' fill='none' stroke='%2366666a' stroke-width='1.5'/%3E%3C/svg%3E");
+	background-repeat: no-repeat;
+	background-position: right 12px center;
 }
 textarea {
 	resize: vertical;
 	min-height: 72px;
+	line-height: 1.5;
 }
 label {
 	display: block;
-	font-size: 12px;
-	color: var(--text-muted);
-	margin-bottom: 4px;
+	font-size: 13px;
+	font-weight: 500;
+	margin-bottom: 5px;
+}
+.hint {
+	font-size: 12.5px;
+	line-height: 1.5;
+	color: var(--muted);
+	text-wrap: pretty;
 }
 .field {
 	margin-bottom: 14px;
 }
 .row {
 	display: flex;
-	gap: 10px;
+	gap: 8px;
 	align-items: center;
 }
 .muted {
-	color: var(--text-muted);
+	color: var(--muted);
 }
 .small {
-	font-size: 12px;
+	font-size: 12.5px;
 }
 .error {
 	color: var(--danger);
+	font-size: 13px;
+}
+.sep {
+	height: 1px;
+	background: var(--line);
+	flex: none;
 }
 .drag {
 	-webkit-app-region: drag;
@@ -144,7 +209,75 @@ label {
 	-webkit-app-region: no-drag;
 }
 
-/* Motion: a short rise-in for lists and panels, and a pulse for "Saved". */
+/* Switch: a label on the left and the switch on the right. */
+.switch {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	gap: 12px;
+	font-size: 13px;
+	font-weight: 400;
+	margin: 0;
+	cursor: pointer;
+}
+.switch input {
+	appearance: none;
+	flex: none;
+	position: relative;
+	margin: 0;
+	padding: 0;
+	cursor: pointer;
+	width: 32px;
+	height: 20px;
+	border-radius: 999px;
+	background: var(--track);
+	transition: background 200ms var(--ease);
+}
+.switch input::after {
+	content: '';
+	position: absolute;
+	top: 2px;
+	left: 2px;
+	width: 16px;
+	height: 16px;
+	border-radius: 50%;
+	background: #fff;
+	box-shadow: 0 1px 2px rgb(0 0 0 / 0.2);
+	transition: transform 250ms var(--ease);
+}
+.switch input:checked {
+	background: var(--accent);
+}
+.switch input:checked::after {
+	transform: translateX(12px);
+}
+
+/* A quiet dotted surface for the work to sit on. */
+.board {
+	position: relative;
+	border-radius: 16px;
+	background-color: var(--surface);
+	background-image: radial-gradient(var(--dot) 1px, transparent 1.4px);
+	background-size: 16px 16px;
+	background-position: center;
+}
+
+/* Floating labels over photos: light glass on any tone. */
+.badge {
+	position: absolute;
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	font: 500 11px/1 var(--f-body);
+	padding: 5px 9px;
+	border-radius: 999px;
+	background: var(--glass);
+	color: #11111a;
+	backdrop-filter: blur(8px);
+	box-shadow: 0 0 0 1px rgb(17 17 26 / 0.06);
+}
+
+/* Motion: a short rise-in for lists and panels. */
 .rise {
 	animation: rise 420ms var(--ease) both;
 }
@@ -158,26 +291,11 @@ label {
 		transform: none;
 	}
 }
-button.saved {
-	animation: pulse 500ms var(--ease);
-}
-@keyframes pulse {
-	0% {
-		transform: scale(1);
-	}
-	40% {
-		transform: scale(1.04);
-	}
-	100% {
-		transform: scale(1);
-	}
-}
 @media (prefers-reduced-motion: reduce) {
 	*,
 	*::before,
 	*::after {
-		animation-duration: 0.01ms !important;
-		animation-iteration-count: 1 !important;
-		transition-duration: 0.01ms !important;
+		animation: none !important;
+		transition: none !important;
 	}
 }

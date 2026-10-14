@@ -10,7 +10,7 @@
 	type Provider = {
 		label: string;
 		icon: { path: string; hex: string };
-		/** brand colour on dark; black marks stay white */
+		/** brand colour; monochrome marks follow the text colour */
 		color: string;
 		nameLabel: string;
 		namePlaceholder: string;
@@ -27,7 +27,7 @@
 			color: '#00C7B7',
 			nameLabel: 'Site name',
 			namePlaceholder: 'my-photos',
-			tokenLabel: 'Personal access token',
+			tokenLabel: 'personal access token',
 			tokenHelp: 'User settings → Applications → Personal access tokens',
 			tokenUrl: 'https://app.netlify.com/user/applications#personal-access-tokens',
 			address: (n) => `${n || 'something-random'}.netlify.app`
@@ -35,10 +35,10 @@
 		vercel: {
 			label: 'Vercel',
 			icon: siVercel,
-			color: '#ffffff',
+			color: 'var(--ink)',
 			nameLabel: 'Project name',
 			namePlaceholder: 'my-photos',
-			tokenLabel: 'Access token',
+			tokenLabel: 'access token',
 			tokenHelp: 'Account settings → Tokens',
 			tokenUrl: 'https://vercel.com/account/tokens',
 			address: (n) => `${n || 'my-photos'}.vercel.app`
@@ -58,10 +58,10 @@
 		github: {
 			label: 'GitHub Pages',
 			icon: siGithub,
-			color: '#ffffff',
+			color: 'var(--ink)',
 			nameLabel: 'Repository name',
 			namePlaceholder: 'my-photos',
-			tokenLabel: 'Personal access token',
+			tokenLabel: 'personal access token',
 			tokenHelp:
 				'Settings → Developer settings → Tokens, with the "repo" scope. A public repository is created if needed.',
 			tokenUrl: 'https://github.com/settings/tokens/new?scopes=repo&description=Revelar',
@@ -154,11 +154,13 @@
 </script>
 
 <section class="publish">
-	<h1>Publish</h1>
-	<p class="muted">
-		Pick a host. Each one serves static sites for free; all the app needs is a token from your
-		account, kept encrypted on this computer.
-	</p>
+	<div>
+		<h1>Publish</h1>
+		<p class="hint">
+			Pick a host. Each one serves static sites for free; all the app needs is a token from your
+			account, kept encrypted on this computer.
+		</p>
+	</div>
 
 	<div class="tiles" role="radiogroup" aria-label="Host">
 		{#each TARGETS as t (t)}
@@ -185,9 +187,9 @@
 	{#key target}
 		<div class="form rise">
 			<div class="field">
-				<label for="token">{provider.label} {provider.tokenLabel.toLowerCase()}</label>
+				<label for="token">{provider.label} {provider.tokenLabel}</label>
 				<input id="token" type="password" bind:value={token} autocomplete="off" />
-				<p class="muted small hint">
+				<p class="hint">
 					{provider.tokenHelp}.
 					<button
 						type="button"
@@ -215,7 +217,7 @@
 					disabled={target === 'netlify' && Boolean(siteId)}
 				/>
 				{#if target === 'netlify' && siteId}
-					<p class="muted small hint">
+					<p class="hint">
 						Publishing updates the existing site.
 						<button type="button" class="link inline" onclick={() => (siteId = undefined)}
 							>Create a new one instead</button
@@ -225,9 +227,9 @@
 			</div>
 
 			<p class="address">
-				<span class="muted small">Site address</span>
+				<span class="hint">Site address</span>
 				<strong>{address}</strong>
-				<span class="muted small">
+				<span class="hint">
 					{#if managed}
 						Set in the site's config for you when you publish, so shared links and the sitemap point
 						at it.
@@ -258,13 +260,15 @@
 		max-width: 620px;
 		display: flex;
 		flex-direction: column;
-		gap: 16px;
+		gap: 18px;
+	}
+	.publish h1 {
+		margin-bottom: 4px;
 	}
 	.tiles {
 		display: grid;
 		grid-template-columns: repeat(4, 1fr);
 		gap: 10px;
-		margin: 4px 0 6px;
 	}
 	.tile {
 		position: relative;
@@ -273,36 +277,34 @@
 		align-items: center;
 		gap: 10px;
 		padding: 16px 8px 12px;
-		background: var(--surface);
-		border: 1px solid var(--hairline);
-		color: var(--text-muted);
+		border-radius: 12px;
+		color: var(--muted);
 		font-size: 13px;
 		transition:
-			color 160ms var(--ease),
-			border-color 160ms var(--ease),
-			background 160ms var(--ease),
-			transform 160ms var(--ease);
+			color 150ms,
+			background 150ms,
+			box-shadow 150ms,
+			transform 200ms var(--ease);
 	}
 	.tile svg {
-		transition: color 160ms var(--ease);
+		transition: color 150ms;
 	}
 	.tile:hover {
-		color: var(--text);
-		background: var(--surface-2);
+		color: var(--ink);
 		transform: translateY(-1px);
 	}
 	.tile.active {
-		color: var(--text);
-		border-color: var(--accent);
-		background: var(--surface-2);
+		color: var(--ink);
+		background: var(--surface);
+		box-shadow: 0 0 0 2px var(--accent);
 	}
 	.tile.active svg {
 		color: var(--brand);
 	}
 	.dot {
 		position: absolute;
-		top: 8px;
-		right: 8px;
+		top: 9px;
+		right: 9px;
 		width: 6px;
 		height: 6px;
 		border-radius: 50%;
@@ -311,27 +313,29 @@
 	.form {
 		display: flex;
 		flex-direction: column;
-		gap: 4px;
+		gap: 2px;
 	}
-	.hint {
-		margin-top: 4px;
+	.field .hint {
+		margin-top: 5px;
 	}
 	.link.inline {
 		padding: 0;
 		font-size: inherit;
-		color: var(--accent);
+		text-decoration: underline;
+		text-underline-offset: 2px;
 	}
 	.address {
 		display: flex;
 		flex-direction: column;
-		gap: 2px;
+		gap: 3px;
 		padding: 12px 14px;
-		margin: 4px 0 14px;
+		margin: 4px 0 16px;
 		background: var(--surface);
-		border-radius: var(--radius);
+		border-radius: 12px;
 	}
 	.address strong {
 		user-select: text;
-		font-weight: 500;
+		font: 500 13px var(--f-mono);
+		letter-spacing: -0.01em;
 	}
 </style>

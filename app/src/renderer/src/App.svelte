@@ -18,6 +18,9 @@
 	import SiteMenu from './screens/SiteMenu.svelte';
 	import StatusBar from './screens/StatusBar.svelte';
 	import Busy from './screens/Busy.svelte';
+	import Mark from './lib/Mark.svelte';
+	import Seg from './lib/Seg.svelte';
+	import { toastState } from './lib/toast.svelte.ts';
 
 	let site = $state<SiteState | undefined>();
 	let screen = $state<Screen>('welcome');
@@ -63,6 +66,12 @@
 		albumSlug = slug;
 		screen = to;
 	}
+	const NAV = [
+		{ value: 'library', label: 'Library' },
+		{ value: 'preview', label: 'Preview' },
+		{ value: 'publish', label: 'Publish' }
+	];
+	const navValue = $derived(screen === 'album' ? 'library' : screen);
 
 	onMount(() => {
 		const stop = watchEvents();
@@ -88,27 +97,13 @@
 
 <div class="shell">
 	<header class="top drag">
-		<div class="brand">Revelar</div>
+		<div class="brand">
+			<Mark height={16} />
+			<span>Revelar</span>
+		</div>
 		{#if site}
 			<nav class="no-drag">
-				<button
-					type="button"
-					class="tab"
-					class:active={screen === 'library' || screen === 'album'}
-					onclick={() => go('library')}>Library</button
-				>
-				<button
-					type="button"
-					class="tab"
-					class:active={screen === 'preview'}
-					onclick={() => go('preview')}>Preview</button
-				>
-				<button
-					type="button"
-					class="tab"
-					class:active={screen === 'publish'}
-					onclick={() => go('publish')}>Publish</button
-				>
+				<Seg options={NAV} value={navValue} label="Screen" onchange={(v) => go(v as Screen)} />
 			</nav>
 			<div class="right">
 				<SiteMenu
@@ -154,6 +149,7 @@
 		{/key}
 	</main>
 
+	<div class="toast" class:on={toastState.on} aria-live="polite">{toastState.text}</div>
 	{#if activity.busy}<Busy />{/if}
 	{#if !activity.busy && activity.log.some((e) => e.level !== 'info')}
 		<StatusBar />
@@ -169,36 +165,25 @@
 	.top {
 		display: flex;
 		align-items: center;
-		gap: 20px;
-		padding: 0 14px 0 92px;
-		height: 46px;
-		border-bottom: 1px solid var(--hairline);
-		background: var(--surface);
+		gap: 24px;
+		padding: 0 14px 0 88px;
+		height: 50px;
+		flex: none;
 	}
 	.brand {
-		font-weight: 600;
-		letter-spacing: -0.01em;
-	}
-	nav {
 		display: flex;
-		gap: 2px;
+		align-items: center;
+		gap: 9px;
+		font-weight: 600;
+		font-size: 15px;
+		letter-spacing: -0.015em;
+		color: var(--accent);
 	}
-	.tab {
-		background: none;
-		border-color: transparent;
-		color: var(--text-muted);
-		padding: 5px 10px;
-		transition:
-			color 160ms var(--ease),
-			background 160ms var(--ease);
+	.brand span {
+		color: var(--ink);
 	}
-	.tab:hover {
-		color: var(--text);
-		background: var(--surface-2);
-	}
-	.tab.active {
-		color: var(--text);
-		background: var(--surface-2);
+	nav :global(.seg) {
+		width: 270px;
 	}
 	.right {
 		margin-left: auto;
@@ -207,12 +192,34 @@
 		position: relative;
 		flex: 1;
 		overflow: auto;
-		padding: 24px;
+		padding: 18px 24px 24px;
 	}
 	.screen {
 		height: 100%;
 	}
 	.banner {
 		margin-bottom: 12px;
+	}
+	.toast {
+		position: fixed;
+		left: 50%;
+		bottom: 24px;
+		z-index: 25;
+		transform: translateX(-50%) translateY(8px);
+		background: var(--ink);
+		color: var(--bg);
+		font-weight: 500;
+		font-size: 13px;
+		padding: 9px 16px;
+		border-radius: 999px;
+		opacity: 0;
+		pointer-events: none;
+		transition:
+			opacity 200ms var(--ease),
+			transform 300ms var(--ease);
+	}
+	.toast.on {
+		opacity: 1;
+		transform: translateX(-50%) translateY(0);
 	}
 </style>

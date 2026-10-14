@@ -1,3 +1,5 @@
+<img src="docs/mark.svg" alt="" width="72">
+
 # Revelar
 
 Revelar (Portuguese for "to develop", as in film) is a static, photo-first gallery site. Drop folders of photos into `photos/`, run one build command, and get a complete, fast site: responsive AVIF/WebP derivatives, ThumbHash placeholders, a justified grid, a fullscreen viewer with filmstrip and slideshow, EXIF info, maps, downloads, and password-protected albums. Built with SvelteKit (prerendered with `adapter-static`), Svelte 5 and sharp. No server, database or CMS: adding photos means adding files and rebuilding.
@@ -243,6 +245,8 @@ npm install               # at the repo root: installs the app workspace and Ele
 npm run build -w app && npm start -w app
 # or, from inside app/: npm run build && npm start
 ```
+
+The app follows the system appearance, light or dark, with one accent colour and the Geist typefaces bundled in. Its tokens live in `app/src/renderer/src/app.css`, the mark in `app/src/renderer/src/art/mark.svg`, and `node app/scripts/icon.mjs` redraws the app icon from it.
 
 It is a proof of concept: no installer, code signing or auto-update yet. Of the four publish targets only Netlify has been exercised against a live account; Vercel, Cloudflare Pages and GitHub Pages follow their documented APIs but are untested.
 

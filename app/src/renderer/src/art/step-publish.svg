@@ -1,11 +1,11 @@
 <!-- Welcome, step 3: a browser window with a photo grid, going live. Colours come from the app's CSS variables. -->
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 100">
-  <rect x="24" y="16" width="112" height="70" rx="6" fill="var(--surface)" stroke="var(--text-muted)" stroke-width="2"/>
-  <path d="M24 30h112" fill="none" stroke="var(--text-muted)" stroke-width="2"/>
-  <circle cx="33" cy="23" r="2" fill="var(--text-muted)"/>
-  <circle cx="40" cy="23" r="2" fill="var(--text-muted)"/>
-  <circle cx="47" cy="23" r="2" fill="var(--text-muted)"/>
-  <g fill="var(--text-muted)" opacity="0.35">
+  <rect x="24" y="16" width="112" height="70" rx="6" fill="var(--bg)" stroke="var(--muted)" stroke-width="2"/>
+  <path d="M24 30h112" fill="none" stroke="var(--muted)" stroke-width="2"/>
+  <circle cx="33" cy="23" r="2" fill="var(--muted)"/>
+  <circle cx="40" cy="23" r="2" fill="var(--muted)"/>
+  <circle cx="47" cy="23" r="2" fill="var(--muted)"/>
+  <g fill="var(--muted)" opacity="0.35">
     <rect x="32" y="38" width="30" height="20" rx="2"/>
     <rect x="66" y="38" width="20" height="20" rx="2"/>
     <rect x="90" y="38" width="38" height="20" rx="2"/>
@@ -14,5 +14,5 @@
     <rect x="96" y="62" width="32" height="16" rx="2"/>
   </g>
   <circle cx="130" cy="78" r="12" fill="var(--accent)"/>
-  <path d="M130 84V72m-5 5l5-5 5 5" fill="none" stroke="#1a1200" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M130 84V72m-5 5l5-5 5 5" fill="none" stroke="var(--on-accent)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
 </svg>

@@ -34,7 +34,7 @@
 <section class="preview">
 	<header class="row">
 		<h1>Preview</h1>
-		<span class="muted small">{url || 'Building…'}</span>
+		<span class="url">{url || 'Building…'}</span>
 		<button type="button" onclick={rebuild}>Rebuild</button>
 		{#if url}<button type="button" onclick={() => window.revelar.openExternal(url)}
 				>Open in browser</button
@@ -51,15 +51,21 @@
 		display: flex;
 		flex-direction: column;
 		height: 100%;
-		gap: 12px;
+		gap: 14px;
 	}
 	header {
 		gap: 14px;
 	}
+	.url {
+		font: 12px var(--f-mono);
+		color: var(--muted);
+		margin-right: auto;
+		user-select: text;
+	}
 	iframe {
 		flex: 1;
-		border: 1px solid var(--hairline);
-		border-radius: var(--radius);
+		border: 0;
+		border-radius: 16px;
 		background: #fff;
 		width: 100%;
 	}

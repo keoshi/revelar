@@ -1,10 +1,11 @@
 <script lang="ts">
 	import { fly } from 'svelte/transition';
 	// The illustrations are plain SVG files in ../art, easy to redraw; they use the app's CSS
-	// variables (--surface, --text-muted, --accent) for colour.
+	// variables (--bg, --muted, --accent) for colour.
 	import artFolder from '../art/step-folder.svg?raw';
 	import artAlbums from '../art/step-albums.svg?raw';
 	import artPublish from '../art/step-publish.svg?raw';
+	import Mark from '../lib/Mark.svelte';
 
 	type Props = {
 		recent: string[];
@@ -60,23 +61,23 @@
 
 <section class="welcome">
 	<div class="hero" in:fly={{ y: 12, duration: 360 }}>
-		<h1>Turn a folder of photos into a website.</h1>
-		<p class="lead muted">
-			Everything stays on your computer until you publish. No account needed.
+		<Mark height={34} label="Revelar" />
+		<p class="lead">
+			Turn a folder of photos into a website.
+			<span>Everything stays on your computer until you publish. No account needed.</span>
 		</p>
 	</div>
 
 	<ol class="steps">
 		{#each STEPS as step, i (step.title)}
 			<li in:fly={{ y: 16, duration: 400, delay: 140 + i * 110 }}>
-				<div class="art" aria-hidden="true">
+				<div class="art board" aria-hidden="true">
 					<!-- eslint-disable-next-line svelte/no-at-html-tags -- bundled SVG files, not user content -->
 					{@html step.art}
 				</div>
 				<div class="copy">
-					<span class="num">{i + 1}</span>
-					<strong>{step.title}</strong>
-					<p class="muted small">{step.text}</p>
+					<strong><span class="num">{i + 1}</span>{step.title}</strong>
+					<p class="hint">{step.text}</p>
 				</div>
 			</li>
 		{/each}
@@ -88,7 +89,7 @@
 		>
 		<div class="secondary">
 			{#if recent.length}
-				<span class="muted small">Or continue with</span>
+				<span class="hint">Or continue with</span>
 				{#each recent as root (root)}
 					<button
 						type="button"
@@ -98,7 +99,7 @@
 						title={root}
 					>
 						<span class="name">{root.split('/').pop()}</span>
-						<span class="path muted small">{short(root)}</span>
+						<span class="path">{short(root)}</span>
 					</button>
 				{/each}
 			{/if}
@@ -113,18 +114,26 @@
 <style>
 	.welcome {
 		max-width: 760px;
-		margin: 6vh auto 0;
+		margin: 5vh auto 0;
 		display: flex;
 		flex-direction: column;
-		gap: 28px;
+		gap: 32px;
 	}
-	h1 {
-		font-size: 32px;
-		letter-spacing: -0.02em;
+	.hero {
+		display: flex;
+		flex-direction: column;
+		gap: 22px;
+		color: var(--accent);
 	}
 	.lead {
-		font-size: 15px;
-		margin-top: 6px;
+		font: 500 24px/1.3 var(--f-body);
+		letter-spacing: -0.02em;
+		text-wrap: balance;
+		color: var(--ink);
+	}
+	.lead span {
+		display: block;
+		color: var(--muted);
 	}
 	.steps {
 		list-style: none;
@@ -132,22 +141,19 @@
 		padding: 0;
 		display: grid;
 		grid-template-columns: repeat(3, 1fr);
-		gap: 14px;
+		gap: 20px;
 	}
 	.steps li {
 		display: flex;
 		flex-direction: column;
-		background: var(--surface);
-		border-radius: 10px;
-		overflow: hidden;
-		transition: transform 220ms var(--ease);
-	}
-	.steps li:hover {
-		transform: translateY(-2px);
+		gap: 12px;
 	}
 	.art {
-		background: var(--surface-2);
-		padding: 8px 0 0;
+		padding: 10px 6px 4px;
+		transition: transform 250ms var(--ease);
+	}
+	.steps li:hover .art {
+		transform: translateY(-2px);
 	}
 	.art :global(svg) {
 		display: block;
@@ -155,22 +161,19 @@
 		height: auto;
 	}
 	.copy {
-		padding: 14px 16px 16px;
 		display: flex;
 		flex-direction: column;
-		gap: 4px;
+		gap: 3px;
+		padding: 0 2px;
+	}
+	.copy strong {
+		font-weight: 500;
+		font-size: 13px;
 	}
 	.num {
-		width: 22px;
-		height: 22px;
-		border-radius: 50%;
-		display: grid;
-		place-items: center;
-		background: var(--surface-2);
-		color: var(--accent);
-		font-size: 11px;
-		font-weight: 600;
-		margin-bottom: 4px;
+		font: 500 12px var(--f-mono);
+		color: var(--muted);
+		margin-right: 8px;
 	}
 	.actions {
 		display: flex;
@@ -179,8 +182,8 @@
 		align-items: flex-start;
 	}
 	.big {
-		padding: 11px 20px;
-		font-size: 15px;
+		padding: 12px 18px;
+		font-size: 14px;
 	}
 	.secondary {
 		display: flex;
@@ -188,22 +191,18 @@
 		gap: 8px;
 		align-items: center;
 	}
-	.secondary .small {
+	.secondary .hint {
 		margin-right: 4px;
 	}
 	.recent {
 		display: flex;
 		flex-direction: column;
 		align-items: flex-start;
-		gap: 0;
-		padding: 6px 12px;
+		padding: 7px 12px;
 		text-align: left;
-		background: var(--surface);
 	}
-	.recent:hover {
-		background: var(--surface-2);
-	}
-	.recent .name {
-		font-weight: 500;
+	.recent .path {
+		font: 11.5px var(--f-mono);
+		color: var(--muted);
 	}
 </style>

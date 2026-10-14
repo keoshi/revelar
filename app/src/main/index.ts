@@ -8,6 +8,7 @@ import {
 	BrowserWindow,
 	dialog,
 	ipcMain,
+	nativeTheme,
 	net,
 	protocol,
 	safeStorage,
@@ -23,8 +24,16 @@ import type { EngineEvent, Settings } from '../shared/api.ts';
 const require = createRequire(import.meta.url);
 const HOST = join(dirname(require.resolve('revelar/package.json')), 'bin', 'revelar-host.js');
 
-// Tests point the app at a throwaway profile (settings, secrets) instead of the user's.
+// Tests point the app at a throwaway profile (settings, secrets) instead of the user's, and can
+// pin the appearance so screenshots come out the same on any machine.
 if (process.env.REVELAR_USER_DATA) app.setPath('userData', process.env.REVELAR_USER_DATA);
+const theme = process.env.REVELAR_THEME;
+if (theme === 'light' || theme === 'dark') nativeTheme.themeSource = theme;
+
+/** The app icon, also used as the dock icon when running from source. */
+const ICON = join(import.meta.dirname, '../../build/icon.png');
+/** Window background in the app's own palette, so resizes and loads never flash the wrong tone. */
+const windowBackground = () => (nativeTheme.shouldUseDarkColors ? '#0d0d10' : '#ffffff');
 
 protocol.registerSchemesAsPrivileged([
 	{
@@ -108,18 +117,21 @@ function createWindow(): void {
 		minWidth: 960,
 		minHeight: 620,
 		title: 'Revelar',
-		backgroundColor: '#0e0e0e',
+		icon: ICON,
+		backgroundColor: windowBackground(),
 		titleBarStyle: process.platform === 'darwin' ? 'hiddenInset' : 'default',
-		// Centre the traffic lights on the app's 46 px top bar.
-		trafficLightPosition: { x: 18, y: 17 },
+		// Centre the traffic lights on the app's 50 px top bar.
+		trafficLightPosition: { x: 18, y: 19 },
 		webPreferences: { preload: join(import.meta.dirname, '../preload/index.mjs'), sandbox: false }
 	});
 	win.on('closed', () => (win = undefined));
+	nativeTheme.on('updated', () => win?.setBackgroundColor(windowBackground()));
 	if (process.env.ELECTRON_RENDERER_URL) void win.loadURL(process.env.ELECTRON_RENDERER_URL);
 	else void win.loadFile(join(import.meta.dirname, '../renderer/index.html'));
 }
 
 app.whenReady().then(() => {
+	if (process.platform === 'darwin' && existsSync(ICON)) app.dock?.setIcon(ICON);
 	// Files of the open site: site://media/… and site://downloads/… map to static/, site://cache/…
 	// to .cache/ (quick previews) and site://photos/… to the originals.
 	const BASES: Record<string, string> = {

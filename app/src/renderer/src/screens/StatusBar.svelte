@@ -33,10 +33,9 @@
 
 <style>
 	.status {
-		border-top: 1px solid var(--hairline);
-		background: var(--surface);
-		padding: 6px 16px;
-		font-size: 12px;
+		border-top: 1px solid var(--line);
+		padding: 8px 20px;
+		font-size: 12.5px;
 	}
 	.line {
 		display: flex;
@@ -52,10 +51,10 @@
 		border-radius: 50%;
 		display: grid;
 		place-items: center;
-		font-weight: 700;
+		font-weight: 600;
 		font-size: 11px;
 		background: var(--accent);
-		color: #1a1200;
+		color: var(--on-accent);
 	}
 	.errors .mark {
 		background: var(--danger);
@@ -65,14 +64,12 @@
 		max-height: 160px;
 		overflow: auto;
 		margin: 8px 0 0;
-		font:
-			11px/1.5 ui-monospace,
-			monospace;
+		font: 11.5px/1.55 var(--f-mono);
 		white-space: pre-wrap;
 		user-select: text;
 	}
 	.warn {
-		color: var(--accent);
+		color: var(--ink);
 	}
 	.error {
 		color: var(--danger);

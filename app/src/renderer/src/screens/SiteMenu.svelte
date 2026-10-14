@@ -47,15 +47,15 @@
 		<div class="menu" role="menu" transition:fly={{ y: -6, duration: 140 }}>
 			<div class="head">
 				<strong>{title}</strong>
-				<span class="muted small path">{short(root)}</span>
+				<span class="path">{short(root)}</span>
 			</div>
 			<button type="button" role="menuitem" onclick={() => pick(onSettings)}>Site settings…</button>
 			{#if others.length}
 				<div class="sep"></div>
-				<span class="label muted small">Recent sites</span>
+				<span class="label hint">Recent sites</span>
 				{#each others as r (r)}
 					<button type="button" role="menuitem" onclick={() => pick(() => onOpen(r))} title={r}
-						>{r.split('/').pop()}<span class="muted small path">{short(r)}</span></button
+						>{r.split('/').pop()}<span class="path">{short(r)}</span></button
 					>
 				{/each}
 			{/if}
@@ -79,13 +79,12 @@
 		align-items: center;
 		gap: 8px;
 		background: none;
-		border-color: transparent;
-		padding: 5px 10px;
-		color: var(--text);
+		padding: 6px 10px;
+		color: var(--ink);
 	}
 	.trigger:hover,
 	.trigger.open {
-		background: var(--surface-2);
+		background: var(--surface);
 	}
 	.dot {
 		width: 7px;
@@ -100,16 +99,20 @@
 		text-overflow: ellipsis;
 		white-space: nowrap;
 	}
+	.trigger svg {
+		color: var(--muted);
+	}
 	.menu {
 		position: absolute;
 		right: 0;
 		top: calc(100% + 6px);
 		min-width: 280px;
 		padding: 6px;
-		background: var(--surface);
-		border: 1px solid var(--hairline);
-		border-radius: 8px;
-		box-shadow: 0 12px 32px rgb(0 0 0 / 0.45);
+		background: var(--bg);
+		border-radius: 12px;
+		box-shadow:
+			0 0 0 1px rgb(17 17 26 / 0.08),
+			0 12px 32px rgb(17 17 26 / 0.18);
 		display: flex;
 		flex-direction: column;
 		z-index: 10;
@@ -119,19 +122,25 @@
 		flex-direction: column;
 		padding: 8px 10px 10px;
 	}
+	.head strong {
+		font-weight: 500;
+	}
 	.menu [role='menuitem'] {
 		display: flex;
 		flex-direction: column;
 		align-items: flex-start;
 		gap: 0;
 		background: none;
-		border: 0;
-		border-radius: 5px;
+		border-radius: 7px;
 		padding: 7px 10px;
 		text-align: left;
+		font-weight: 400;
 	}
 	.menu [role='menuitem']:hover {
-		background: var(--surface-2);
+		background: var(--surface);
+	}
+	.menu [role='menuitem']:active {
+		transform: none;
 	}
 	.path {
 		display: block;
@@ -139,10 +148,10 @@
 		overflow: hidden;
 		text-overflow: ellipsis;
 		white-space: nowrap;
+		font: 11.5px var(--f-mono);
+		color: var(--muted);
 	}
 	.sep {
-		height: 1px;
-		background: var(--hairline);
 		margin: 6px 4px;
 	}
 	.label {

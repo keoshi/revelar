@@ -1,5 +1,28 @@
 <script lang="ts">
 	import { engine, type SiteState } from '../lib/engine.svelte.ts';
+	import Seg from '../lib/Seg.svelte';
+	import { toast } from '../lib/toast.svelte.ts';
+
+	const SORTS = [
+		{ value: 'date-asc', label: 'Oldest first' },
+		{ value: 'date-desc', label: 'Newest first' },
+		{ value: 'filename', label: 'File name' }
+	];
+	const DOWNLOADS = [
+		{ value: 'none', label: 'Off' },
+		{ value: 'large', label: 'Large JPEG' },
+		{ value: 'original', label: 'Originals' }
+	];
+	const LOCATIONS = [
+		{ value: 'show', label: 'Exact' },
+		{ value: 'approximate', label: 'About 1 km' },
+		{ value: 'hide', label: 'Hidden' }
+	];
+	const MODES = [
+		{ value: 'system', label: 'System' },
+		{ value: 'dark', label: 'Dark' },
+		{ value: 'light', label: 'Light' }
+	];
 
 	type Props = {
 		site: SiteState;
@@ -28,7 +51,6 @@
 		mapEnabled: c.map.enabled
 	});
 	let error = $state('');
-	let saved = $state(false);
 
 	async function save() {
 		error = '';
@@ -63,8 +85,7 @@
 			};
 			const config = await engine.saveConfig(site.root, input);
 			onSaved(config);
-			saved = true;
-			setTimeout(() => (saved = false), 1600);
+			toast('Saved');
 		} catch (e) {
 			error = e instanceof Error ? e.message : String(e);
 		}
@@ -76,11 +97,9 @@
 		<div>
 			<button type="button" class="link back" onclick={onBack}>← Library</button>
 			<h1>Site settings</h1>
-			<p class="muted small">{site.root}/revelar.config.ts</p>
+			<p class="path">{site.root}/revelar.config.ts</p>
 		</div>
-		<button type="button" class="primary" class:saved onclick={save}
-			>{saved ? 'Saved' : 'Save'}</button
-		>
+		<button type="button" class="primary" onclick={save}>Save</button>
 	</header>
 	{#if error}<p class="error">{error}</p>{/if}
 
@@ -97,9 +116,7 @@
 				<label for="s-url">Address</label>
 				<div>
 					<input id="s-url" bind:value={form.baseUrl} placeholder="https://photos.example.com" />
-					<p class="muted small hint">
-						Filled in when you publish. Set it yourself only for your own domain.
-					</p>
+					<p class="hint">Filled in when you publish. Set it yourself only for your own domain.</p>
 				</div>
 			</div>
 			<div class="r">
@@ -127,54 +144,42 @@
 		</div>
 
 		<div class="col">
-			<h2>
-				Defaults for every album <span class="muted small">each album can override these</span>
-			</h2>
+			<h2>Defaults for every album <span class="hint">each album can override these</span></h2>
 			<div class="r">
-				<label for="s-sort">Photo order</label>
-				<select id="s-sort" bind:value={form.sort}>
-					<option value="date-asc">Oldest first</option>
-					<option value="date-desc">Newest first</option>
-					<option value="filename">File name</option>
-				</select>
+				<span class="lbl">Photo order</span>
+				<Seg options={SORTS} bind:value={form.sort} label="Photo order" />
 			</div>
 			<div class="r">
-				<label for="s-dl">Downloads</label>
-				<select id="s-dl" bind:value={form.downloads}>
-					<option value="none">Off</option>
-					<option value="large">Large JPEG</option>
-					<option value="original">Original files</option>
-				</select>
+				<span class="lbl">Downloads</span>
+				<Seg options={DOWNLOADS} bind:value={form.downloads} label="Downloads" />
 			</div>
 			<div class="r">
-				<label for="s-loc">Locations</label>
-				<select id="s-loc" bind:value={form.location}>
-					<option value="show">Exact</option>
-					<option value="approximate">Approximate (about 1 km)</option>
-					<option value="hide">Hidden</option>
-				</select>
+				<span class="lbl">Locations</span>
+				<Seg options={LOCATIONS} bind:value={form.location} label="Locations" />
 			</div>
 			<div class="r">
-				<span></span>
-				<label class="check"
-					><input type="checkbox" bind:checked={form.exifPanel} /> Info panel (camera, exposure, place)</label
+				<span class="lbl">Info panel</span>
+				<label class="switch"
+					><span class="hint">Camera, exposure and place for each photo</span><input
+						type="checkbox"
+						bind:checked={form.exifPanel}
+					/></label
 				>
 			</div>
 			<div class="r">
-				<span></span>
-				<label class="check"
-					><input type="checkbox" bind:checked={form.mapEnabled} /> Maps of photo locations</label
+				<span class="lbl">Maps</span>
+				<label class="switch"
+					><span class="hint">Where the photos were taken</span><input
+						type="checkbox"
+						bind:checked={form.mapEnabled}
+					/></label
 				>
 			</div>
 
 			<h2>Look</h2>
 			<div class="r">
-				<label for="s-mode">Theme</label>
-				<select id="s-mode" bind:value={form.mode}>
-					<option value="system">Follow the system</option>
-					<option value="dark">Dark</option>
-					<option value="light">Light</option>
-				</select>
+				<span class="lbl">Theme</span>
+				<Seg options={MODES} bind:value={form.mode} label="Theme" />
 			</div>
 			<div class="r">
 				<label for="s-accent">Accent colour</label>
@@ -197,11 +202,23 @@
 		display: flex;
 		justify-content: space-between;
 		align-items: flex-end;
-		margin: 0 0 18px;
+		gap: 24px;
+		margin: 0 0 20px;
+	}
+	.head > div {
+		min-width: 0;
 	}
 	.back {
 		padding-left: 0;
 		margin-bottom: 2px;
+	}
+	.path {
+		font: 12px var(--f-mono);
+		color: var(--muted);
+		user-select: text;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
 	}
 	.cols {
 		display: grid;
@@ -214,13 +231,10 @@
 		}
 	}
 	h2 {
-		margin: 14px 0 10px;
+		margin: 18px 0 10px;
 		display: flex;
 		align-items: baseline;
 		gap: 10px;
-	}
-	h2 .small {
-		font-weight: 400;
 	}
 	.col h2:first-child {
 		margin-top: 0;
@@ -234,32 +248,29 @@
 		margin-bottom: 8px;
 	}
 	.r > label,
-	.r > span {
+	.r > .lbl {
 		margin: 0;
 		font-size: 13px;
+		font-weight: 500;
 		text-align: right;
 	}
-	.hint {
-		margin-top: 4px;
+	.r .hint {
+		margin-top: 5px;
 	}
-	.check {
-		display: flex;
-		gap: 8px;
-		align-items: center;
-		color: var(--text);
-		font-size: 13px;
-		text-align: left;
-	}
-	.check input {
-		width: auto;
+	.r .switch .hint {
 		margin: 0;
+	}
+	.r .switch {
+		padding: 4px 0;
 	}
 	input[type='color'] {
 		width: 44px;
-		padding: 2px;
-		height: 34px;
+		padding: 3px;
+		height: 36px;
 	}
 	.hex {
 		width: 120px;
+		font-family: var(--f-mono);
+		font-size: 13px;
 	}
 </style>

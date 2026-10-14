@@ -1,20 +1,20 @@
 <!-- Welcome, step 2: photos sliding into a folder. Colours come from the app's CSS variables. -->
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 100">
-  <path d="M64 40h26l8 8h40a5 5 0 0 1 5 5v31a5 5 0 0 1-5 5H64a5 5 0 0 1-5-5V45a5 5 0 0 1 5-5z" fill="var(--surface)" stroke="var(--text-muted)" stroke-width="2" stroke-linejoin="round"/>
+  <path d="M64 40h26l8 8h40a5 5 0 0 1 5 5v31a5 5 0 0 1-5 5H64a5 5 0 0 1-5-5V45a5 5 0 0 1 5-5z" fill="var(--bg)" stroke="var(--muted)" stroke-width="2" stroke-linejoin="round"/>
   <g transform="rotate(-10 44 46)">
-    <rect x="22" y="26" width="44" height="34" rx="3" fill="var(--surface)" stroke="var(--text-muted)" stroke-width="2"/>
+    <rect x="22" y="26" width="44" height="34" rx="3" fill="var(--bg)" stroke="var(--muted)" stroke-width="2"/>
     <circle cx="34" cy="37" r="3.5" fill="var(--accent)"/>
-    <path d="M26 56l12-13 8 8 7-6 11 11H26z" fill="var(--text-muted)" opacity="0.55"/>
+    <path d="M26 56l12-13 8 8 7-6 11 11H26z" fill="var(--muted)" opacity="0.55"/>
   </g>
   <g transform="rotate(-4 58 50)">
-    <rect x="36" y="22" width="44" height="34" rx="3" fill="var(--surface)" stroke="var(--text-muted)" stroke-width="2"/>
+    <rect x="36" y="22" width="44" height="34" rx="3" fill="var(--bg)" stroke="var(--muted)" stroke-width="2"/>
     <circle cx="48" cy="33" r="3.5" fill="var(--accent)"/>
-    <path d="M40 52l12-13 8 8 7-6 11 11H40z" fill="var(--text-muted)" opacity="0.55"/>
+    <path d="M40 52l12-13 8 8 7-6 11 11H40z" fill="var(--muted)" opacity="0.55"/>
   </g>
   <g>
-    <rect x="50" y="18" width="44" height="34" rx="3" fill="var(--surface)" stroke="var(--text-muted)" stroke-width="2"/>
+    <rect x="50" y="18" width="44" height="34" rx="3" fill="var(--bg)" stroke="var(--muted)" stroke-width="2"/>
     <circle cx="62" cy="29" r="3.5" fill="var(--accent)"/>
-    <path d="M54 48l12-13 8 8 7-6 11 11H54z" fill="var(--text-muted)" opacity="0.55"/>
+    <path d="M54 48l12-13 8 8 7-6 11 11H54z" fill="var(--muted)" opacity="0.55"/>
   </g>
-  <path d="M108 68l10 8-10 8" fill="none" stroke="var(--text-muted)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M108 68l10 8-10 8" fill="none" stroke="var(--muted)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
 </svg>

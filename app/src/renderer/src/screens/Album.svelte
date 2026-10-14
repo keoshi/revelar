@@ -3,13 +3,19 @@
 	import { flip } from 'svelte/animate';
 	import type { AlbumDetail } from 'revelar';
 	import { engine, run, siteUrl, type SiteState } from '../lib/engine.svelte.ts';
+	import Seg from '../lib/Seg.svelte';
+	import { toast } from '../lib/toast.svelte.ts';
+
+	const VISIBILITIES = [
+		{ value: 'public', label: 'Public' },
+		{ value: 'unlisted', label: 'Unlisted' }
+	];
 
 	type Props = { site: SiteState; slug: string; onBack: () => void };
 	let { site, slug, onBack }: Props = $props();
 
 	let album = $state<AlbumDetail | undefined>();
 	let error = $state('');
-	let saved = $state(false);
 	let selected = $state<string | undefined>();
 
 	// Album fields, mirrored from album.yaml (empty string = "use the default").
@@ -120,8 +126,7 @@
 				)
 			};
 			load(await engine.saveAlbum(site.root, slug, patch));
-			saved = true;
-			setTimeout(() => (saved = false), 1500);
+			toast('Saved');
 		} catch (e) {
 			error = e instanceof Error ? e.message : String(e);
 		}
@@ -244,10 +249,10 @@
 			<div>
 				<button type="button" class="link back" onclick={onBack}>← Library</button>
 				<h1>{form.title || album.title}</h1>
-				<p class="muted small">photos/{album.folder} · {album.files.length} photos</p>
+				<p class="path">photos/{album.folder} · {album.files.length} photos</p>
 			</div>
 			<div class="row">
-				<button type="button" class:saved onclick={save}>{saved ? 'Saved' : 'Save'}</button>
+				<button type="button" onclick={save}>Save</button>
 				<button type="button" class="primary" onclick={process}>Save and process</button>
 			</div>
 		</header>
@@ -274,11 +279,11 @@
 					/>
 				</div>
 				<div class="field">
-					<label for="vis">Visibility</label>
-					<select id="vis" bind:value={form.visibility}>
-						<option value="public">Public (listed)</option>
-						<option value="unlisted">Unlisted (only with the link)</option>
-					</select>
+					<span class="lbl">Visibility</span>
+					<Seg options={VISIBILITIES} bind:value={form.visibility} label="Visibility" />
+					<p class="hint">
+						{form.visibility === 'unlisted' ? 'Only people with the link.' : 'Listed on the site.'}
+					</p>
 				</div>
 				<div class="field">
 					<label for="sort">Order</label>
@@ -308,13 +313,11 @@
 						<option value="hide">Hidden</option>
 					</select>
 				</div>
-				<p class="muted small hint">
-					"Site default" follows the site settings (site menu, top right).
-				</p>
+				<p class="hint">"Site default" follows the site settings (site menu, top right).</p>
 			</aside>
 
 			<div class="pane photos" bind:this={pane}>
-				<p class="muted small lead">
+				<p class="hint lead">
 					{#if !album.built}
 						Not processed yet: quick previews for now.
 					{/if}
@@ -347,8 +350,8 @@
 									draggable="false"
 									style:background={builtPhoto(file.name)?.color}
 								/>{:else}<span class="ph">{file.name}</span>{/if}
-							{#if form.cover === file.name}<span class="badge">cover</span>{/if}
-							{#if photos[file.name]?.hidden}<span class="badge off">hidden</span>{/if}
+							{#if form.cover === file.name}<span class="badge cover">Cover</span>{/if}
+							{#if photos[file.name]?.hidden}<span class="badge off">Hidden</span>{/if}
 						</button>
 					{/each}
 				</div>
@@ -378,7 +381,7 @@
 									style:background={builtPhoto(selected)?.color}
 								/>
 							{/if}
-							<p class="muted small file">
+							<p class="file">
 								{position} of {ordered.length} · <span class="name">{selected}</span>
 							</p>
 							<div class="field">
@@ -400,13 +403,16 @@
 								onclick={() => (form.cover = form.cover === selected ? '' : selected!)}
 								>{form.cover === selected ? 'Cover photo · unset' : 'Use as cover'}</button
 							>
-							<label class="check"
-								><input type="checkbox" bind:checked={photos[selected].hidden} /> Hide from the album</label
+							<label class="switch"
+								>Hide from the album<input
+									type="checkbox"
+									bind:checked={photos[selected].hidden}
+								/></label
 							>
 						</div>
 					{/key}
 				{:else}
-					<p class="muted empty">
+					<p class="hint empty">
 						Select a photo to give it a title and caption, or make it the cover.
 					</p>
 				{/if}
@@ -431,6 +437,11 @@
 		padding-left: 0;
 		margin-bottom: 2px;
 	}
+	.path {
+		font: 12px var(--f-mono);
+		color: var(--muted);
+		font-variant-numeric: tabular-nums;
+	}
 	.panes {
 		flex: 1;
 		min-height: 0;
@@ -443,8 +454,17 @@
 		overflow: auto;
 		scrollbar-width: thin;
 		/* room for focus rings, which the scroll box would otherwise clip */
-		padding: 3px;
-		margin: -3px;
+		padding: 6px;
+		margin: -6px;
+	}
+	.lbl {
+		display: block;
+		font-size: 13px;
+		font-weight: 500;
+		margin-bottom: 5px;
+	}
+	.field .hint {
+		margin-top: 5px;
 	}
 	.lead {
 		margin-bottom: 10px;
@@ -453,39 +473,49 @@
 	.thumbs {
 		display: grid;
 		grid-template-columns: repeat(auto-fill, minmax(104px, 1fr));
-		gap: 8px;
-		padding-bottom: 8px;
+		gap: 10px;
+		padding: 2px 2px 8px;
 	}
 	.thumb {
 		animation: rise 360ms var(--ease) both;
-		transition: border-color 160ms var(--ease);
 		position: relative;
 		padding: 0;
-		border: 2px solid transparent;
-		background: var(--surface-2);
+		background: var(--surface);
+		border-radius: 10px;
 		aspect-ratio: 1;
 		overflow: hidden;
 		cursor: grab;
 		touch-action: none;
+		transition: outline-color 150ms;
+		outline: 2px solid transparent;
+		outline-offset: 2px;
+	}
+	.thumb:hover {
+		background: var(--surface);
 	}
 	.thumb:active {
 		transform: none;
 	}
+	.thumb.selected,
+	.thumb:focus-visible {
+		outline-color: var(--accent);
+	}
 	.thumb.placeholder {
-		border-style: dashed;
-		border-color: var(--text-muted);
+		outline: 1.5px dashed var(--muted);
+		outline-offset: -1.5px;
+		background: transparent;
 	}
 	.thumb.placeholder img,
 	.thumb.placeholder .badge {
-		opacity: 0.15;
+		opacity: 0.12;
 	}
 	.ghost {
 		position: fixed;
 		z-index: 20;
 		pointer-events: none;
-		border-radius: var(--radius);
+		border-radius: 10px;
 		overflow: hidden;
-		box-shadow: 0 16px 40px rgb(0 0 0 / 0.55);
+		box-shadow: 0 16px 40px rgb(17 17 26 / 0.35);
 		animation: lift 160ms var(--ease) both;
 	}
 	.ghost img {
@@ -509,38 +539,31 @@
 		display: block;
 		pointer-events: none;
 	}
-	.thumb.selected {
-		border-color: var(--accent);
-	}
 	.thumb.hidden img {
 		opacity: 0.4;
 	}
 	.thumb .ph {
-		font-size: 11px;
-		color: var(--text-muted);
+		font: 11px var(--f-mono);
+		color: var(--muted);
 		word-break: break-all;
 		padding: 6px;
 	}
 	.badge {
-		position: absolute;
 		left: 6px;
 		bottom: 6px;
-		font-size: 11px;
-		padding: 1px 6px;
-		border-radius: 999px;
+	}
+	.badge.cover::before {
+		content: '';
+		width: 6px;
+		height: 6px;
+		border-radius: 50%;
 		background: var(--accent);
-		color: #1a1200;
 	}
 	.badge.off {
 		left: auto;
 		right: 6px;
-		background: rgb(0 0 0 / 0.6);
-		color: #fff;
 	}
 	.detail {
-		padding: 14px;
-		background: var(--surface);
-		border-radius: var(--radius);
 		align-self: start;
 		max-height: 100%;
 	}
@@ -556,27 +579,22 @@
 		width: 100%;
 		max-height: 180px;
 		object-fit: contain;
-		border-radius: 4px;
-		background: var(--surface-2);
+		border-radius: 10px;
+		background: var(--surface);
 	}
 	.file {
 		overflow: hidden;
 		text-overflow: ellipsis;
 		white-space: nowrap;
+		font: 12px var(--f-mono);
+		color: var(--muted);
+		font-variant-numeric: tabular-nums;
 	}
 	.name {
 		user-select: text;
 	}
-	.check {
-		display: flex;
-		gap: 8px;
-		align-items: center;
-		color: var(--text);
-		font-size: 13px;
-	}
-	.check input {
-		width: auto;
-		margin: 0;
+	.detail .switch {
+		padding: 2px 0;
 	}
 	.empty {
 		font-size: 13px;

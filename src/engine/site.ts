@@ -52,8 +52,22 @@ static/downloads
 !.cache/private-tokens.json
 `;
 
+/** A readable title from a folder name: "my-photos" → "My photos", "2026 Travels" stays. */
+export function titleFromPath(root: string): string {
+	const name = basename(resolve(root)).replace(/[-_]+/g, ' ').replace(/\s+/g, ' ').trim();
+	return name ? name[0].toUpperCase() + name.slice(1) : DEFAULT_CONFIG.site.title!;
+}
+
+/** The starting config for a new site in `root`: the defaults, titled after the folder. */
+export function defaultConfigFor(root: string): RevelarConfigInput {
+	return { ...DEFAULT_CONFIG, site: { ...DEFAULT_CONFIG.site, title: titleFromPath(root) } };
+}
+
 /** Creates revelar.config.ts, photos/ and .gitignore in `root` (existing files are kept). */
-export function initSite(root: string, config: RevelarConfigInput = DEFAULT_CONFIG): string[] {
+export function initSite(
+	root: string,
+	config: RevelarConfigInput = defaultConfigFor(root)
+): string[] {
 	mkdirSync(join(root, 'photos'), { recursive: true });
 	const written: string[] = [];
 	const write = (name: string, content: string) => {
@@ -78,6 +92,16 @@ export function saveConfig(root: string, input: RevelarConfigInput): void {
 
 export async function readConfig(root: string): Promise<RevelarConfig> {
 	return loadConfig(join(root, 'revelar.config.ts'));
+}
+
+/** Reads the config, applies `patch` (site fields merged) and writes it back. */
+export async function patchConfig(
+	root: string,
+	patch: Partial<RevelarConfigInput> & { site?: Partial<RevelarConfigInput['site']> }
+): Promise<RevelarConfig> {
+	const current = await readConfig(root);
+	saveConfig(root, { ...current, ...patch, site: { ...current.site, ...patch.site } });
+	return readConfig(root);
 }
 
 export function readManifest(root: string): Manifest | undefined {
@@ -176,6 +200,8 @@ export type AlbumDetail = {
 	slug: string;
 	folder: string;
 	dir: string;
+	/** the sidecar title, else one made from the folder name */
+	title: string;
 	files: { name: string; size: number; thumbUrl?: string }[];
 	/** album.yaml as written (unknown keys preserved on save) */
 	sidecar: Record<string, unknown>;
@@ -201,6 +227,7 @@ export async function readAlbum(root: string, slug: string): Promise<AlbumDetail
 		slug,
 		folder: album.folder,
 		dir: album.dir,
+		title: sidecar.title ?? titleFromFolder(album),
 		files: await Promise.all(
 			album.files.map(async (f) => ({
 				name: f.name,

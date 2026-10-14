@@ -104,8 +104,9 @@ function createWindow(): void {
 	win = new BrowserWindow({
 		width: 1200,
 		height: 800,
-		minWidth: 800,
-		minHeight: 560,
+		// Screens are laid out to fit without scrolling at the default size and adapt down to this.
+		minWidth: 960,
+		minHeight: 620,
 		title: 'Revelar',
 		backgroundColor: '#0e0e0e',
 		titleBarStyle: process.platform === 'darwin' ? 'hiddenInset' : 'default',

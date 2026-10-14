@@ -21,7 +21,7 @@ import {
 	saveAlbum,
 	saveConfig
 } from './site.ts';
-import { publishNetlify, type PublishEvent } from './publish.ts';
+import { publishSite, type PublishEvent, type PublishTarget } from './publish.ts';
 import type { RevelarConfigInput } from '../lib/config.ts';
 
 type Request = { id: number; method: string; params?: Record<string, unknown> };
@@ -160,14 +160,16 @@ export function startHost(): void {
 		async share(p) {
 			return shareLinks(str(p.slug, 'slug'), { root: rootOf(p) });
 		},
-		async 'publish.netlify'(p) {
-			const root = rootOf(p);
-			return publishNetlify({
-				dir: resolve(root, 'build'),
+		async publish(p) {
+			return publishSite({
+				root: rootOf(p),
+				target: str(p.target, 'target') as PublishTarget,
 				token: str(p.token, 'token'),
+				name: p.name as string | undefined,
+				account: p.account as string | undefined,
 				siteId: p.siteId as string | undefined,
-				siteName: p.siteName as string | undefined,
-				onEvent: (e: PublishEvent) => emit('publish', e)
+				onEvent: (e: PublishEvent) => emit('publish', e),
+				onIngest: (e: IngestEvent) => emit('ingest', e)
 			});
 		}
 	};

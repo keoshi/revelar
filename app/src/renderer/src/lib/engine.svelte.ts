@@ -4,8 +4,9 @@ import type {
 	AlbumListing,
 	RevelarConfig,
 	IngestEvent,
-	NetlifyResult,
-	PublishEvent
+	PublishEvent,
+	PublishSiteResult,
+	PublishTarget
 } from 'revelar';
 
 export type SiteState = { root: string; config: RevelarConfig; albums: AlbumListing[] };
@@ -40,8 +41,11 @@ export const engine = {
 	build: (root: string) => bridge().call<{ outDir: string }>('build', { root }),
 	previewStart: (root: string) => bridge().call<{ url: string }>('preview.start', { root }),
 	previewStop: () => bridge().call('preview.stop'),
-	publishNetlify: (root: string, token: string, siteId?: string, siteName?: string) =>
-		bridge().call<NetlifyResult>('publish.netlify', { root, token, siteId, siteName })
+	/** Processes, builds and uploads the site, keeping `site.baseUrl` in step with the host. */
+	publish: (
+		root: string,
+		opts: { target: PublishTarget; token: string; name?: string; account?: string; siteId?: string }
+	) => bridge().call<PublishSiteResult>('publish', { root, ...opts })
 };
 
 /** Live progress of the running ingest / publish, for the status bar. */

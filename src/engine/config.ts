@@ -1,4 +1,5 @@
 import { createHash } from 'node:crypto';
+import { statSync } from 'node:fs';
 import { pathToFileURL } from 'node:url';
 import { resolve } from 'node:path';
 import { validateConfig, type RevelarConfig } from '../lib/config.ts';
@@ -40,6 +41,8 @@ export function configPath(): string {
 }
 
 export async function loadConfig(path = configPath()): Promise<RevelarConfig> {
-	const mod = await import(pathToFileURL(path).href);
+	// The module cache is keyed by URL, so a config rewritten while the process runs (the app's
+	// settings screen, publishing setting the address) would come back stale without the query.
+	const mod = await import(`${pathToFileURL(path).href}?v=${statSync(path).mtimeMs}`);
 	return validateConfig(mod.default);
 }

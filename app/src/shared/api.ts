@@ -2,10 +2,15 @@
 
 export type EngineEvent = { event: string; data: unknown };
 
+export type PublishTarget = 'netlify' | 'vercel' | 'cloudflare' | 'github';
+export type PublishedSite = { name?: string; siteId?: string; url?: string; account?: string };
+
 export type Settings = {
 	lastRoot?: string;
 	/** most recent first */
 	recentRoots?: string[];
+	publish?: { target?: PublishTarget; sites?: Partial<Record<PublishTarget, PublishedSite>> };
+	/** from before there was more than one host; read as publish.sites.netlify */
 	netlify?: { siteId?: string; siteName?: string; url?: string };
 };
 

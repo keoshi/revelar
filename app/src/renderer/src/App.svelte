@@ -141,7 +141,7 @@
 				{:else if screen === 'preview'}
 					<Preview {site} />
 				{:else if screen === 'publish'}
-					<Publish {site} />
+					<Publish {site} onPublished={(baseUrl) => (site!.config.site.baseUrl = baseUrl)} />
 				{:else if screen === 'settings'}
 					<Settings
 						{site}

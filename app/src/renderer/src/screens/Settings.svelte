@@ -8,6 +8,8 @@
 	};
 	let { site, onSaved, onBack }: Props = $props();
 
+	// The form starts from the config as it is when the screen opens; Save writes it back.
+	// svelte-ignore state_referenced_locally
 	const c = site.config;
 	let form = $state({
 		title: c.site.title,
@@ -70,9 +72,9 @@
 </script>
 
 <section class="settings">
-	<p><button type="button" class="link" onclick={onBack}>← Library</button></p>
 	<header class="head">
 		<div>
+			<button type="button" class="link back" onclick={onBack}>← Library</button>
 			<h1>Site settings</h1>
 			<p class="muted small">{site.root}/revelar.config.ts</p>
 		</div>
@@ -83,22 +85,24 @@
 	{#if error}<p class="error">{error}</p>{/if}
 
 	<div class="cols">
-		<div>
+		<div class="col">
 			<h2>Site</h2>
-			<div class="field">
+			<div class="r">
 				<label for="s-title">Title</label><input id="s-title" bind:value={form.title} />
 			</div>
-			<div class="field">
+			<div class="r">
 				<label for="s-desc">Description</label><input id="s-desc" bind:value={form.description} />
 			</div>
-			<div class="field">
-				<label for="s-url">Address (base URL)</label>
-				<input id="s-url" bind:value={form.baseUrl} placeholder="https://photos.example.com" />
-				<p class="muted small hint">
-					Where the site will live. Shared links, the sitemap and previews use it.
-				</p>
+			<div class="r">
+				<label for="s-url">Address</label>
+				<div>
+					<input id="s-url" bind:value={form.baseUrl} placeholder="https://photos.example.com" />
+					<p class="muted small hint">
+						Filled in when you publish. Set it yourself only for your own domain.
+					</p>
+				</div>
 			</div>
-			<div class="field">
+			<div class="r">
 				<label for="s-lang">Language</label><input
 					id="s-lang"
 					bind:value={form.language}
@@ -107,24 +111,26 @@
 			</div>
 
 			<h2>You</h2>
-			<div class="field">
+			<div class="r">
 				<label for="s-author">Your name</label><input id="s-author" bind:value={form.author} />
 			</div>
-			<div class="field">
+			<div class="r">
 				<label for="s-aurl">Your website</label><input
 					id="s-aurl"
 					bind:value={form.authorUrl}
 					placeholder="https://"
 				/>
 			</div>
-			<div class="field">
-				<label for="s-copy">Copyright line</label><input id="s-copy" bind:value={form.copyright} />
+			<div class="r">
+				<label for="s-copy">Copyright</label><input id="s-copy" bind:value={form.copyright} />
 			</div>
 		</div>
-		<div>
-			<h2>Defaults for every album</h2>
-			<p class="muted small hint">Each album can override these in its own settings.</p>
-			<div class="field">
+
+		<div class="col">
+			<h2>
+				Defaults for every album <span class="muted small">each album can override these</span>
+			</h2>
+			<div class="r">
 				<label for="s-sort">Photo order</label>
 				<select id="s-sort" bind:value={form.sort}>
 					<option value="date-asc">Oldest first</option>
@@ -132,7 +138,7 @@
 					<option value="filename">File name</option>
 				</select>
 			</div>
-			<div class="field">
+			<div class="r">
 				<label for="s-dl">Downloads</label>
 				<select id="s-dl" bind:value={form.downloads}>
 					<option value="none">Off</option>
@@ -140,28 +146,29 @@
 					<option value="original">Original files</option>
 				</select>
 			</div>
-			<div class="field">
-				<label for="s-loc">Locations on the map</label>
+			<div class="r">
+				<label for="s-loc">Locations</label>
 				<select id="s-loc" bind:value={form.location}>
 					<option value="show">Exact</option>
 					<option value="approximate">Approximate (about 1 km)</option>
 					<option value="hide">Hidden</option>
 				</select>
 			</div>
-			<div class="field check">
-				<label
-					><input type="checkbox" bind:checked={form.exifPanel} /> Show the info panel (camera, exposure,
-					location)</label
+			<div class="r">
+				<span></span>
+				<label class="check"
+					><input type="checkbox" bind:checked={form.exifPanel} /> Info panel (camera, exposure, place)</label
 				>
 			</div>
-			<div class="field check">
-				<label
+			<div class="r">
+				<span></span>
+				<label class="check"
 					><input type="checkbox" bind:checked={form.mapEnabled} /> Maps of photo locations</label
 				>
 			</div>
 
 			<h2>Look</h2>
-			<div class="field">
+			<div class="r">
 				<label for="s-mode">Theme</label>
 				<select id="s-mode" bind:value={form.mode}>
 					<option value="system">Follow the system</option>
@@ -169,10 +176,11 @@
 					<option value="light">Light</option>
 				</select>
 			</div>
-			<div class="field">
+			<div class="r">
 				<label for="s-accent">Accent colour</label>
 				<div class="row">
 					<input id="s-accent" type="color" bind:value={form.accent} /><input
+						class="hex"
 						bind:value={form.accent}
 					/>
 				</div>
@@ -183,41 +191,75 @@
 
 <style>
 	.settings {
-		max-width: 900px;
+		max-width: 1040px;
 	}
 	.head {
 		display: flex;
 		justify-content: space-between;
-		align-items: flex-start;
-		margin: 8px 0 20px;
+		align-items: flex-end;
+		margin: 0 0 18px;
+	}
+	.back {
+		padding-left: 0;
+		margin-bottom: 2px;
 	}
 	.cols {
 		display: grid;
 		grid-template-columns: 1fr 1fr;
-		gap: 40px;
+		gap: 0 48px;
+	}
+	@media (max-width: 900px) {
+		.cols {
+			grid-template-columns: 1fr;
+		}
 	}
 	h2 {
-		margin: 18px 0 12px;
+		margin: 14px 0 10px;
+		display: flex;
+		align-items: baseline;
+		gap: 10px;
 	}
-	h2:first-child {
+	h2 .small {
+		font-weight: 400;
+	}
+	.col h2:first-child {
 		margin-top: 0;
+	}
+	/* Label on the left, control on the right: short rows that fit the window without scrolling. */
+	.r {
+		display: grid;
+		grid-template-columns: 112px 1fr;
+		gap: 12px;
+		align-items: center;
+		margin-bottom: 8px;
+	}
+	.r > label,
+	.r > span {
+		margin: 0;
+		font-size: 13px;
+		text-align: right;
 	}
 	.hint {
 		margin-top: 4px;
 	}
-	.check label {
+	.check {
 		display: flex;
 		gap: 8px;
 		align-items: center;
 		color: var(--text);
-		font-size: 14px;
+		font-size: 13px;
+		text-align: left;
 	}
 	.check input {
 		width: auto;
+		margin: 0;
 	}
 	input[type='color'] {
 		width: 44px;
 		padding: 2px;
 		height: 34px;
+	}
+	.hex {
+		width: 120px;
 	}
 </style>

@@ -24,11 +24,32 @@ export {
 	addAlbum,
 	readConfig,
 	saveConfig,
+	patchConfig,
 	readManifest,
+	titleFromPath,
+	defaultConfigFor,
 	DEFAULT_CONFIG
 } from './engine/site.ts';
 export type { AlbumListing, AlbumDetail } from './engine/site.ts';
-export { publishNetlify, zipDirectory } from './engine/publish.ts';
-export type { NetlifyOptions, NetlifyResult, PublishEvent } from './engine/publish.ts';
+export {
+	publish,
+	publishSite,
+	publishNetlify,
+	publishVercel,
+	publishCloudflare,
+	publishGitHub,
+	predictUrl,
+	isManagedUrl,
+	zipDirectory,
+	PUBLISH_TARGETS
+} from './engine/publish.ts';
+export type {
+	PublishOptions,
+	PublishResult,
+	PublishSiteOptions,
+	PublishSiteResult,
+	PublishTarget,
+	PublishEvent
+} from './engine/publish.ts';
 export { startHost } from './engine/host.ts';
 export type { IngestEvent } from './engine/ingest.ts';

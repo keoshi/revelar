@@ -1,0 +1,23 @@
+# Lint, type check and unit tests on every push and pull request. The repository holds no photos
+# (photos/ is ignored), so the site itself is not built here; docs/ci/build-site.yml is the
+# template for building and deploying a photo site from CI.
+name: Checks
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run check
+      - run: npx vitest --run

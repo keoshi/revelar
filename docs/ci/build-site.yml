@@ -1,4 +1,5 @@
-# Template: build the site in CI and upload build/ as an artifact (or deploy it).
+# Template: build a photo site in CI and upload build/ as an artifact (or deploy it). Copy it to
+# .github/workflows/ in a repository that holds the site (photos/, revelar.config.ts).
 # Cache .cache/ and static/media* keyed on the photos so unchanged derivatives are reused.
 name: Build site
 

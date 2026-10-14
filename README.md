@@ -181,7 +181,7 @@ The output is a plain `build/` folder; `npm run build` does the whole thing. Not
 - **GitHub Pages**: set `site.baseUrl` to `https://<user>.github.io/<repo>`, build in Actions and deploy `build/` (see the workflow template below). Trailing-slash URLs are used everywhere so `index.html` files resolve on plain static hosts.
 - **rsync / FTP**: `npm run build && rsync -av --delete build/ user@host:/var/www/photos/`.
 
-For thousands of photos, keep `photos/` outside the repo (`photosDir`), build locally and rsync; the incremental cache makes rebuilds cheap. In CI, cache `.cache/` and `static/media*` keyed on a hash of `photos/` and pass private-album passwords as secrets. A template lives in `.github/workflows/build.yml`.
+For thousands of photos, keep `photos/` outside the repo (`photosDir`), build locally and rsync; the incremental cache makes rebuilds cheap. In CI, cache `.cache/` and `static/media*` keyed on a hash of `photos/` and pass private-album passwords as secrets. A template lives in `docs/ci/build-site.yml`; the repository's own workflow only runs lint, type check and unit tests, since it holds no photos.
 
 **What a rebuild changes.** The output is deliberately small outside the images:
 

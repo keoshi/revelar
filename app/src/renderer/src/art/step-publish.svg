@@ -1,18 +1,17 @@
-<!-- Welcome, step 3: a browser window with a photo grid, going live. Colours come from the app's CSS variables. -->
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 100">
-  <rect x="24" y="16" width="112" height="70" rx="6" fill="var(--bg)" stroke="var(--muted)" stroke-width="2"/>
-  <path d="M24 30h112" fill="none" stroke="var(--muted)" stroke-width="2"/>
-  <circle cx="33" cy="23" r="2" fill="var(--muted)"/>
-  <circle cx="40" cy="23" r="2" fill="var(--muted)"/>
-  <circle cx="47" cy="23" r="2" fill="var(--muted)"/>
-  <g fill="var(--muted)" opacity="0.35">
-    <rect x="32" y="38" width="30" height="20" rx="2"/>
-    <rect x="66" y="38" width="20" height="20" rx="2"/>
-    <rect x="90" y="38" width="38" height="20" rx="2"/>
-    <rect x="32" y="62" width="22" height="16" rx="2"/>
-    <rect x="58" y="62" width="34" height="16" rx="2"/>
-    <rect x="96" y="62" width="32" height="16" rx="2"/>
-  </g>
-  <circle cx="130" cy="78" r="12" fill="var(--accent)"/>
-  <path d="M130 84V72m-5 5l5-5 5 5" fill="none" stroke="var(--on-accent)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+<svg width="160" height="100" viewBox="0 0 160 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+<path d="M130 16H30C26.6863 16 24 18.6863 24 22V80C24 83.3137 26.6863 86 30 86H130C133.314 86 136 83.3137 136 80V22C136 18.6863 133.314 16 130 16Z" fill="#0D0D10" stroke="#9A9AA2" stroke-width="2"/>
+<path d="M24 30H136" stroke="#9A9AA2" stroke-width="2"/>
+<path d="M33 25C34.1046 25 35 24.1046 35 23C35 21.8954 34.1046 21 33 21C31.8954 21 31 21.8954 31 23C31 24.1046 31.8954 25 33 25Z" fill="#9A9AA2"/>
+<path d="M40 25C41.1046 25 42 24.1046 42 23C42 21.8954 41.1046 21 40 21C38.8954 21 38 21.8954 38 23C38 24.1046 38.8954 25 40 25Z" fill="#9A9AA2"/>
+<path d="M47 25C48.1046 25 49 24.1046 49 23C49 21.8954 48.1046 21 47 21C45.8954 21 45 21.8954 45 23C45 24.1046 45.8954 25 47 25Z" fill="#9A9AA2"/>
+<g opacity="0.35">
+<path d="M60 38H34C32.8954 38 32 38.8954 32 40V56C32 57.1046 32.8954 58 34 58H60C61.1046 58 62 57.1046 62 56V40C62 38.8954 61.1046 38 60 38Z" fill="#9A9AA2"/>
+<path d="M84 38H68C66.8954 38 66 38.8954 66 40V56C66 57.1046 66.8954 58 68 58H84C85.1046 58 86 57.1046 86 56V40C86 38.8954 85.1046 38 84 38Z" fill="#9A9AA2"/>
+<path d="M126 38H92C90.8954 38 90 38.8954 90 40V56C90 57.1046 90.8954 58 92 58H126C127.105 58 128 57.1046 128 56V40C128 38.8954 127.105 38 126 38Z" fill="#9A9AA2"/>
+<path d="M52 62H34C32.8954 62 32 62.8954 32 64V76C32 77.1046 32.8954 78 34 78H52C53.1046 78 54 77.1046 54 76V64C54 62.8954 53.1046 62 52 62Z" fill="#9A9AA2"/>
+<path d="M90 62H60C58.8954 62 58 62.8954 58 64V76C58 77.1046 58.8954 78 60 78H90C91.1046 78 92 77.1046 92 76V64C92 62.8954 91.1046 62 90 62Z" fill="#9A9AA2"/>
+<path d="M126 62H98C96.8954 62 96 62.8954 96 64V76C96 77.1046 96.8954 78 98 78H126C127.105 78 128 77.1046 128 76V64C128 62.8954 127.105 62 126 62Z" fill="#9A9AA2"/>
+</g>
+<path d="M130 90C136.627 90 142 84.6274 142 78C142 71.3726 136.627 66 130 66C123.373 66 118 71.3726 118 78C118 84.6274 123.373 90 130 90Z" fill="#FF5900"/>
+<path d="M130 84V72M135 77L130 72L125 77" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
 </svg>

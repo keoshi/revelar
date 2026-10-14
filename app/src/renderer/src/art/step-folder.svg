@@ -1,7 +1,6 @@
-<!-- Welcome, step 1: an empty folder with a plus. Colours come from the app's CSS variables. -->
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 100">
-  <path d="M28 26h34l10 10h60a6 6 0 0 1 6 6v36a6 6 0 0 1-6 6H28a6 6 0 0 1-6-6V32a6 6 0 0 1 6-6z" fill="var(--bg)" stroke="var(--muted)" stroke-width="2" stroke-linejoin="round"/>
-  <path d="M22 44h116" fill="none" stroke="var(--muted)" stroke-width="2"/>
-  <circle cx="80" cy="64" r="11" fill="var(--accent)"/>
-  <path d="M80 58.5v11M74.5 64h11" fill="none" stroke="var(--on-accent)" stroke-width="2.2" stroke-linecap="round"/>
+<svg width="160" height="100" viewBox="0 0 160 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+<path d="M48 26H62L72 36H112C113.591 36 115.117 36.6321 116.243 37.7574C117.368 38.8826 118 40.4087 118 42V78C118 79.5913 117.368 81.1174 116.243 82.2426C115.117 83.3679 113.591 84 112 84H48C46.4087 84 44.8826 83.3679 43.7574 82.2426C42.6321 81.1174 42 79.5913 42 78V32C42 30.4087 42.6321 28.8826 43.7574 27.7574C44.8826 26.6321 46.4087 26 48 26Z" fill="#0D0D10" stroke="#9A9AA2" stroke-width="2" stroke-linejoin="round"/>
+<path d="M42 44H118" stroke="#9A9AA2" stroke-width="2"/>
+<path d="M80 75C86.0751 75 91 70.0751 91 64C91 57.9249 86.0751 53 80 53C73.9249 53 69 57.9249 69 64C69 70.0751 73.9249 75 80 75Z" fill="#FF5900"/>
+<path d="M80 58.5V69.5M74.5 64H85.5" stroke="white" stroke-width="2.2" stroke-linecap="round"/>
 </svg>

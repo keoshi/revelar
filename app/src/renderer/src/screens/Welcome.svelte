@@ -1,10 +1,17 @@
 <script lang="ts">
 	import { fly } from 'svelte/transition';
-	// The illustrations are plain SVG files in ../art, easy to redraw; they use the app's CSS
-	// variables (--bg, --muted, --accent) for colour.
+	// The illustrations are plain SVG files in ../art, drawn in the dark palette so they open as
+	// they are in Quick Look or a design tool; here their colours become the app's theme variables.
 	import artFolder from '../art/step-folder.svg?raw';
 	import artAlbums from '../art/step-albums.svg?raw';
 	import artPublish from '../art/step-publish.svg?raw';
+	const PALETTE: [RegExp, string][] = [
+		[/#0d0d10/gi, 'var(--bg)'],
+		[/#9a9aa2/gi, 'var(--muted)'],
+		[/#ff5900/gi, 'var(--accent)'],
+		[/#ffffff/gi, 'var(--on-accent)']
+	];
+	const themed = (svg: string) => PALETTE.reduce((s, [from, to]) => s.replace(from, to), svg);
 	import Mark from '../lib/Mark.svelte';
 	import { KEYS } from '../lib/commands.ts';
 
@@ -19,17 +26,17 @@
 
 	const STEPS = [
 		{
-			art: artFolder,
+			art: themed(artFolder),
 			title: 'Pick a folder',
 			text: 'Choose an empty folder. Its name becomes the name of the site.'
 		},
 		{
-			art: artAlbums,
+			art: themed(artAlbums),
 			title: 'Add albums',
 			text: 'Put folders of photos inside it. Each folder becomes an album.'
 		},
 		{
-			art: artPublish,
+			art: themed(artPublish),
 			title: 'Preview, then publish',
 			text: 'Check how it looks, then put it online. Netlify, Vercel, Cloudflare and GitHub host it for free.'
 		}

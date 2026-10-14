@@ -12,7 +12,7 @@
 import { _electron as electron } from 'playwright';
 import { execFileSync } from 'node:child_process';
 import { createRequire } from 'node:module';
-import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import sharp from 'sharp';
@@ -71,6 +71,15 @@ await win.evaluate(
 );
 await win.reload();
 
+// The drag step reorders photos and the editor saves itself, so every album.yaml is put back
+// afterwards: the site comes out of this exactly as it went in.
+const photosDir = join(resolve(site), 'photos');
+const sidecars = existsSync(photosDir)
+	? readdirSync(photosDir)
+			.map((d) => join(photosDir, d, 'album.yaml'))
+			.filter((f) => existsSync(f))
+			.map((f) => [f, readFileSync(f)])
+	: [];
 const shots = [];
 async function shot(name) {
 	// Focused window: coloured traffic lights in every capture, not only the first.
@@ -140,6 +149,7 @@ try {
 	await shot('welcome');
 } finally {
 	await electronApp.close();
+	for (const [file, content] of sidecars) writeFileSync(file, content);
 }
 
 // README copies: flattened on white, 1600 px wide, as JPEG.

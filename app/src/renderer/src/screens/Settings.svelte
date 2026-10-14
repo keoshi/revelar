@@ -115,7 +115,7 @@
 		<div>
 			<button type="button" class="link back" onclick={onBack}>← Library</button>
 			<h1>Site settings</h1>
-			<p class="path">{site.root}/revelar.config.ts</p>
+			<p class="path">{site.root.replace(/^\/Users\/[^/]+/, '~')}/revelar.config.ts</p>
 		</div>
 		<span class="autosave" class:idle={!saver.status} aria-live="polite"
 			>{saver.status === 'saving' ? 'Saving…' : 'Saved'}</span

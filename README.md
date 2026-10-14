@@ -230,7 +230,7 @@ tests/                       Vitest unit tests, Playwright e2e, synthetic fixtur
 
 ## Desktop app (proof of concept)
 
-Download for macOS: [Apple Silicon](https://github.com/keoshi/revelar/releases/latest/download/Revelar-darwin-arm64-0.1.0.zip) or [Intel](https://github.com/keoshi/revelar/releases/latest/download/Revelar-darwin-x64-0.1.0.zip) (signed and notarized; [all releases](https://github.com/keoshi/revelar/releases)). Unzip and drag Revelar to Applications.
+Download for macOS from [the latest release](https://github.com/keoshi/revelar/releases/latest): one zip for Apple Silicon (`darwin-arm64`), one for Intel (`darwin-x64`), both signed and notarized. Unzip and drag Revelar to Applications; the app updates itself from later releases.
 
 `app/` is an Electron app for people who would rather not use a terminal: a friendly face over the same site folder. It creates or opens a site (recent ones are one click away), lists albums with their covers, follows folders added in Finder, adds a folder of photos as an album, edits titles, captions, cover, visibility and the other `album.yaml` settings, arranges photos by dragging them, keeps site-wide settings (name, address, defaults, theme) in a form (edits save themselves), processes photos with live progress, previews the built site in place, and publishes to Netlify, Vercel, Cloudflare Pages or GitHub Pages with a token from the account. Publishing sets `site.baseUrl` to the live address by itself unless the site has its own domain. Photos show up before processing through quick previews. Everything it writes is the same `photos/`, `album.yaml` and `revelar.config.ts` the CLI uses, so a site can move between the app and the terminal freely.
 

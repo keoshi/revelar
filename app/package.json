@@ -1,6 +1,7 @@
 {
 	"name": "revelar-app",
-	"version": "0.0.1",
+	"version": "0.1.0",
+	"productName": "Revelar",
 	"description": "Revelar desktop app: a friendly face over the revelar engine",
 	"private": true,
 	"license": "MIT",
@@ -10,12 +11,18 @@
 		"dev": "electron-vite dev",
 		"build": "electron-vite build",
 		"preview": "electron-vite preview",
-		"start": "electron-vite preview"
+		"start": "electron-vite preview",
+		"icon": "node scripts/icon.mjs",
+		"package": "node scripts/package.mjs"
 	},
 	"dependencies": {
-		"revelar": "file:.."
+		"revelar": "file:..",
+		"update-electron-app": "^3.3.0"
 	},
 	"devDependencies": {
+		"@electron/notarize": "^3.1.2",
+		"@electron/osx-sign": "^2.7.1",
+		"@electron/packager": "^20.3.0",
 		"@fontsource-variable/geist": "^5.3.0",
 		"@fontsource-variable/geist-mono": "^5.3.0",
 		"@sveltejs/vite-plugin-svelte": "^7.2.0",

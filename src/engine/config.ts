@@ -4,8 +4,15 @@ import { pathToFileURL } from 'node:url';
 import { resolve } from 'node:path';
 import { validateConfig, type RevelarConfig } from '../lib/config.ts';
 
-/** The revelar package itself (where src/routes, vite.config.ts and the default static files live). */
-export const PACKAGE_ROOT = resolve(import.meta.dirname, '../..');
+/**
+ * The revelar package itself (where src/routes, vite.config.ts and the default static files
+ * live). REVELAR_PACKAGE_ROOT points builds at a writable mirror of it instead (see
+ * bin/workspace.js): SvelteKit and Vite write next to the project, which an installed desktop
+ * app cannot allow inside its bundle.
+ */
+export const PACKAGE_ROOT = process.env.REVELAR_PACKAGE_ROOT
+	? resolve(process.env.REVELAR_PACKAGE_ROOT)
+	: resolve(import.meta.dirname, '../..');
 
 /**
  * The site root: the folder holding `revelar.config.ts`, `photos/`, `.cache/`, `static/` and

@@ -3,6 +3,7 @@ node_modules
 # Output
 .output
 /app/out
+/app/dist
 .vercel
 .netlify
 .wrangler
@@ -34,3 +35,4 @@ test-results
 /static/downloads/
 /.cache/*
 !/.cache/private-tokens.json
+/app/electron.vite.config.*.mjs

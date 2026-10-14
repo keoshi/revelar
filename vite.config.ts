@@ -2,9 +2,9 @@ import { defineConfig, type Plugin } from 'vite';
 import adapter from '@sveltejs/adapter-static';
 import { sveltekit } from '@sveltejs/kit/vite';
 import { join, resolve } from 'node:path';
-import { fileURLToPath, pathToFileURL } from 'node:url';
+import { pathToFileURL } from 'node:url';
 import type { RevelarConfigInput } from './src/lib/config.ts';
-import { kitOutDir } from './src/engine/config.ts';
+import { kitOutDir, PACKAGE_ROOT } from './src/engine/config.ts';
 
 /**
  * Two roots. The package root (this folder) is Vite's project root: src/routes, src/lib and
@@ -13,7 +13,9 @@ import { kitOutDir } from './src/engine/config.ts';
  * the working directory, so `revelar build` works in any folder and this checkout is a site
  * root too (the e2e suite uses tests/e2e/.site).
  */
-const packageRoot = fileURLToPath(new URL('.', import.meta.url));
+// The package, or the desktop app's writable mirror of it (REVELAR_PACKAGE_ROOT): Kit writes
+// next to this root, so it must not be the real, read-only package inside an installed app.
+const packageRoot = PACKAGE_ROOT;
 const siteRoot = resolve(process.env.REVELAR_SITE_ROOT ?? process.cwd());
 
 // The site config: <siteRoot>/revelar.config.ts unless REVELAR_CONFIG names another file (the

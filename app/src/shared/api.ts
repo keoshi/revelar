@@ -18,6 +18,8 @@ export type Settings = {
 export type AppCommand = 'new' | 'open' | 'settings' | 'save' | 'library' | 'preview' | 'publish';
 
 export type RevelarBridge = {
+	/** 'darwin', 'win32' or 'linux': the top bar leaves room for macOS traffic lights. */
+	platform: string;
 	/** Call an engine method (see src/engine/host.ts in the revelar package). */
 	call<T = unknown>(method: string, params?: Record<string, unknown>): Promise<T>;
 	/** Subscribe to engine events; returns an unsubscribe function. */

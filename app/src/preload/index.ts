@@ -2,6 +2,7 @@ import { contextBridge, ipcRenderer } from 'electron';
 import type { AppCommand, EngineEvent, RevelarBridge, Settings } from '../shared/api.ts';
 
 const bridge: RevelarBridge = {
+	platform: process.platform,
 	call: (method, params) => ipcRenderer.invoke('engine', method, params),
 	on: (fn) => {
 		const listener = (_e: Electron.IpcRendererEvent, event: EngineEvent) => fn(event);

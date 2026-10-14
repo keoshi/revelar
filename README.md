@@ -248,7 +248,20 @@ npm run build -w app && npm start -w app
 
 The app follows the system appearance, light or dark, with one accent colour and the Geist typefaces bundled in. The main menu carries keyboard shortcuts for the common moves (⌘N new site, ⌘O open, ⌘1/2/3 for the screens, ⌘, settings). Its tokens live in `app/src/renderer/src/app.css`, the mark in `app/src/renderer/src/art/mark.svg`, and `node app/scripts/icon.mjs` redraws the app icon from it.
 
-It is a proof of concept: no installer, code signing or auto-update yet. Of the four publish targets only Netlify has been exercised against a live account; Vercel, Cloudflare Pages and GitHub Pages follow their documented APIs but are untested.
+### Packaging the app (macOS)
+
+```sh
+node app/scripts/package.mjs                      # signed Revelar.app and zip in app/dist/, for this Mac's architecture
+node app/scripts/package.mjs --arch x64           # for Intel Macs
+node app/scripts/package.mjs --notarize <profile> # notarize and staple with a notarytool keychain profile
+node app/scripts/package.mjs --no-sign            # unsigned, runs on this Mac only
+```
+
+The script builds the app, stages a production install of the engine (`npm pack` plus the app's runtime dependencies, so nothing from the dev tree ships), wraps it with Electron without asar (the engine runs Vite and sharp from real files), signs with the Developer ID certificate in the keychain under the hardened runtime, and zips the result. Pushing a tag like `app-v0.1.0` runs the same script for both architectures on GitHub Actions (`.github/workflows/app-release.yml`), notarizes, and attaches the zips to a release; installed copies then pick the update up from the release through update.electronjs.org.
+
+Inside an installed app the engine package is read-only, so builds run from a mirror of it under the app's data folder (`~/Library/Application Support/Revelar/engine`): symlinks to the package's source and dependencies, with real folders where SvelteKit and Vite write.
+
+The renderer runs sandboxed behind a small context-isolated bridge; the `site://` scheme serves only the open site's media, downloads, quick previews and originals; tokens live in the Keychain through Electron's `safeStorage`; external links are limited to web addresses. Of the four publish targets only Netlify has been exercised against a live account; Vercel, Cloudflare Pages and GitHub Pages follow their documented APIs but are untested.
 
 ## Measured performance
 

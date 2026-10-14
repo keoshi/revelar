@@ -48,4 +48,25 @@ const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${s
 </svg>`;
 writeFileSync(join(app, 'build/icon.svg'), svg);
 await sharp(Buffer.from(svg)).png().toFile(join(app, 'build/icon.png'));
-console.log('wrote app/build/icon.svg and app/build/icon.png');
+
+// The .icns for the bundle: an iconset of the standard sizes, assembled by iconutil (macOS).
+if (process.platform === 'darwin') {
+	const { execFileSync } = await import('node:child_process');
+	const { mkdirSync, rmSync } = await import('node:fs');
+	const iconset = join(app, 'build/icon.iconset');
+	rmSync(iconset, { recursive: true, force: true });
+	mkdirSync(iconset);
+	for (const px of [16, 32, 128, 256, 512]) {
+		await sharp(Buffer.from(svg))
+			.resize(px)
+			.png()
+			.toFile(join(iconset, `icon_${px}x${px}.png`));
+		await sharp(Buffer.from(svg))
+			.resize(px * 2)
+			.png()
+			.toFile(join(iconset, `icon_${px}x${px}@2x.png`));
+	}
+	execFileSync('iconutil', ['-c', 'icns', iconset, '-o', join(app, 'build/icon.icns')]);
+	rmSync(iconset, { recursive: true });
+	console.log('wrote app/build/icon.svg, icon.png and icon.icns');
+} else console.log('wrote app/build/icon.svg and icon.png');

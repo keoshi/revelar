@@ -13,13 +13,15 @@ import {
 	net,
 	protocol,
 	safeStorage,
+	session,
 	shell,
 	utilityProcess
 } from 'electron';
 import { createRequire } from 'node:module';
-import { dirname, join } from 'node:path';
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { dirname, join, resolve, sep } from 'node:path';
+import { existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
 import { pathToFileURL } from 'node:url';
+import { updateElectronApp, UpdateSourceType } from 'update-electron-app';
 import type { AppCommand, EngineEvent, Settings } from '../shared/api.ts';
 
 const require = createRequire(import.meta.url);
@@ -54,7 +56,14 @@ let nextId = 1;
 const pending = new Map<number, Pending>();
 
 function startEngine(): Electron.UtilityProcess {
-	const child = utilityProcess.fork(HOST, [], { serviceName: 'revelar-engine', stdio: 'pipe' });
+	// Builds run from a writable mirror of the engine package under the app's data folder (see
+	// bin/workspace.js in the package): an installed app's bundle is read-only.
+	const env = { ...process.env, REVELAR_WORK_DIR: join(app.getPath('userData'), 'engine') };
+	const child = utilityProcess.fork(HOST, [], {
+		serviceName: 'revelar-engine',
+		stdio: 'pipe',
+		env
+	});
 	child.stdout?.on('data', (d) => process.stdout.write(`[engine] ${d}`));
 	child.stderr?.on('data', (d) => process.stderr.write(`[engine] ${d}`));
 	child.on(
@@ -93,6 +102,8 @@ function call(method: string, params?: Record<string, unknown>): Promise<unknown
 
 // ---- settings and secrets -------------------------------------------------------------------
 
+/** The settings the renderer may write; anything else in a patch is dropped. */
+const SETTINGS_KEYS: (keyof Settings)[] = ['lastRoot', 'recentRoots', 'publish'];
 const settingsPath = () => join(app.getPath('userData'), 'settings.json');
 function readSettings(): Settings {
 	try {
@@ -106,7 +117,23 @@ function writeSettings(s: Settings): Settings {
 	writeFileSync(settingsPath(), JSON.stringify(s, null, 2));
 	return s;
 }
-const secretPath = (name: string) => join(app.getPath('userData'), `secret-${name}.bin`);
+/** Secret names are short identifiers ("netlify-token"), never paths. */
+function secretPath(name: string): string {
+	if (!/^[a-z0-9][a-z0-9-]{0,63}$/.test(name)) throw new Error(`Bad secret name "${name}"`);
+	return join(app.getPath('userData'), `secret-${name}.bin`);
+}
+/** Only web links leave the app; file:, custom schemes and the like are refused. */
+function openExternal(url: string): Promise<void> {
+	let parsed: URL;
+	try {
+		parsed = new URL(url);
+	} catch {
+		return Promise.reject(new Error(`Not a web address: ${url}`));
+	}
+	if (parsed.protocol !== 'https:' && parsed.protocol !== 'http:')
+		return Promise.reject(new Error(`Not a web address: ${url}`));
+	return shell.openExternal(parsed.href);
+}
 
 // ---- window ----------------------------------------------------------------------------------
 
@@ -123,9 +150,24 @@ function createWindow(): void {
 		titleBarStyle: process.platform === 'darwin' ? 'hiddenInset' : 'default',
 		// Centre the traffic lights on the app's 50 px top bar.
 		trafficLightPosition: { x: 18, y: 19 },
-		webPreferences: { preload: join(import.meta.dirname, '../preload/index.mjs'), sandbox: false }
+		webPreferences: {
+			preload: join(import.meta.dirname, '../preload/index.cjs'),
+			// The renderer is sandboxed: the preload is CommonJS and uses nothing but the bridge.
+			sandbox: true,
+			contextIsolation: true,
+			nodeIntegration: false
+		}
 	});
 	win.on('closed', () => (win = undefined));
+	// The window shows the app and nothing else: no navigation away from it, and links that
+	// want a new window open in the browser instead (web links only).
+	win.webContents.on('will-navigate', (e, url) => {
+		if (url !== win?.webContents.getURL()) e.preventDefault();
+	});
+	win.webContents.setWindowOpenHandler(({ url }) => {
+		void openExternal(url).catch(() => {});
+		return { action: 'deny' };
+	});
 	nativeTheme.on('updated', () => win?.setBackgroundColor(windowBackground()));
 	if (process.env.ELECTRON_RENDERER_URL) void win.loadURL(process.env.ELECTRON_RENDERER_URL);
 	else void win.loadFile(join(import.meta.dirname, '../renderer/index.html'));
@@ -161,9 +203,9 @@ function buildMenu(): void {
 				{ label: 'Preview', accelerator: 'CmdOrCtrl+2', click: send('preview') },
 				{ label: 'Publish', accelerator: 'CmdOrCtrl+3', click: send('publish') },
 				{ type: 'separator' },
-				{ role: 'reload' },
-				{ role: 'toggleDevTools' },
-				{ type: 'separator' },
+				...(app.isPackaged
+					? []
+					: [{ role: 'reload' as const }, { role: 'toggleDevTools' as const }]),
 				{ role: 'togglefullscreen' }
 			]
 		},
@@ -175,13 +217,25 @@ function buildMenu(): void {
 app.whenReady().then(() => {
 	if (process.platform === 'darwin' && existsSync(ICON)) app.dock?.setIcon(ICON);
 	buildMenu();
+	// Nothing in the app needs camera, microphone, notifications or the rest.
+	session.defaultSession.setPermissionRequestHandler((_wc, _permission, callback) =>
+		callback(false)
+	);
+	// Updates come from the GitHub releases of keoshi/revelar through update.electronjs.org,
+	// which only works for the signed, packaged app.
+	if (app.isPackaged)
+		updateElectronApp({
+			updateSource: { type: UpdateSourceType.ElectronPublicUpdateService, repo: 'keoshi/revelar' },
+			updateInterval: '1 hour'
+		});
 	// Files of the open site: site://media/… and site://downloads/… map to static/, site://cache/…
 	// to .cache/ (quick previews) and site://photos/… to the originals.
+	// Only the folders the renderer needs; `.cache` holds private album keys, so just its thumbs.
 	const BASES: Record<string, string> = {
 		media: 'static/media',
 		'media-private': 'static/media-private',
 		downloads: 'static/downloads',
-		cache: '.cache',
+		cache: '.cache/thumbs',
 		photos: 'photos'
 	};
 	protocol.handle('site', (request) => {
@@ -189,10 +243,17 @@ app.whenReady().then(() => {
 		const url = new URL(request.url);
 		const base = BASES[url.host];
 		if (!base) return new Response('Not found', { status: 404 });
-		const dir = join(siteRoot, base);
-		const file = join(dir, decodeURIComponent(url.pathname));
-		if (!file.startsWith(dir) || !existsSync(file))
-			return new Response('Not found', { status: 404 });
+		const dir = resolve(siteRoot, base);
+		const file = resolve(dir, '.' + decodeURIComponent(url.pathname));
+		// Stays inside `dir` itself: "media" must not reach "media-private" through a prefix match.
+		if (!file.startsWith(dir + sep)) return new Response('Not found', { status: 404 });
+		let regular = false;
+		try {
+			regular = statSync(file).isFile();
+		} catch {
+			/* missing */
+		}
+		if (!regular) return new Response('Not found', { status: 404 });
 		return net.fetch(pathToFileURL(file).href);
 	});
 
@@ -200,7 +261,10 @@ app.whenReady().then(() => {
 		call(method, params)
 	);
 	ipcMain.handle('site.setRoot', (_e, root: string) => {
-		siteRoot = root;
+		// Only a real site folder: the renderer gets this path from the engine after opening it.
+		if (typeof root !== 'string' || !existsSync(join(root, 'revelar.config.ts')))
+			throw new Error('Not a site folder');
+		siteRoot = resolve(root);
 	});
 	ipcMain.handle('dialog.pickFolder', async (_e, title: string) => {
 		const result = await dialog.showOpenDialog(win!, {
@@ -210,9 +274,11 @@ app.whenReady().then(() => {
 		return result.canceled ? undefined : result.filePaths[0];
 	});
 	ipcMain.handle('settings.get', () => readSettings());
-	ipcMain.handle('settings.set', (_e, patch: Partial<Settings>) =>
-		writeSettings({ ...readSettings(), ...patch })
-	);
+	ipcMain.handle('settings.set', (_e, patch: Partial<Settings>) => {
+		const next = readSettings();
+		for (const key of SETTINGS_KEYS) if (key in patch) next[key] = patch[key] as never;
+		return writeSettings(next);
+	});
 	ipcMain.handle('secrets.get', (_e, name: string) => {
 		const path = secretPath(name);
 		if (!existsSync(path)) return undefined;
@@ -222,13 +288,14 @@ app.whenReady().then(() => {
 			: bytes.toString('utf8');
 	});
 	ipcMain.handle('secrets.set', (_e, name: string, value: string) => {
+		if (typeof value !== 'string') throw new Error('A secret must be a string');
 		mkdirSync(app.getPath('userData'), { recursive: true });
 		const bytes = safeStorage.isEncryptionAvailable()
 			? safeStorage.encryptString(value)
 			: Buffer.from(value);
 		writeFileSync(secretPath(name), bytes);
 	});
-	ipcMain.handle('shell.openExternal', (_e, url: string) => shell.openExternal(url));
+	ipcMain.handle('shell.openExternal', (_e, url: string) => openExternal(url));
 
 	createWindow();
 	app.on('activate', () => {

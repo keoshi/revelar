@@ -181,10 +181,13 @@
 		display: flex;
 		align-items: center;
 		gap: 24px;
-		/* clear of the traffic lights, which end around 70 px */
-		padding: 0 14px 0 104px;
+		padding: 0 14px 0 24px;
 		height: 50px;
 		flex: none;
+	}
+	/* clear of the macOS traffic lights, which end around 70 px */
+	:global(html[data-platform='darwin']) .top {
+		padding-left: 104px;
 	}
 	.brand {
 		display: flex;

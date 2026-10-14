@@ -28,7 +28,6 @@
 	// File names in display order; dragging rewrites it and switches the album to a custom order.
 	let order = $state<string[]>([]);
 	let savedOrder = '';
-	let dragging = $state<string | undefined>();
 
 	function load(detail: AlbumDetail) {
 		album = detail;
@@ -134,29 +133,100 @@
 		load(await engine.album(site.root, slug));
 	}
 
-	// ---- drag to reorder: the list reorders live under the pointer, flip animates the rest ----
-	function dragStart(e: DragEvent, name: string) {
-		dragging = name;
-		selected = name;
-		if (e.dataTransfer) {
-			e.dataTransfer.effectAllowed = 'move';
-			e.dataTransfer.setData('text/plain', name);
-		}
+	// ---- drag to arrange ---------------------------------------------------------------------
+	// Pointer-based rather than HTML5 drag and drop: the pressed thumbnail lifts and follows the
+	// pointer as a ghost, its cell stays behind as a placeholder, and the target is the grid slot
+	// under the pointer. Slots are measured once when the drag starts (the grid is uniform, so
+	// slot i keeps its rectangle whatever the order), which makes the live reordering settle
+	// instead of flickering, with `flip` sliding the others out of the way.
+	type Drag = { name: string; x: number; y: number; w: number; h: number; ox: number; oy: number };
+	let drag = $state<Drag | undefined>();
+	let pressed: { name: string; x: number; y: number; el: HTMLElement } | undefined;
+	let slots: { x: number; y: number; w: number; h: number }[] = [];
+	let grid: HTMLElement | undefined = $state();
+	let pane: HTMLElement | undefined = $state();
+	let startScroll = 0;
+	let pointer = { x: 0, y: 0 };
+	let scrollLoop: number | undefined;
+	const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+	const flipMs = reduceMotion ? 0 : 200;
+
+	function pointerDown(e: PointerEvent, name: string) {
+		if (e.button !== 0) return;
+		const el = e.currentTarget as HTMLElement;
+		pressed = { name, x: e.clientX, y: e.clientY, el };
+		el.setPointerCapture(e.pointerId);
 	}
-	function dragOver(e: DragEvent, name: string) {
-		e.preventDefault();
-		if (!dragging || dragging === name) return;
-		const from = order.indexOf(dragging);
-		const to = order.indexOf(name);
-		if (from < 0 || to < 0) return;
+	function pointerMove(e: PointerEvent) {
+		if (!pressed) return;
+		pointer = { x: e.clientX, y: e.clientY };
+		if (!drag) {
+			if (Math.hypot(e.clientX - pressed.x, e.clientY - pressed.y) < 5 || !grid || !pane) return;
+			const r = pressed.el.getBoundingClientRect();
+			slots = [...grid.children].map((c) => {
+				const b = c.getBoundingClientRect();
+				return { x: b.left, y: b.top, w: b.width, h: b.height };
+			});
+			startScroll = pane.scrollTop;
+			selected = pressed.name;
+			drag = {
+				name: pressed.name,
+				x: r.left,
+				y: r.top,
+				w: r.width,
+				h: r.height,
+				ox: e.clientX - r.left,
+				oy: e.clientY - r.top
+			};
+			scrollLoop = requestAnimationFrame(autoScroll);
+		}
+		drag.x = e.clientX - drag.ox;
+		drag.y = e.clientY - drag.oy;
+		settle();
+	}
+	function pointerUp() {
+		if (drag && order.join('\n') !== savedOrder) form.sort = 'manual';
+		if (!drag && pressed) selected = pressed.name;
+		if (scrollLoop) cancelAnimationFrame(scrollLoop);
+		scrollLoop = undefined;
+		drag = undefined;
+		pressed = undefined;
+	}
+	/** Moves the dragged photo into the slot under the pointer, if that is a different one. */
+	function settle() {
+		if (!drag || !pane) return;
+		const y = pointer.y + (pane.scrollTop - startScroll);
+		let best = -1;
+		let bestDist = Infinity;
+		slots.forEach((s, i) => {
+			const dx = Math.max(s.x - pointer.x, 0, pointer.x - (s.x + s.w));
+			const dy = Math.max(s.y - y, 0, y - (s.y + s.h));
+			const d = Math.hypot(dx, dy);
+			if (d < bestDist && d < s.w * 0.6) {
+				bestDist = d;
+				best = i;
+			}
+		});
+		const from = order.indexOf(drag.name);
+		if (best < 0 || best === from) return;
 		const next = [...order];
 		next.splice(from, 1);
-		next.splice(to, 0, dragging);
+		next.splice(best, 0, drag.name);
 		order = next;
 	}
-	function dragEnd() {
-		if (dragging && order.join('\n') !== savedOrder) form.sort = 'manual';
-		dragging = undefined;
+	/** Scrolls the grid while the pointer rests near its top or bottom edge. */
+	function autoScroll() {
+		if (!drag || !pane) return;
+		const r = pane.getBoundingClientRect();
+		const edge = 48;
+		let v = 0;
+		if (pointer.y < r.top + edge) v = -Math.ceil((r.top + edge - pointer.y) / 6);
+		else if (pointer.y > r.bottom - edge) v = Math.ceil((pointer.y - (r.bottom - edge)) / 6);
+		if (v) {
+			pane.scrollTop += v;
+			settle();
+		}
+		scrollLoop = requestAnimationFrame(autoScroll);
 	}
 
 	const files = $derived(new Map((album?.files ?? []).map((f) => [f.name, f])));
@@ -243,7 +313,7 @@
 				</p>
 			</aside>
 
-			<div class="pane photos">
+			<div class="pane photos" bind:this={pane}>
 				<p class="muted small lead">
 					{#if !album.built}
 						Not processed yet: quick previews for now.
@@ -252,24 +322,23 @@
 						Drag photos to arrange them{form.sort === 'manual' ? ' (custom order)' : ''}.
 					{/if}
 				</p>
-				<div class="thumbs">
+				<div class="thumbs" bind:this={grid}>
 					{#each ordered as file, i (file.name)}
 						{@const t = thumb(file.name)}
 						<button
 							type="button"
 							class="thumb"
 							class:selected={selected === file.name}
-							class:dragging={dragging === file.name}
+							class:placeholder={drag?.name === file.name}
 							class:hidden={photos[file.name]?.hidden}
 							style:animation-delay="{Math.min(i, 24) * 14}ms"
-							draggable="true"
-							ondragstart={(e) => dragStart(e, file.name)}
-							ondragover={(e) => dragOver(e, file.name)}
-							ondrop={(e) => e.preventDefault()}
-							ondragend={dragEnd}
-							onclick={() => (selected = file.name)}
+							draggable="false"
+							onpointerdown={(e) => pointerDown(e, file.name)}
+							onpointermove={pointerMove}
+							onpointerup={pointerUp}
+							onpointercancel={pointerUp}
 							title={file.name}
-							animate:flip={{ duration: 220 }}
+							animate:flip={{ duration: flipMs }}
 						>
 							{#if t}<img
 									src={siteUrl(t)}
@@ -283,6 +352,18 @@
 						</button>
 					{/each}
 				</div>
+				{#if drag}
+					{@const t = thumb(drag.name)}
+					<div
+						class="ghost"
+						style:left="{drag.x}px"
+						style:top="{drag.y}px"
+						style:width="{drag.w}px"
+						style:height="{drag.h}px"
+					>
+						{#if t}<img src={siteUrl(t)} alt="" />{/if}
+					</div>
+				{/if}
 			</div>
 
 			<aside class="pane detail">
@@ -361,9 +442,9 @@
 		min-height: 0;
 		overflow: auto;
 		scrollbar-width: thin;
-	}
-	.form {
-		padding-right: 4px;
+		/* room for focus rings, which the scroll box would otherwise clip */
+		padding: 3px;
+		margin: -3px;
 	}
 	.lead {
 		margin-bottom: 10px;
@@ -377,9 +458,7 @@
 	}
 	.thumb {
 		animation: rise 360ms var(--ease) both;
-		transition:
-			border-color 160ms var(--ease),
-			opacity 160ms var(--ease);
+		transition: border-color 160ms var(--ease);
 		position: relative;
 		padding: 0;
 		border: 2px solid transparent;
@@ -387,10 +466,41 @@
 		aspect-ratio: 1;
 		overflow: hidden;
 		cursor: grab;
+		touch-action: none;
 	}
 	.thumb:active {
-		cursor: grabbing;
 		transform: none;
+	}
+	.thumb.placeholder {
+		border-style: dashed;
+		border-color: var(--text-muted);
+	}
+	.thumb.placeholder img,
+	.thumb.placeholder .badge {
+		opacity: 0.15;
+	}
+	.ghost {
+		position: fixed;
+		z-index: 20;
+		pointer-events: none;
+		border-radius: var(--radius);
+		overflow: hidden;
+		box-shadow: 0 16px 40px rgb(0 0 0 / 0.55);
+		animation: lift 160ms var(--ease) both;
+	}
+	.ghost img {
+		width: 100%;
+		height: 100%;
+		object-fit: cover;
+		display: block;
+	}
+	@keyframes lift {
+		from {
+			transform: scale(1);
+		}
+		to {
+			transform: scale(1.06);
+		}
 	}
 	.thumb img {
 		width: 100%;
@@ -401,9 +511,6 @@
 	}
 	.thumb.selected {
 		border-color: var(--accent);
-	}
-	.thumb.dragging {
-		opacity: 0.35;
 	}
 	.thumb.hidden img {
 		opacity: 0.4;

@@ -17,6 +17,7 @@
 	import Settings from './screens/Settings.svelte';
 	import SiteMenu from './screens/SiteMenu.svelte';
 	import StatusBar from './screens/StatusBar.svelte';
+	import Busy from './screens/Busy.svelte';
 
 	let site = $state<SiteState | undefined>();
 	let screen = $state<Screen>('welcome');
@@ -153,7 +154,8 @@
 		{/key}
 	</main>
 
-	{#if activity.busy || activity.log.length}
+	{#if activity.busy}<Busy />{/if}
+	{#if !activity.busy && activity.log.some((e) => e.level !== 'info')}
 		<StatusBar />
 	{/if}
 </div>
@@ -202,6 +204,7 @@
 		margin-left: auto;
 	}
 	main {
+		position: relative;
 		flex: 1;
 		overflow: auto;
 		padding: 24px;

@@ -1,22 +1,26 @@
 <script lang="ts">
 	import { activity } from '../lib/engine.svelte.ts';
 	let open = $state(false);
-	const pct = $derived(activity.total ? Math.round((activity.done / activity.total) * 100) : 0);
+	const warnings = $derived(activity.log.filter((e) => e.level === 'warn').length);
+	const errors = $derived(activity.log.filter((e) => e.level === 'error').length);
+	const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? '' : 's'}`;
 </script>
 
-<footer class="status">
+<!-- Shown only when the last run left warnings or errors; progress itself lives in the overlay. -->
+<footer class="status" class:errors={errors > 0}>
 	<div class="line">
-		{#if activity.busy}
-			<span class="spinner"></span>
-			<span>{activity.label}{activity.slug ? ` · ${activity.slug}` : ''}</span>
-			{#if activity.total}<span class="muted">{activity.done} / {activity.total}</span>{/if}
-			<div class="bar"><div class="fill" style:width="{pct}%"></div></div>
-		{:else}
-			<span class="muted">Idle</span>
-		{/if}
+		<span class="mark" aria-hidden="true">!</span>
+		<span>
+			{#if errors}{plural(errors, 'error')}{/if}
+			{#if errors && warnings},
+			{/if}
+			{#if warnings}{plural(warnings, 'warning')}{/if}
+			from the last run
+		</span>
 		<button type="button" class="link small" onclick={() => (open = !open)}
-			>{open ? 'Hide log' : `Log (${activity.log.length})`}</button
+			>{open ? 'Hide log' : 'Show log'}</button
 		>
+		<button type="button" class="link small" onclick={() => (activity.log = [])}>Dismiss</button>
 	</div>
 	{#if open}
 		<div class="log">
@@ -39,33 +43,23 @@
 		align-items: center;
 		gap: 12px;
 	}
-	.line button {
+	.line button:first-of-type {
 		margin-left: auto;
 	}
-	.bar {
-		width: 160px;
-		height: 4px;
-		background: var(--surface-2);
-		border-radius: 2px;
-		overflow: hidden;
-	}
-	.fill {
-		height: 100%;
-		background: var(--accent);
-		transition: width 120ms linear;
-	}
-	.spinner {
-		width: 10px;
-		height: 10px;
-		border: 2px solid var(--hairline);
-		border-top-color: var(--accent);
+	.mark {
+		width: 16px;
+		height: 16px;
 		border-radius: 50%;
-		animation: spin 0.8s linear infinite;
+		display: grid;
+		place-items: center;
+		font-weight: 700;
+		font-size: 11px;
+		background: var(--accent);
+		color: #1a1200;
 	}
-	@keyframes spin {
-		to {
-			transform: rotate(360deg);
-		}
+	.errors .mark {
+		background: var(--danger);
+		color: #fff;
 	}
 	.log {
 		max-height: 160px;

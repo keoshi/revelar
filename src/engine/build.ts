@@ -44,10 +44,12 @@ export async function prepareSite(opts: { root?: string; config?: string }): Pro
 	const root = resolve(opts.root ?? process.env.REVELAR_SITE_ROOT ?? process.cwd());
 	process.env.REVELAR_SITE_ROOT = root;
 	if (opts.config) process.env.REVELAR_CONFIG = resolve(opts.config);
-	if (process.env.BASE_PATH === undefined) {
-		const config = await loadConfig();
+	const config = await loadConfig();
+	if (process.env.BASE_PATH === undefined)
 		process.env.BASE_PATH = new URL(config.site.baseUrl).pathname.replace(/\/+$/, '');
-	}
+	// vite.config.ts cannot load the site config itself (see there), so it learns from here
+	// whether the global map page exists at all; listing it otherwise logs a 404 for nothing.
+	process.env.REVELAR_GLOBAL_MAP = config.map.enabled && config.map.globalMap ? '1' : '0';
 	return root;
 }
 

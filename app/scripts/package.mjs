@@ -73,7 +73,7 @@ const stage = join(dist, `stage-${arch}`);
 rmSync(stage, { recursive: true, force: true });
 mkdirSync(stage, { recursive: true });
 run('npm', ['pack', '--pack-destination', stage, '--silent'], { cwd: repo });
-const tgz = `revelar-${engine.version}.tgz`;
+const tgz = `index84-revelar-${engine.version}.tgz`;
 if (!existsSync(join(stage, tgz))) throw new Error(`npm pack did not produce ${tgz}`);
 writeFileSync(
 	join(stage, 'package.json'),
@@ -88,7 +88,7 @@ writeFileSync(
 			type: 'module',
 			main: './out/main/index.js',
 			dependencies: {
-				revelar: `file:${tgz}`,
+				'@index84/revelar': `file:${tgz}`,
 				'update-electron-app': pkg.dependencies['update-electron-app']
 			}
 		},

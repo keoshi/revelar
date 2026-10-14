@@ -25,7 +25,11 @@ import { updateElectronApp, UpdateSourceType } from 'update-electron-app';
 import type { AppCommand, EngineEvent, Settings } from '../shared/api.ts';
 
 const require = createRequire(import.meta.url);
-const HOST = join(dirname(require.resolve('revelar/package.json')), 'bin', 'revelar-host.js');
+const HOST = join(
+	dirname(require.resolve('@index84/revelar/package.json')),
+	'bin',
+	'revelar-host.js'
+);
 
 // Tests point the app at a throwaway profile (settings, secrets) instead of the user's, and can
 // pin the appearance so screenshots come out the same on any machine.

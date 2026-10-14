@@ -1,6 +1,6 @@
 /**
  * Revelar's programmatic API: everything the CLI does, for other tools (a desktop app, a
- * watcher, CI) to call directly. Configs should import `defineConfig` from 'revelar/config'
+ * watcher, CI) to call directly. Configs should import `defineConfig` from '@index84/revelar/config'
  * (a light entry with no Node-only dependencies); this entry re-exports it for convenience.
  */
 export { defineConfig, validateConfig } from './lib/config.ts';

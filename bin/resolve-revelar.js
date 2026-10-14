@@ -4,6 +4,8 @@
 // specifiers to its own source instead.
 const PKG = new URL('../', import.meta.url);
 const MAP = {
+	'@index84/revelar': new URL('src/index.ts', PKG).href,
+	'@index84/revelar/config': new URL('src/lib/config.ts', PKG).href,
 	revelar: new URL('src/index.ts', PKG).href,
 	'revelar/config': new URL('src/lib/config.ts', PKG).href
 };

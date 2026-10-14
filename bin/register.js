@@ -1,5 +1,6 @@
 // Shared by bin/revelar.js and bin/revelar-host.js: load the TypeScript source through tsx and
-// make 'revelar' / 'revelar/config' resolvable from any site folder.
+// make '@index84/revelar' / '@index84/revelar/config' (and the short 'revelar' / 'revelar/config'
+// that older configs use) resolvable from any site folder.
 //
 // A site's revelar.config.ts imports 'revelar/config', which Node can only find if the package
 // is installed next to the site; sites created by the app or a global CLI have no node_modules.
@@ -12,6 +13,8 @@ import { register as registerTsx } from 'tsx/esm/api';
 
 const PKG = new URL('../', import.meta.url);
 const MAP = {
+	'@index84/revelar': fileURLToPath(new URL('src/index.ts', PKG)),
+	'@index84/revelar/config': fileURLToPath(new URL('src/lib/config.ts', PKG)),
 	revelar: fileURLToPath(new URL('src/index.ts', PKG)),
 	'revelar/config': fileURLToPath(new URL('src/lib/config.ts', PKG))
 };

@@ -1,4 +1,4 @@
-import { defineConfig } from 'revelar/config';
+import { defineConfig } from '@index84/revelar/config';
 
 export default defineConfig({
 	site: {

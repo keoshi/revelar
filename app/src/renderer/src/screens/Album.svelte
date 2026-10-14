@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { flip } from 'svelte/animate';
-	import type { AlbumDetail } from 'revelar';
+	import type { AlbumDetail } from '@index84/revelar';
 	import { engine, run, siteUrl, type SiteState } from '../lib/engine.svelte.ts';
 	import Seg from '../lib/Seg.svelte';
 	import { autosave } from '../lib/autosave.svelte.ts';

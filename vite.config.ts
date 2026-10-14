@@ -1,6 +1,7 @@
 import { defineConfig, type Plugin } from 'vite';
 import adapter from '@sveltejs/adapter-static';
 import { sveltekit } from '@sveltejs/kit/vite';
+import { readFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import type { RevelarConfigInput } from './src/lib/config.ts';
@@ -42,6 +43,23 @@ if (configuredBase === undefined) {
 function basePath(): '' | `/${string}` {
 	const path = (configuredBase ?? '').replace(/\/+$/, '');
 	return path === '' ? '' : (`/${path.replace(/^\/+/, '')}` as `/${string}`);
+}
+
+/**
+ * Whether the global map page exists: the engine says so from the site config
+ * (REVELAR_GLOBAL_MAP; a plain `vite build` without it keeps the page listed), and some public
+ * photo must carry a location, read from the manifest the ingest wrote.
+ */
+function wantsGlobalMap(): boolean {
+	if (process.env.REVELAR_GLOBAL_MAP === '0') return false;
+	try {
+		const m = JSON.parse(readFileSync(join(siteRoot, '.cache', 'manifest.json'), 'utf8')) as {
+			albums?: { photos?: { gps?: unknown }[] }[];
+		};
+		return (m.albums ?? []).some((a) => (a.photos ?? []).some((p) => p.gps));
+	} catch {
+		return true;
+	}
 }
 
 /** Dev only: reload open pages when the ingest script rewrites the manifest. */
@@ -90,7 +108,9 @@ export default defineConfig({
 			inlineStyleThreshold: 0,
 			prerender: {
 				// Endpoints are not discovered by crawling; list them (and the optional global map) explicitly.
-				entries: ['*', '/robots.txt', '/sitemap.xml', '/rss.xml', '/map/'],
+				entries: wantsGlobalMap()
+					? ['*', '/robots.txt', '/sitemap.xml', '/rss.xml', '/map/']
+					: ['*', '/robots.txt', '/sitemap.xml', '/rss.xml'],
 				handleUnseenRoutes: ({ routes }) => {
 					// Routes whose entries() returned nothing (e.g. no private albums) are fine.
 					const unexpected = routes.filter(
@@ -114,16 +134,18 @@ export default defineConfig({
 		})
 	],
 	// `$config` (used by src/lib/server/site.ts) is the active config file. Configs import
-	// `defineConfig` from 'revelar/config'; the aliases resolve that to this package's source
+	// `defineConfig` from '@index84/revelar/config' (or the older 'revelar/config'); the aliases
+	// resolve that to this package's source
 	// whether the config lives in this checkout or in a folder that installed revelar.
 	resolve: {
 		alias: {
 			$config: configPath,
+			'@index84/revelar/config': join(packageRoot, 'src/lib/config.ts'),
 			'revelar/config': join(packageRoot, 'src/lib/config.ts'),
 			revelar: join(packageRoot, 'src/index.ts')
 		}
 	},
-	ssr: { noExternal: ['revelar'] },
+	ssr: { noExternal: ['@index84/revelar', 'revelar'] },
 	// MapLibre is large and self-contained; keeping it out of the dev pre-bundle avoids a slow
 	// re-optimisation when the map page is first opened.
 	optimizeDeps: { exclude: ['maplibre-gl'] },

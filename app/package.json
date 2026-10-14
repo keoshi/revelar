@@ -16,7 +16,7 @@
 		"package": "node scripts/package.mjs"
 	},
 	"dependencies": {
-		"revelar": "file:..",
+		"@index84/revelar": "file:..",
 		"update-electron-app": "^3.3.0"
 	},
 	"devDependencies": {

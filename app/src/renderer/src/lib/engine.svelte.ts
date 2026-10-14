@@ -7,7 +7,7 @@ import type {
 	PublishEvent,
 	PublishSiteResult,
 	PublishTarget
-} from 'revelar';
+} from '@index84/revelar';
 
 export type SiteState = { root: string; config: RevelarConfig; albums: AlbumListing[] };
 export type Screen = 'welcome' | 'library' | 'album' | 'preview' | 'publish' | 'settings';

@@ -35,7 +35,7 @@ Revelar is an npm package with a `revelar` command. A site is any folder holding
 ```sh
 mkdir my-photos && cd my-photos
 npm init -y
-npm install github:keoshi/revelar   # or `npm install revelar` once it is on npm
+npm install @index84/revelar
 npx revelar init                     # writes revelar.config.ts, photos/ and .gitignore
 # put albums in photos/ (see Content below), edit revelar.config.ts, then:
 npx revelar build                    # ingest photos/ then build the site into build/
@@ -45,7 +45,7 @@ npx revelar dev                      # dev server that re-ingests as photos/ cha
 
 This repository is itself a site root (the owner's gallery lives in its gitignored `photos/`), so a checkout works the same way with `npm install` followed by `npm run build`, `npm run preview` or `npm run dev`.
 
-The same engine is available as a library for other tools: `import { runIngest, buildSite, devServer, shareLinks } from 'revelar'`.
+The same engine is available as a library for other tools: `import { runIngest, buildSite, devServer, shareLinks } from '@index84/revelar'`.
 
 ## Content
 
@@ -114,7 +114,7 @@ photos:
 
 ## Configuration
 
-`revelar.config.ts` in the site root (`import { defineConfig } from 'revelar/config'`) is validated at ingest; invalid values fail the build with a readable message. The important fields:
+`revelar.config.ts` in the site root (`import { defineConfig } from '@index84/revelar/config'`) is validated at ingest; invalid values fail the build with a readable message. The important fields:
 
 - `site.baseUrl` (required) is used for canonical and Open Graph URLs. If it has a path (for example `https://user.github.io/photos`), the site is built to work from that subpath. `BASE_PATH=/photos` overrides it.
 - `site.author`, `site.authorUrl` and `site.copyright`: the footer shows the copyright line followed by a link to the author's site (as its host name); the author also appears as the creator in structured data.
@@ -219,7 +219,7 @@ src/cli/index.ts             command parsing: init, ingest, build, dev, preview,
 src/index.ts                 programmatic API: runIngest, buildSite, devServer, shareLinks, defineConfig
 src/engine/ingest.ts         pipeline entry: scan → metadata → encode → manifest → prune
 src/engine/                  scan, sidecar, metadata, encode, albums, cache, zip, prune, build, dev, share
-src/lib/config.ts            defineConfig and validation (exported as 'revelar/config')
+src/lib/config.ts            defineConfig and validation (exported as '@index84/revelar/config')
 src/lib/components/          Picture, Grid, Viewer, Filmstrip, Controls, InfoPanel, MapView, MiniMap, PasswordGate…
 src/lib/state/album.svelte.ts  runes store shared by grid and viewer
 src/lib/crypto/              isomorphic AES-GCM helpers, browser unlock, decrypt worker

@@ -1,9 +1,26 @@
 {
-	"name": "revelar",
+	"name": "@index84/revelar",
 	"version": "0.1.0",
 	"description": "Static, photo-first gallery: drop folders of photos in, get a fast site out",
+	"private": false,
 	"license": "MIT",
-	"private": true,
+	"homepage": "https://tools.index84.com/revelar/",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/keoshi/revelar.git"
+	},
+	"bugs": {
+		"url": "https://github.com/keoshi/revelar/issues"
+	},
+	"keywords": [
+		"photos",
+		"gallery",
+		"static-site",
+		"sveltekit",
+		"photography",
+		"avif",
+		"photoswipe"
+	],
 	"type": "module",
 	"bin": {
 		"revelar": "./bin/revelar.js"
@@ -20,9 +37,15 @@
 		"vite.config.ts",
 		"tsconfig.json"
 	],
+	"publishConfig": {
+		"access": "public"
+	},
 	"workspaces": [
 		"app"
 	],
+	"engines": {
+		"node": ">=22"
+	},
 	"scripts": {
 		"revelar": "tsx src/cli/index.ts",
 		"ingest": "tsx src/cli/index.ts ingest",
@@ -39,7 +62,8 @@
 		"test": "vitest --run",
 		"test:unit": "vitest",
 		"test:e2e": "playwright test",
-		"lighthouse": "npx --yes @lhci/cli@latest autorun"
+		"lighthouse": "npx --yes @lhci/cli@latest autorun",
+		"prepublishOnly": "npm run lint && npm run check && npm run test"
 	},
 	"dependencies": {
 		"@fontsource-variable/inter": "^5.3.0",
@@ -86,8 +110,5 @@
 	"imports": {
 		"#lib": "./src/lib/index.js",
 		"#lib/*": "./src/lib/*"
-	},
-	"engines": {
-		"node": ">=22"
 	}
 }

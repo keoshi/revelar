@@ -24,7 +24,7 @@ import type { RevelarConfig, RevelarConfigInput } from '../lib/config.ts';
 import { expandSources } from '../lib/utils/sources.ts';
 
 export const CONFIG_TEMPLATE = (input: RevelarConfigInput) =>
-	`import { defineConfig } from 'revelar/config';
+	`import { defineConfig } from '@index84/revelar/config';
 
 export default defineConfig(${JSON.stringify(input, null, '\t').replace(/"([a-zA-Z_][a-zA-Z0-9_]*)":/g, '$1:')});
 `;

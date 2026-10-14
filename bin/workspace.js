@@ -29,9 +29,15 @@ function dependencyDirs() {
 	const dirs = [];
 	const own = join(PKG, 'node_modules');
 	if (existsSync(own)) dirs.push(own);
-	// `<something>/node_modules/revelar` → `<something>/node_modules`
-	const parent = dirname(PKG);
-	if (parent.endsWith('node_modules') && parent !== own && existsSync(parent)) dirs.push(parent);
+	// `<something>/node_modules/@index84/revelar` → `<something>/node_modules`
+	let dir = dirname(PKG);
+	while (dir !== dirname(dir)) {
+		if (dir.endsWith('node_modules')) {
+			if (dir !== own && existsSync(dir)) dirs.push(dir);
+			break;
+		}
+		dir = dirname(dir);
+	}
 	return dirs;
 }
 

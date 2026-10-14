@@ -2,7 +2,8 @@
 # Secrets: APPLE_CERT_P12_BASE64 and APPLE_CERT_PASSWORD (the Developer ID Application
 # certificate exported from Keychain Access), APPLE_ID, APPLE_APP_PASSWORD (an app-specific
 # password) and APPLE_TEAM_ID. The zips land on a GitHub release, where update.electronjs.org
-# serves them to installed copies.
+# serves them to installed copies. The jobs only run once the repository variable
+# APP_RELEASE_ENABLED is "true", so a tag made by hand for a locally built release stays quiet.
 name: Desktop app release
 
 on:
@@ -11,6 +12,7 @@ on:
 
 jobs:
   build:
+    if: vars.APP_RELEASE_ENABLED == 'true'
     runs-on: macos-latest
     strategy:
       matrix:

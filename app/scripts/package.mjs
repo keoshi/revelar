@@ -46,6 +46,23 @@ function pickIdentity() {
 	return found;
 }
 
+// A published version is never rebuilt: installed copies only update to a higher one, so every
+// build that goes out needs a new number in app/package.json (--force overrides, for local tests).
+if (!args.includes('--force')) {
+	try {
+		execFileSync('gh', ['release', 'view', `v${pkg.version}`, '-R', 'keoshi/revelar'], {
+			stdio: 'pipe'
+		});
+		throw new Error(
+			`v${pkg.version} is already released; bump the version in app/package.json (or pass --force)`
+		);
+	} catch (e) {
+		if (!String(e.message).includes('already released')) {
+			/* no such release, or gh unavailable: carry on */
+		} else throw e;
+	}
+}
+
 // ---------- 1. build ----------
 run('npm', ['run', 'build'], { cwd: app });
 run('node', [join(app, 'scripts/icon.mjs')]);

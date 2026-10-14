@@ -1,4 +1,6 @@
-# Builds, signs, notarizes and publishes the desktop app when a tag like app-v0.1.0 is pushed.
+# Builds, signs, notarizes and publishes the desktop app when a tag like v0.1.0 is pushed.
+# Tags are plain semver because update.electronjs.org only reads releases tagged that way; the
+# npm package is published without GitHub releases so the app's updater never sees its versions.
 # Secrets: APPLE_CERT_P12_BASE64 and APPLE_CERT_PASSWORD (the Developer ID Application
 # certificate exported from Keychain Access), APPLE_ID, APPLE_APP_PASSWORD (an app-specific
 # password) and APPLE_TEAM_ID. The zips land on a GitHub release, where update.electronjs.org
@@ -8,7 +10,7 @@ name: Desktop app release
 
 on:
   push:
-    tags: ['app-v*']
+    tags: ['v*']
 
 jobs:
   build:
@@ -27,7 +29,7 @@ jobs:
       - name: Check the tag matches the app version
         run: |
           version=$(node -p "require('./app/package.json').version")
-          [ "${GITHUB_REF_NAME}" = "app-v${version}" ] || { echo "Tag ${GITHUB_REF_NAME} is not app-v${version}"; exit 1; }
+          [ "${GITHUB_REF_NAME}" = "v${version}" ] || { echo "Tag ${GITHUB_REF_NAME} is not v${version}"; exit 1; }
       - uses: apple-actions/import-codesign-certs@v3
         with:
           p12-file-base64: ${{ secrets.APPLE_CERT_P12_BASE64 }}

@@ -259,7 +259,7 @@ node app/scripts/package.mjs --notarize <profile> # notarize and staple with a n
 node app/scripts/package.mjs --no-sign            # unsigned, runs on this Mac only
 ```
 
-The script builds the app, stages a production install of the engine (`npm pack` plus the app's runtime dependencies, so nothing from the dev tree ships), wraps it with Electron without asar (the engine runs Vite and sharp from real files), signs with the Developer ID certificate in the keychain under the hardened runtime, and zips the result. Pushing a tag like `app-v0.1.0` runs the same script for both architectures on GitHub Actions (`.github/workflows/app-release.yml`), notarizes, and attaches the zips to a release; installed copies then pick the update up from the release through update.electronjs.org.
+The script builds the app, stages a production install of the engine (`npm pack` plus the app's runtime dependencies, so nothing from the dev tree ships), wraps it with Electron without asar (the engine runs Vite and sharp from real files), signs with the Developer ID certificate in the keychain under the hardened runtime, and zips the result. Pushing a tag like `v0.1.0` (plain semver, which the update service requires) runs the same script for both architectures on GitHub Actions (`.github/workflows/app-release.yml`), notarizes, and attaches the zips to a release; installed copies then pick the update up from the release through update.electronjs.org.
 
 Inside an installed app the engine package is read-only, so builds run from a mirror of it under the app's data folder (`~/Library/Application Support/Revelar/engine`): symlinks to the package's source and dependencies, with real folders where SvelteKit and Vite write.
 

@@ -1,0 +1,930 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+		<title>Revelar · index84</title>
+		<meta
+			name="description"
+			content="Share your photos as a website of your own, in minutes. Revelar is a Mac app that turns a folder of photos into a fast gallery site and publishes it to a free host. Your files, your domain, no account."
+		/>
+		<link rel="canonical" href="https://tools.index84.com/revelar/" />
+		<meta property="og:type" content="website" />
+		<meta property="og:site_name" content="index84" />
+		<meta property="og:title" content="Revelar" />
+		<meta
+			property="og:description"
+			content="Share your photos as a website of your own, in minutes. Your files, your domain, no account."
+		/>
+		<meta property="og:url" content="https://tools.index84.com/revelar/" />
+		<meta property="og:image" content="https://tools.index84.com/revelar/img/og.jpg" />
+		<meta name="twitter:card" content="summary_large_image" />
+		<meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)" />
+		<meta name="theme-color" content="#0d0d10" media="(prefers-color-scheme: dark)" />
+		<link rel="icon" href="../shared/favicon.png" type="image/png" />
+		<link rel="apple-touch-icon" href="../shared/favicon.png" />
+		<link rel="preconnect" href="https://fonts.googleapis.com" />
+		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+		<link
+			rel="stylesheet"
+			href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&display=swap"
+		/>
+		<link rel="stylesheet" href="../shared/tools.css" />
+		<style>
+			/* Revelar: a product page, laid out like the index (one column, statement, boards) rather than a tool. */
+			html,
+			body {
+				height: auto;
+			}
+			.site {
+				max-width: 1080px;
+				margin: 0 auto;
+				min-height: 100vh;
+				padding-block: 20px 28px;
+				display: flex;
+				flex-direction: column;
+			}
+			.site-head {
+				flex-direction: row;
+				align-items: center;
+				justify-content: space-between;
+				gap: 14px;
+				padding-bottom: 56px;
+			}
+			.site-head .mark svg {
+				width: auto;
+				height: 20px;
+			}
+			.site-head .mark h1 {
+				font-size: 17px;
+			}
+			.site-head .wordmark {
+				display: block;
+				color: var(--muted);
+				transition: color 0.15s;
+			}
+			.site-head .wordmark:hover {
+				color: var(--ink);
+			}
+			.site-head .wordmark svg {
+				display: block;
+				height: 16px;
+				width: auto;
+			}
+
+			.hero {
+				padding: 24px 0 136px;
+				display: flex;
+				flex-direction: column;
+				gap: 64px;
+			}
+			.hero .lead {
+				font-size: clamp(30px, 4.2vw, 46px);
+				line-height: 1.1;
+				letter-spacing: -0.03em;
+				max-width: 18em;
+			}
+			.hero .lead span {
+				margin-top: 0.7em;
+				font-size: 0.5em;
+				letter-spacing: -0.015em;
+				line-height: 1.45;
+				max-width: 34em;
+			}
+			.get {
+				display: flex;
+				flex-direction: column;
+				gap: 18px;
+				margin-top: 40px;
+				align-items: flex-start;
+			}
+			.site-foot .version {
+				font: 12px var(--f-mono);
+				color: var(--muted);
+				font-variant-numeric: tabular-nums;
+			}
+			.get .row {
+				display: flex;
+				gap: 8px;
+				flex-wrap: wrap;
+				align-items: center;
+			}
+			.btn {
+				text-decoration: none;
+				display: inline-flex;
+				align-items: center;
+				gap: 8px;
+			}
+			.btn.primary {
+				flex: none;
+			}
+			/* the result: a browser-sized shot of a finished site, framed like the canvas */
+			.result {
+				margin: 0;
+				border-radius: 16px;
+				overflow: hidden;
+				box-shadow:
+					0 0 0 1px var(--line),
+					0 24px 60px rgb(17 17 26 / 0.18);
+				background: var(--surface);
+			}
+			.result a {
+				display: block;
+				position: relative;
+				aspect-ratio: 1800 / 1125;
+				color: inherit;
+			}
+			/* facets of the finished site, stacked; the current one is opaque and the rest dissolve behind it */
+			.result picture {
+				position: absolute;
+				inset: 0;
+				opacity: 0;
+				transition: opacity 1.2s var(--ease);
+			}
+			.result picture.on {
+				opacity: 1;
+			}
+			.result img {
+				display: block;
+				width: 100%;
+				height: auto;
+			}
+			@media (prefers-reduced-motion: reduce) {
+				.result picture {
+					transition: none;
+				}
+			}
+
+			section {
+				padding-bottom: 136px;
+			}
+			section > h2 {
+				font: 500 22px/1.25 var(--f-body);
+				letter-spacing: -0.02em;
+				margin: 0 0 40px;
+				text-wrap: balance;
+			}
+			section > h2 span {
+				color: var(--muted);
+			}
+			.steps {
+				list-style: none;
+				margin: 0;
+				padding: 0;
+				display: grid;
+				grid-template-columns: repeat(3, minmax(0, 1fr));
+				gap: 32px 24px;
+				counter-reset: step;
+			}
+			.steps li {
+				display: flex;
+				flex-direction: column;
+				gap: 16px;
+			}
+			/* product-shot crop: the window's top-left corner, large, running off the right and bottom */
+			.steps .board {
+				aspect-ratio: 4 / 3;
+				overflow: hidden;
+				padding: 9% 0 0 8%;
+			}
+			.steps .board img {
+				display: block;
+				width: 200%;
+				max-width: none;
+				height: auto;
+				transform-origin: top left;
+				transition: transform 0.6s var(--ease);
+			}
+			.steps li:hover .board img {
+				transform: scale(1.02);
+			}
+			.steps strong {
+				display: flex;
+				align-items: baseline;
+				gap: 10px;
+				font: 500 15px/1.3 var(--f-body);
+			}
+			.steps strong::before {
+				counter-increment: step;
+				content: counter(step);
+				font: 500 12px var(--f-mono);
+				color: var(--muted);
+			}
+			.steps p {
+				margin: 0;
+				font-size: 13.5px;
+				color: var(--muted);
+				text-wrap: pretty;
+			}
+
+			.have {
+				list-style: none;
+				margin: 0;
+				padding: 0;
+				display: grid;
+				grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr));
+				gap: 28px 40px;
+			}
+			.have li {
+				display: grid;
+				grid-template-columns: 22px 1fr;
+				gap: 4px 14px;
+				font-size: 14px;
+				color: var(--muted);
+				text-wrap: pretty;
+			}
+			.have svg {
+				width: 22px;
+				height: 22px;
+				color: var(--ink);
+				grid-row: 1 / 3;
+				margin-top: 1px;
+			}
+			.have b {
+				font-weight: 500;
+				color: var(--ink);
+			}
+			.have span {
+				grid-column: 2;
+			}
+
+			.hosts {
+				list-style: none;
+				margin: 0;
+				padding: 0;
+				display: grid;
+				grid-template-columns: repeat(auto-fill, minmax(min(100%, 200px), 1fr));
+				gap: 16px;
+			}
+			.hosts li {
+				display: flex;
+				align-items: center;
+				gap: 12px;
+				padding: 18px 18px;
+				border-radius: 12px;
+				background: var(--surface);
+				font: 500 14px var(--f-body);
+			}
+			.hosts svg {
+				width: 22px;
+				height: 22px;
+				color: var(--ink);
+				flex: none;
+			}
+			.hosts small {
+				display: block;
+				font: 12.5px var(--f-body);
+				color: var(--muted);
+				font-weight: 400;
+			}
+			.hosts .own {
+				background: none;
+				box-shadow: inset 0 0 0 1.5px var(--line);
+			}
+			.hosts .own svg {
+				color: var(--muted);
+			}
+
+			.faq {
+				max-width: 680px;
+			}
+			details.q {
+				border-top: 1px solid var(--line);
+			}
+			details.q:last-child {
+				border-bottom: 1px solid var(--line);
+			}
+			details.q summary {
+				list-style: none;
+				cursor: pointer;
+				display: flex;
+				justify-content: space-between;
+				align-items: center;
+				gap: 16px;
+				padding: 14px 0;
+				font: 500 15px/1.4 var(--f-body);
+				color: var(--ink);
+			}
+			details.q summary::-webkit-details-marker {
+				display: none;
+			}
+			details.q summary::after {
+				content: '+';
+				font: 400 18px/1 var(--f-mono);
+				color: var(--muted);
+				flex: none;
+			}
+			details.q[open] summary::after {
+				content: '−';
+			}
+			details.q summary:focus-visible {
+				outline: 2px solid var(--accent);
+				outline-offset: 2px;
+				border-radius: 4px;
+			}
+			details.q p {
+				margin: 0 0 16px;
+				font-size: 14.5px;
+				color: var(--muted);
+				text-wrap: pretty;
+				max-width: 58ch;
+			}
+			details.q a {
+				color: inherit;
+			}
+			details.q a:hover {
+				color: var(--ink);
+			}
+			code {
+				font: 12.5px var(--f-mono);
+				background: var(--surface);
+				padding: 2px 6px;
+				border-radius: 6px;
+			}
+
+			.site-foot {
+				margin-top: auto;
+				padding-top: 56px;
+				display: flex;
+				justify-content: space-between;
+				gap: 16px;
+				flex-wrap: wrap;
+				font-size: 12.5px;
+				color: var(--muted);
+			}
+			.site-foot a {
+				color: inherit;
+				text-decoration: none;
+			}
+			.site-foot a:hover {
+				color: var(--ink);
+			}
+
+			@media (max-width: 860px) {
+				.steps {
+					grid-template-columns: minmax(0, 1fr);
+				}
+				.site-head {
+					padding-bottom: 40px;
+				}
+				.hero {
+					gap: 40px;
+					padding-bottom: 96px;
+				}
+				section {
+					padding-bottom: 96px;
+				}
+			}
+		</style>
+	</head>
+	<body>
+		<div class="site">
+			<header class="site-head">
+				<div class="mark">
+					<svg viewBox="0 0 466 288" aria-hidden="true">
+						<path
+							fill="currentColor"
+							fill-rule="evenodd"
+							d="M360 10.09V74c0 5.45 4.55 10 10 10h57.25c6.46 0 11.3 6.11 9.8 12.4l-15.2 63.84c-1.08 4.53-5.17 7.76-9.83 7.76h-27.85c-8.85 0-13.33 10.83-7.07 17.08l85.91 85.79c6.35 6.34 1.88 17.13-7.09 17.13H244.4c-2.7 0-5.29-1.06-7.21-2.97L137.07 185.04c-6.26-6.24-17.07-1.76-17.07 7.08v85.78c0 5.56-4.54 10.1-10.1 10.1H10.1C4.54 288 0 283.46 0 277.91v-99.82C0 172.54 4.54 168 10.09 168H350c5.45 0 10-4.55 10-10V94c0-5.45-4.55-10-10-10H10.09C4.54 84 0 79.46 0 73.91V10.09C0 4.54 4.54 0 10.09 0h339.82c5.55 0 10.09 4.54 10.09 10.09Z"
+						/>
+					</svg>
+					<h1>Revelar</h1>
+				</div>
+				<a class="wordmark" href="https://index84.com" aria-label="index84">
+					<svg viewBox="0 0 769 113" aria-hidden="true"><use href="#index84-wordmark" /></svg>
+				</a>
+			</header>
+
+			<main>
+				<section class="hero">
+					<div>
+						<p class="lead">
+							Share your photos as a website of your own, in minutes.
+							<span
+								>Drop a folder of photos into Revelar, make your changes, publish. Fast pages, your
+								domain, your rules. No account, nothing tracked.</span
+							>
+						</p>
+						<div class="get">
+							<div class="row">
+								<a
+									class="btn primary"
+									id="dl"
+									href="https://github.com/keoshi/revelar/releases/latest"
+									>Download for Mac</a
+								>
+								<a class="btn" href="https://revelar-app-vercel-test-alpha-1.vercel.app/"
+									>See a live gallery ↗</a
+								>
+							</div>
+						</div>
+					</div>
+					<figure class="result" id="facets">
+						<a
+							href="https://revelar-app-vercel-test-alpha-1.vercel.app/"
+							aria-label="Open the example site"
+						>
+							<picture class="on">
+								<source
+									srcset="img/gallery-dark.avif"
+									type="image/avif"
+									media="(prefers-color-scheme: dark)"
+								/>
+								<source
+									srcset="img/gallery-dark.webp"
+									type="image/webp"
+									media="(prefers-color-scheme: dark)"
+								/>
+								<source srcset="img/gallery-light.avif" type="image/avif" />
+								<img
+									src="img/gallery-light.webp"
+									width="1800"
+									height="1125"
+									alt="A site made with Revelar: an album page with a justified grid of photos, Play, Download album and Map"
+									fetchpriority="high"
+								/>
+							</picture>
+							<picture>
+								<source
+									srcset="img/viewer-dark.avif"
+									type="image/avif"
+									media="(prefers-color-scheme: dark)"
+								/>
+								<source
+									srcset="img/viewer-dark.webp"
+									type="image/webp"
+									media="(prefers-color-scheme: dark)"
+								/>
+								<source srcset="img/viewer-light.avif" type="image/avif" />
+								<img
+									src="img/viewer-light.webp"
+									width="1800"
+									height="1125"
+									alt="The same site with a photo open fullscreen, filmstrip along the bottom"
+									loading="lazy"
+								/>
+							</picture>
+							<picture>
+								<source
+									srcset="img/info-dark.avif"
+									type="image/avif"
+									media="(prefers-color-scheme: dark)"
+								/>
+								<source
+									srcset="img/info-dark.webp"
+									type="image/webp"
+									media="(prefers-color-scheme: dark)"
+								/>
+								<source srcset="img/info-light.avif" type="image/avif" />
+								<img
+									src="img/info-light.webp"
+									width="1800"
+									height="1125"
+									alt="The viewer with its info panel open: caption, date, camera and exposure"
+									loading="lazy"
+								/>
+							</picture>
+						</a>
+					</figure>
+				</section>
+
+				<section aria-labelledby="how">
+					<h2 id="how">Three steps. <span>Folders in, website out.</span></h2>
+					<ol class="steps">
+						<li>
+							<div class="board">
+								<picture
+									><source srcset="img/library.avif" type="image/avif" />
+									<img
+										src="img/library.webp"
+										width="1600"
+										height="1116"
+										alt="The library screen, with an album cover and the Preview site button"
+										loading="lazy"
+								/></picture>
+							</div>
+							<strong>Pick a folder</strong>
+							<p>
+								Choose an empty folder. Its name becomes the name of the site. Put folders of photos
+								inside it and each one becomes an album, cover and all.
+							</p>
+						</li>
+						<li>
+							<div class="board">
+								<picture
+									><source srcset="img/album-drag.avif" type="image/avif" />
+									<img
+										src="img/album-drag.webp"
+										width="1600"
+										height="1116"
+										alt="The album editor: a grid of photos with one being dragged into place, and title and caption fields beside it"
+										loading="lazy"
+								/></picture>
+							</div>
+							<strong>Make it yours</strong>
+							<p>
+								Drag photos into the order you want. Give them titles and captions, pick a cover,
+								hide the odd one. Then see the finished site right in the window.
+							</p>
+						</li>
+						<li>
+							<div class="board">
+								<picture
+									><source srcset="img/publish.avif" type="image/avif" />
+									<img
+										src="img/publish.webp"
+										width="1600"
+										height="1116"
+										alt="The publish screen, with four hosts to pick from"
+										loading="lazy"
+								/></picture>
+							</div>
+							<strong>Put it online</strong>
+							<p>
+								Pick a host, paste a token from your account, publish. Nothing leaves your computer
+								until then, and only the finished site does. Updates are one click.
+							</p>
+						</li>
+					</ol>
+				</section>
+
+				<section aria-labelledby="site">
+					<h2 id="site">
+						A site that feels good to look at. <span>And costs nothing to run.</span>
+					</h2>
+					<ul class="have">
+						<li>
+							<svg
+								viewBox="0 0 24 24"
+								fill="none"
+								stroke="currentColor"
+								stroke-width="1.6"
+								stroke-linecap="round"
+								stroke-linejoin="round"
+								aria-hidden="true"
+							>
+								<path d="M13 3 5 13h6l-1 8 8-10h-6z" /></svg
+							><b>Opens in a blink</b
+							><span
+								>Photos arrive sharp and fast on any connection, with a soft preview while each one
+								loads. Nobody waits on your site.</span
+							>
+						</li>
+						<li>
+							<svg
+								viewBox="0 0 24 24"
+								fill="none"
+								stroke="currentColor"
+								stroke-width="1.6"
+								stroke-linecap="round"
+								stroke-linejoin="round"
+								aria-hidden="true"
+							>
+								<path d="M4 9V4h5M15 4h5v5M20 15v5h-5M9 20H4v-5" /></svg
+							><b>Photos the way they deserve</b
+							><span
+								>Fullscreen, edge to edge. Swipe or use the arrow keys, play a slideshow, or open
+								the details: camera, exposure and place.</span
+							>
+						</li>
+						<li>
+							<svg
+								viewBox="0 0 24 24"
+								fill="none"
+								stroke="currentColor"
+								stroke-width="1.6"
+								stroke-linecap="round"
+								stroke-linejoin="round"
+								aria-hidden="true"
+							>
+								<path d="M12 21s-6-5.3-6-10a6 6 0 0 1 12 0c0 4.7-6 10-6 10z" />
+								<circle cx="12" cy="11" r="2.2" /></svg
+							><b>Show where you were</b
+							><span
+								>Photos with a location appear on a map, exact or softened to about a kilometre. Or
+								keep the map off.</span
+							>
+						</li>
+						<li>
+							<svg
+								viewBox="0 0 24 24"
+								fill="none"
+								stroke="currentColor"
+								stroke-width="1.6"
+								stroke-linecap="round"
+								stroke-linejoin="round"
+								aria-hidden="true"
+							>
+								<path d="M12 4v11M7 10l5 5 5-5M4 19h16" /></svg
+							><b>Let people keep a photo</b
+							><span
+								>Offer a large JPEG, the original file, or a zip of the whole album. Or offer
+								nothing. Your call, per album.</span
+							>
+						</li>
+						<li>
+							<svg
+								viewBox="0 0 24 24"
+								fill="none"
+								stroke="currentColor"
+								stroke-width="1.6"
+								stroke-linecap="round"
+								stroke-linejoin="round"
+								aria-hidden="true"
+							>
+								<rect x="5" y="10" width="14" height="10" rx="2" />
+								<path d="M8 10V7a4 4 0 0 1 8 0v3" /></svg
+							><b>Some albums, for some people</b
+							><span
+								>Give an album a password and only they can open it. The lock is in the files
+								themselves, so no server has to keep your secrets.</span
+							>
+						</li>
+						<li>
+							<svg
+								viewBox="0 0 24 24"
+								fill="none"
+								stroke="currentColor"
+								stroke-width="1.6"
+								stroke-linecap="round"
+								stroke-linejoin="round"
+								aria-hidden="true"
+							>
+								<circle cx="12" cy="12" r="8" />
+								<path d="M12 4a8 8 0 0 1 0 16z" fill="currentColor" stroke="none" /></svg
+							><b>Looks right day and night</b
+							><span
+								>The site follows each visitor's light or dark setting, in the accent colour you
+								choose.</span
+							>
+						</li>
+					</ul>
+				</section>
+
+				<section aria-labelledby="where">
+					<h2 id="where">
+						Put it anywhere.
+						<span
+							>Four hosts with free plans, one click each. Or any server that serves files.</span
+						>
+					</h2>
+					<ul class="hosts">
+						<li>
+							<svg viewBox="0 0 24 24" aria-hidden="true">
+								<path
+									fill="currentColor"
+									d="M6.49 19.04h-.23L5.13 17.9v-.23l1.73-1.71h1.2l.15.15v1.2L6.5 19.04ZM5.13 6.31V6.1l1.13-1.13h.23L8.2 6.68v1.2l-.15.15h-1.2L5.13 6.31Zm9.96 9.09h-1.65l-.14-.13v-3.83c0-.68-.27-1.2-1.1-1.23-.42 0-.9 0-1.43.02l-.07.08v4.96l-.14.14H8.9l-.13-.14V8.73l.13-.14h3.7a2.6 2.6 0 0 1 2.61 2.6v4.08l-.13.14Zm-8.37-2.44H.14L0 12.82v-1.64l.14-.14h6.58l.14.14v1.64l-.14.14Zm17.14 0h-6.58l-.14-.14v-1.64l.14-.14h6.58l.14.14v1.64l-.14.14ZM11.05 6.55V1.64l.14-.14h1.65l.14.14v4.9l-.14.14h-1.65l-.14-.13Zm0 15.81v-4.9l.14-.14h1.65l.14.13v4.91l-.14.14h-1.65l-.14-.14Z"
+								/></svg
+							><span>Netlify<small>netlify.app</small></span>
+						</li>
+						<li>
+							<svg viewBox="0 0 24 24" aria-hidden="true">
+								<path fill="currentColor" d="m12 1.608 12 20.784H0Z" /></svg
+							><span>Vercel<small>vercel.app</small></span>
+						</li>
+						<li>
+							<svg viewBox="0 0 24 24" aria-hidden="true">
+								<path
+									fill="currentColor"
+									d="M16.5088 16.8447c.1475-.5068.0908-.9707-.1553-1.3154-.2246-.3164-.6045-.499-1.0615-.5205l-8.6592-.1123a.1559.1559 0 0 1-.1333-.0713c-.0283-.042-.0351-.0986-.021-.1553.0278-.084.1123-.1484.2036-.1562l8.7359-.1123c1.0351-.0489 2.1601-.8868 2.5537-1.9136l.499-1.3013c.0215-.0561.0293-.1128.0147-.168-.5625-2.5463-2.835-4.4453-5.5499-4.4453-2.5039 0-4.6284 1.6177-5.3876 3.8614-.4927-.3658-1.1187-.5625-1.794-.499-1.2026.119-2.1665 1.083-2.2861 2.2856-.0283.31-.0069.6128.0635.894C1.5683 13.171 0 14.7754 0 16.752c0 .1748.0142.3515.0352.5273.0141.083.0844.1475.1689.1475h15.9814c.0909 0 .1758-.0645.2032-.1553l.12-.4268zm2.7568-5.5634c-.0771 0-.1611 0-.2383.0112-.0566 0-.1054.0415-.127.0976l-.3378 1.1744c-.1475.5068-.0918.9707.1543 1.3164.2256.3164.6055.498 1.0625.5195l1.8437.1133c.0557 0 .1055.0263.1329.0703.0283.043.0351.1074.0214.1562-.0283.084-.1132.1485-.204.1553l-1.921.1123c-1.041.0488-2.1582.8867-2.5527 1.914l-.1406.3585c-.0283.0713.0215.1416.0986.1416h6.5977c.0771 0 .1474-.0489.169-.126.1122-.4082.1757-.837.1757-1.2803 0-2.6025-2.125-4.727-4.7344-4.727"
+								/></svg
+							><span>Cloudflare Pages<small>pages.dev</small></span>
+						</li>
+						<li>
+							<svg viewBox="0 0 24 24" aria-hidden="true">
+								<path
+									fill="currentColor"
+									d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"
+								/></svg
+							><span>GitHub Pages<small>github.io</small></span>
+						</li>
+						<li class="own">
+							<svg
+								viewBox="0 0 24 24"
+								fill="none"
+								stroke="currentColor"
+								stroke-width="1.6"
+								stroke-linecap="round"
+								stroke-linejoin="round"
+								aria-hidden="true"
+							>
+								<rect x="3" y="5" width="18" height="6" rx="1.5" />
+								<rect x="3" y="13" width="18" height="6" rx="1.5" />
+								<path d="M7 8h.01M7 16h.01" /></svg
+							><span>Your own server<small>upload the folder</small></span>
+						</li>
+					</ul>
+				</section>
+
+				<section aria-labelledby="answers">
+					<h2 id="answers">Questions</h2>
+					<div class="faq">
+						<details class="q">
+							<summary>Is it free?</summary>
+							<p>
+								Yes. The app and its code are open source under the MIT licence. The hosts have free
+								plans that fit a photo site comfortably.
+							</p>
+						</details>
+						<details class="q">
+							<summary>Where do my photos go?</summary>
+							<p>
+								Nowhere, until you publish. Revelar works in the folder on your Mac. When you
+								publish, only the finished site goes to the host you picked; the tokens for your
+								hosts live in the macOS Keychain.
+							</p>
+						</details>
+						<details class="q">
+							<summary>Can I use my own domain?</summary>
+							<p>Yes. Set the address in site settings and point the domain at your host.</p>
+						</details>
+						<details class="q">
+							<summary>Which Macs does it run on?</summary>
+							<p>
+								Any Mac on macOS 13 or newer. The download button picks the build for your Mac;
+								there is one for
+								<a id="dl-arm64" href="https://github.com/keoshi/revelar/releases/latest"
+									>Macs with Apple chips</a
+								>
+								(M1 and later) and one for
+								<a id="dl-x64" href="https://github.com/keoshi/revelar/releases/latest"
+									>Intel Macs</a
+								>, both signed and notarized. Windows and Linux are not there yet.
+							</p>
+						</details>
+						<details class="q">
+							<summary>Where do my edits go?</summary>
+							<p>
+								Into the folder, as small text files next to the photos. Move the folder, back it
+								up, or edit it by hand.
+							</p>
+						</details>
+						<details class="q">
+							<summary>How fast is it, really?</summary>
+							<p>
+								Fast. Every page is plain HTML, built ahead of time with SvelteKit, so no server
+								does any work when someone visits. Photos are resized to several sizes and encoded
+								as AVIF and WebP, and an album page loads only small versions until you open one, so
+								even a big album stays light. Hosts serve it from locations near your visitors.
+							</p>
+						</details>
+						<details class="q">
+							<summary>How do updates work?</summary>
+							<p>The app checks the releases on GitHub and installs the next version on its own.</p>
+						</details>
+						<details class="q">
+							<summary>I prefer a terminal.</summary>
+							<p>
+								The same engine is on npm: <code>npm install @index84/revelar</code>, then
+								<code>npx revelar init</code> and <code>npx revelar build</code> in a folder of
+								photos. A site folder works with both the app and the command line. Details in the
+								<a href="https://github.com/keoshi/revelar#readme">repository ↗</a>.
+							</p>
+						</details>
+					</div>
+				</section>
+			</main>
+
+			<footer class="site-foot">
+				<span
+					>By <a href="https://keoshi.com">Filipe Varela</a> ·
+					<a href="../">More index84 tools</a></span
+				>
+				<span
+					><span class="version" id="version"></span
+					><a href="https://github.com/keoshi/revelar">Open source on GitHub ↗</a> ·
+					<a href="https://index84.com">index84.com ↗</a></span
+				>
+			</footer>
+		</div>
+		<svg width="0" height="0" style="position: absolute" aria-hidden="true">
+			<defs>
+				<symbol id="index84-wordmark" viewBox="0 0 769 113">
+					<path
+						d="M754.115 112C748.355 112 747.715 111.36 747.715 105.6V93.6C747.715 87.84 747.075 87.2 741.315 87.2H675.715C669.955 87.2 669.315 86.56 669.315 80.8V80.16C669.315 74.4 669.635 73.28 673.155 68.64L720.195 5.12C723.715 0.480005 724.675 0 730.435 0H762.115C767.875 0 768.515 0.639999 768.515 6.4V64C768.515 69.76 767.875 70.4 762.115 70.4H754.115C748.355 70.4 747.715 71.04 747.715 76.8V80.8C747.715 86.56 748.355 87.2 754.115 87.2H762.115C767.875 87.2 768.515 87.84 768.515 93.6V105.6C768.515 111.36 767.875 112 762.115 112H754.115ZM697.155 69.28C696.515 70.24 696.675 70.56 697.795 70.56H741.315C747.075 70.56 747.715 69.92 747.715 64.16V4.8C747.715 3.68 747.235 3.2 746.115 3.2C744.995 3.2 744.195 3.52 743.555 4.48L697.155 69.28Z"
+						fill="currentColor"
+					/>
+					<path
+						d="M568.472 112C554.232 112 547.672 105.44 547.672 91.2V72C547.672 66.24 548.312 65.6 554.072 65.6H562.072C567.832 65.6 568.472 64.96 568.472 59.2V52.8C568.472 47.04 567.832 46.4 562.072 46.4H554.072C548.312 46.4 547.672 45.76 547.672 40V35.2C547.672 29.44 548.152 28.32 552.152 24.32L571.992 4.48C575.992 0.480003 577.112 0 582.872 0H629.272C643.512 0 650.072 6.56 650.072 20.8V40C650.072 45.76 649.432 46.4 643.672 46.4H635.672C629.912 46.4 629.272 47.04 629.272 52.8V59.2C629.272 64.96 629.912 65.6 635.672 65.6H643.672C649.432 65.6 650.072 66.24 650.072 72V76.8C650.072 82.56 649.592 83.68 645.592 87.68L625.752 107.52C621.752 111.52 620.632 112 614.872 112H568.472ZM568.472 86.4C568.472 92.16 569.112 92.8 574.872 92.8H622.872C628.632 92.8 629.272 92.16 629.272 86.4V72C629.272 66.24 628.632 65.6 622.872 65.6H574.872C569.112 65.6 568.472 66.24 568.472 72V86.4ZM568.472 40C568.472 45.76 569.112 46.4 574.872 46.4H622.872C628.632 46.4 629.272 45.76 629.272 40V25.6C629.272 19.84 628.632 19.2 622.872 19.2H574.872C569.112 19.2 568.472 19.84 568.472 25.6V40Z"
+						fill="currentColor"
+					/>
+					<path
+						d="M435.273 112C429.513 112 429.193 111.52 432.233 106.56L444.233 86.24C447.273 81.28 448.233 80.8 453.993 80.8H461.993C467.753 80.8 468.393 80.16 468.393 74.4V68C468.393 62.24 467.753 61.6 461.993 61.6H453.993C448.233 61.6 447.273 60.96 444.553 56L435.113 37.6C432.393 32.64 432.713 32 438.473 32H448.873C454.633 32 455.593 32.64 457.833 37.92L465.833 55.68C468.073 60.96 469.033 61.6 474.793 61.6H482.793C488.553 61.6 489.513 60.96 491.753 55.68L499.753 37.92C501.993 32.64 502.953 32 508.713 32H519.113C524.873 32 525.193 32.64 522.473 37.6L513.033 56C510.313 60.96 509.353 61.6 503.593 61.6H495.593C489.833 61.6 489.193 62.24 489.193 68C489.193 80.1043 486.603 80.8 474.793 80.8C469.033 80.8 468.073 81.44 465.353 86.4L455.113 106.4C452.393 111.36 451.433 112 445.673 112H435.273Z"
+						fill="currentColor"
+					/>
+					<path
+						d="M500.622 81H492.622C487.529 81 487.029 81.7002 489.262 86.6L499.502 106.6C502.222 111.56 503.182 112.2 508.942 112.2H519.342C525.102 112.2 525.422 111.72 522.382 106.76L510.382 86.44C507.342 81.48 506.382 81 500.622 81Z"
+						fill="currentColor"
+					/>
+					<path
+						d="M404.763 32C413.083 32 417.563 36.48 417.563 44.8C417.563 50.56 417.403 51.84 415.483 57.28L411.643 68.32C409.723 73.76 408.923 74.4 403.163 74.4C397.403 74.4 396.763 73.76 396.763 68V57.6C396.763 51.84 396.123 51.2 390.363 51.2H350.363C344.603 51.2 343.963 51.84 343.963 57.6V86.4C343.963 92.16 344.603 92.8 350.363 92.8H390.363C396.123 92.8 396.763 93.44 396.763 99.2V105.6C396.763 111.36 396.123 112 390.363 112H343.963C329.723 112 323.163 105.44 323.163 91.2V57.6C323.163 51.84 323.803 51.2 329.563 51.2H337.563C343.323 51.2 343.963 50.56 343.963 44.8V38.4C343.963 32.64 344.603 32 350.363 32H404.763Z"
+						fill="currentColor"
+					/>
+					<path
+						d="M244.769 112C239.009 112 237.889 111.52 233.889 107.52L214.049 87.68C210.049 83.68 209.569 82.56 209.569 76.8V58C209.569 52.24 210.209 51.6 215.969 51.6H223.969C229.729 51.6 230.369 52.24 230.369 58V86.4C230.369 92.16 231.009 92.8 236.769 92.8H276.769C282.529 92.8 283.169 92.16 283.169 86.4V6.4C283.169 0.639999 283.809 0 289.569 0H297.569C303.329 0 303.969 0.639999 303.969 6.4V86.4C303.969 92.16 303.329 92.8 297.569 92.8H289.569C283.809 92.8 283.169 93.44 283.169 99.2V105.6C283.169 111.36 282.529 112 276.769 112H244.769Z"
+						fill="currentColor"
+					/>
+					<path
+						d="M257.172 32H242.672L234.672 51.2H257.172C262.672 51.2 263.572 50.5 263.572 44.8V38.4C263.572 32.64 262.932 32 257.172 32Z"
+						fill="currentColor"
+					/>
+					<path
+						d="M236.772 51.2H247.672V32H236.772C231.012 32 230.372 32.64 230.372 38.4V44.8C230.372 50.56 229.732 51.2 223.972 51.2H215.972C210.212 51.2 209.572 51.84 209.572 57.6H230.372C230.372 51.84 231.012 51.2 236.772 51.2Z"
+						fill="currentColor"
+					/>
+					<path
+						d="M102.375 112C96.6151 112 95.9751 111.36 95.9751 105.6V67.2C95.9751 61.44 96.4551 60.32 100.455 56.32L120.295 36.48C124.295 32.48 125.415 32 131.175 32H163.175C168.935 32 169.575 32.64 169.575 38.4V44.8C169.575 50.56 170.215 51.2 175.975 51.2H183.975C189.735 51.2 190.375 51.84 190.375 57.6V105.6C190.375 111.36 189.735 112 183.975 112H175.975C170.215 112 169.575 111.36 169.575 105.6V57.6C169.575 51.84 168.935 51.2 163.175 51.2H123.175C117.415 51.2 116.775 51.84 116.775 57.6V105.6C116.775 111.36 116.135 112 110.375 112H102.375Z"
+						fill="currentColor"
+					/>
+					<path
+						d="M6.4 112C0.64 112 0 111.36 0 105.6V99.2C0 93.44 0.64 92.8 6.4 92.8H22.4C28.16 92.8 28.8 92.16 28.8 86.4V57.6C28.8 51.84 28.16 51.2 22.4 51.2H6.4C0.64 51.2 0 50.56 0 44.8V38.4C0 32.64 0.64 32 6.4 32H14.4C20.16 32 21.28 32.48 25.28 36.48L45.12 56.32C49.12 60.32 49.6 61.44 49.6 67.2V86.4C49.6 92.16 50.24 92.8 56 92.8H72C77.76 92.8 78.4 93.44 78.4 99.2V105.6C78.4 111.36 77.76 112 72 112H6.4ZM25.6 12.8V6.4C25.6 0.639999 26.24 0 32 0H46.4C52.16 0 52.8 0.639999 52.8 6.4V12.8C52.8 18.56 52.16 19.2 46.4 19.2H32C26.24 19.2 25.6 18.56 25.6 12.8Z"
+						fill="currentColor"
+					/>
+				</symbol>
+			</defs>
+		</svg>
+
+		<script>
+			// The hero dissolves between facets of the finished site every few seconds, unless the visitor
+			// asked for reduced motion or the tab is hidden.
+			(() => {
+				const facets = [...document.querySelectorAll('#facets picture')];
+				if (facets.length < 2 || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+				let i = 0;
+				setInterval(() => {
+					if (document.hidden) return;
+					facets[i].classList.remove('on');
+					i = (i + 1) % facets.length;
+					facets[i].classList.add('on');
+				}, 4500);
+			})();
+			// One download button for the visitor's kind of Mac. Browsers hide the chip on purpose, but
+			// Chromium's client hints say "arm" or "x86", and the WebGL renderer names Apple M-series or
+			// Intel/AMD graphics on most Macs. Safari masks both, so the fallback is Apple Silicon (every
+			// Mac sold since 2020) with a one-click switch. The links come from the latest GitHub release
+			// and already point at the releases page, so nothing breaks if that request fails.
+			(async () => {
+				const WORDS = { arm64: 'For Macs with Apple chips, M1 and later', x64: 'For Intel Macs' };
+				const links = {
+					arm64: 'https://github.com/keoshi/revelar/releases/latest',
+					x64: 'https://github.com/keoshi/revelar/releases/latest'
+				};
+				const titles = { arm64: '', x64: '' };
+				const btn = document.getElementById('dl');
+				let arch = 'arm64';
+				const show = () => {
+					btn.href = links[arch];
+					btn.title = `${WORDS[arch]}${titles[arch] ? ` · ${titles[arch]}` : ''}`;
+					for (const a of ['arm64', 'x64']) document.getElementById(`dl-${a}`).href = links[a];
+				};
+
+				const detect = async () => {
+					try {
+						const hints = navigator.userAgentData;
+						if (hints?.getHighEntropyValues) {
+							const { architecture } = await hints.getHighEntropyValues(['architecture']);
+							if (architecture === 'arm') return 'arm64';
+							if (architecture === 'x86') return 'x64';
+						}
+					} catch {
+						/* no hints */
+					}
+					try {
+						const gl = document.createElement('canvas').getContext('webgl');
+						const ext = gl?.getExtension('WEBGL_debug_renderer_info');
+						const renderer = ext ? String(gl.getParameter(ext.UNMASKED_RENDERER_WEBGL)) : '';
+						if (/Apple M\d/i.test(renderer)) return 'arm64';
+						if (/Intel|AMD|Radeon|NVIDIA/i.test(renderer)) return 'x64';
+					} catch {
+						/* no WebGL */
+					}
+					return 'arm64';
+				};
+				arch = await detect();
+				show();
+
+				try {
+					const r = await fetch('https://api.github.com/repos/keoshi/revelar/releases/latest', {
+						headers: { Accept: 'application/vnd.github+json' }
+					});
+					if (!r.ok) return;
+					const rel = await r.json();
+					const mb = (b) => Math.round(b / 1048576);
+					for (const a of ['arm64', 'x64']) {
+						const asset = rel.assets.find(
+							(x) => x.name.includes(`darwin-${a}`) && x.name.endsWith('.zip')
+						);
+						if (!asset) continue;
+						links[a] = asset.browser_download_url;
+						titles[a] = `${asset.name}, ${mb(asset.size)} MB`;
+					}
+					show();
+					const v = String(rel.tag_name).replace(/^v/, '');
+					document.getElementById('version').textContent = `${v} · `;
+				} catch {
+					/* offline or rate-limited: the button still leads to the releases page */
+				}
+			})();
+		</script>
+	</body>
+</html>

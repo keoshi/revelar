@@ -1,0 +1,21 @@
+# The marketing page (www/) is served by tools.index84.com, whose Vercel project fetches it at
+# build time. A push that touches www/ asks that project to rebuild through a deploy hook
+# (Vercel → index84-tools → Settings → Git → Deploy Hooks; store the URL as the repository
+# secret VERCEL_TOOLS_DEPLOY_HOOK). Without the secret the job does nothing.
+name: Marketing page
+
+on:
+  push:
+    branches: [main]
+    paths: ['www/**']
+
+jobs:
+  redeploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ask tools.index84.com to rebuild
+        env:
+          HOOK: ${{ secrets.VERCEL_TOOLS_DEPLOY_HOOK }}
+        run: |
+          if [ -z "$HOOK" ]; then echo "No deploy hook configured; skipping"; exit 0; fi
+          curl -fsS -X POST "$HOOK" > /dev/null && echo "Rebuild requested"

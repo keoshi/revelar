@@ -3,10 +3,11 @@
 // with macOS's own `screencapture`, so the terminal running this needs Screen Recording
 // permission (System Settings → Privacy & Security → Screen & System Audio Recording).
 //
-//   node app/scripts/screenshots.mjs <site folder> <out folder> [--app <Revelar.app>] [--theme dark|light] [--readme]
+//   node app/scripts/screenshots.mjs <site folder> <out folder> [--app <Revelar.app>] [--theme dark|light] [--readme] [--www]
 //
 // Without --app the development build runs (npm run build -w app first). --readme also writes
-// 1600 px wide JPEGs on white into docs/screenshots/ for the README. The site is used as is;
+// 1600 px wide JPEGs on white into docs/screenshots/ for the README; --www writes the trimmed
+// WebP and AVIF versions the marketing page uses into www/img/. The site is used as is;
 // pick one with real photos for the marketing shots. Output: <out>/<screen>.png, 2× on Retina,
 // transparent around the window's shadow.
 import { _electron as electron } from 'playwright';
@@ -150,6 +151,35 @@ try {
 } finally {
 	await electronApp.close();
 	for (const [file, content] of sidecars) writeFileSync(file, content);
+}
+
+// Marketing page copies: trimmed to the shadow, 1600 px wide, WebP and AVIF with transparency.
+if (args.includes('--www')) {
+	const www = join(app, '..', 'www', 'img');
+	for (const file of shots) {
+		const name = file.split('/').pop().replace('.png', '');
+		if (!['welcome', 'library', 'album-drag', 'publish', 'preview', 'settings'].includes(name))
+			continue;
+		const trimmed = await sharp(file)
+			.trim({ threshold: 1 })
+			.extend({
+				top: 24,
+				bottom: 48,
+				left: 40,
+				right: 40,
+				background: { r: 0, g: 0, b: 0, alpha: 0 }
+			})
+			.toBuffer();
+		await sharp(trimmed)
+			.resize({ width: 1600 })
+			.webp({ quality: 82, alphaQuality: 90 })
+			.toFile(join(www, `${name}.webp`));
+		await sharp(trimmed)
+			.resize({ width: 1600 })
+			.avif({ quality: 60 })
+			.toFile(join(www, `${name}.avif`));
+		console.log('www', name);
+	}
 }
 
 // README copies: flattened on white, 1600 px wide, as JPEG.

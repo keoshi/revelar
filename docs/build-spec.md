@@ -1,3 +1,5 @@
+> The original build specification, kept as the design record. It was written before the first line of code; the "As built" notes and the deviations table say where the result differs and why. The README is the current reference for how Revelar works.
+
 # Revelar — build spec
 
 Oct 13, 2026 · @Filipe Varela

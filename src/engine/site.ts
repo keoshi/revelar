@@ -23,8 +23,8 @@ import type { AlbumSummary, Manifest, Photo } from '../lib/types.ts';
 import type { RevelarConfig, RevelarConfigInput } from '../lib/config.ts';
 import { expandSources } from '../lib/utils/sources.ts';
 
-export const CONFIG_TEMPLATE = (input: RevelarConfigInput) =>
-	`import { defineConfig } from '@index84/revelar/config';
+export const CONFIG_TEMPLATE = (input: RevelarConfigInput, from = '@index84/revelar/config') =>
+	`import { defineConfig } from '${from}';
 
 export default defineConfig(${JSON.stringify(input, null, '\t').replace(/"([a-zA-Z_][a-zA-Z0-9_]*)":/g, '$1:')});
 `;
@@ -86,8 +86,16 @@ export function isSite(root: string): boolean {
 }
 
 /** Rewrites revelar.config.ts from a plain object (comments in a hand-written file are lost). */
+/**
+ * Writes the config, keeping the module it already imports `defineConfig` from: an older app
+ * only resolves 'revelar/config', so rewriting that would leave the site unopenable there.
+ */
 export function saveConfig(root: string, input: RevelarConfigInput): void {
-	writeFileSync(join(root, 'revelar.config.ts'), CONFIG_TEMPLATE(input));
+	const path = join(root, 'revelar.config.ts');
+	const from = existsSync(path)
+		? /from\s+['"]([^'"]+)['"]/.exec(readFileSync(path, 'utf8'))?.[1]
+		: undefined;
+	writeFileSync(path, CONFIG_TEMPLATE(input, from));
 }
 
 export async function readConfig(root: string): Promise<RevelarConfig> {

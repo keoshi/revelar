@@ -6,6 +6,7 @@
  *   → { id, method, params }      ← { id, result } | { id, error }
  *                                 ← { event, data }   (progress, logs)
  */
+import { existsSync } from 'node:fs';
 import { resolve } from 'node:path';
 import chokidar, { type FSWatcher } from 'chokidar';
 import { runIngest, type IngestEvent } from './ingest.ts';
@@ -21,7 +22,13 @@ import {
 	saveAlbum,
 	saveConfig
 } from './site.ts';
-import { publishSite, type PublishEvent, type PublishTarget } from './publish.ts';
+import {
+	exportSite,
+	publishSite,
+	zipDirectory,
+	type PublishEvent,
+	type PublishTarget
+} from './publish.ts';
 import type { RevelarConfigInput } from '../lib/config.ts';
 
 type Request = { id: number; method: string; params?: Record<string, unknown> };
@@ -171,6 +178,21 @@ export function startHost(): void {
 				onEvent: (e: PublishEvent) => emit('publish', e),
 				onIngest: (e: IngestEvent) => emit('ingest', e)
 			});
+		},
+		// A server of the owner's own: build for that address, then optionally zip the build.
+		async export(p) {
+			return exportSite({
+				root: rootOf(p),
+				baseUrl: str(p.baseUrl, 'baseUrl'),
+				onEvent: (e: PublishEvent) => emit('publish', e),
+				onIngest: (e: IngestEvent) => emit('ingest', e)
+			});
+		},
+		async 'export.zip'(p) {
+			const dir = resolve(rootOf(p), 'build');
+			if (!existsSync(dir)) throw new Error('Build the site first');
+			const out = resolve(str(p.out, 'out'));
+			return { path: await zipDirectory(dir, (e) => emit('publish', e), out) };
 		}
 	};
 

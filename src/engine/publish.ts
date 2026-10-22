@@ -7,6 +7,7 @@
  * `publishSite` wraps a provider with the site address: when `site.baseUrl` is still the
  * placeholder or a host-given address, it is set to where the site will live before the build,
  * and corrected (with one more build and upload) if the host hands back a different one.
+ * `exportSite` is the same without a host: the built folder (or a zip of it) to upload anywhere.
  */
 import { createHash } from 'node:crypto';
 import { createWriteStream, readdirSync, readFileSync, statSync } from 'node:fs';
@@ -244,6 +245,66 @@ export async function publishSite(opts: PublishSiteOptions): Promise<PublishSite
 	return { ...result, baseUrl: config.site.baseUrl, baseUrlChanged: changed };
 }
 
+export type ExportSiteOptions = {
+	/** the site folder */
+	root: string;
+	/** where the owner will upload the site; becomes `site.baseUrl` */
+	baseUrl: string;
+	onEvent?: (e: PublishEvent) => void;
+	onIngest?: (e: IngestEvent) => void;
+};
+
+export type ExportSiteResult = {
+	/** the built site, ready to upload as is */
+	dir: string;
+	files: number;
+	bytes: number;
+	baseUrl: string;
+	baseUrlChanged: boolean;
+};
+
+/**
+ * Processes and builds a site for a server of the owner's own: no host, no token. The address
+ * matters as much as with a host (shared links, the sitemap and feeds use it, and a path such as
+ * `/photos` makes every page work from that subfolder), so it is written into the config first.
+ */
+export async function exportSite(opts: ExportSiteOptions): Promise<ExportSiteResult> {
+	const emit = opts.onEvent ?? (() => {});
+	const { root } = opts;
+	let url: URL;
+	try {
+		url = new URL(opts.baseUrl.trim());
+	} catch {
+		throw new Error(`Not a web address: ${opts.baseUrl}`);
+	}
+	if (url.protocol !== 'https:' && url.protocol !== 'http:')
+		throw new Error(`Not a web address: ${opts.baseUrl}`);
+	if (url.hostname === 'photos.example.com')
+		throw new Error('Enter the address the site will live at');
+	const baseUrl = url.href.replace(/\/+$/, '');
+
+	let config = await readConfig(root);
+	let changed = false;
+	if (normaliseUrl(baseUrl) !== normaliseUrl(config.site.baseUrl)) {
+		config = await patchConfig(root, { site: { baseUrl } });
+		changed = true;
+	}
+	emit({ type: 'status', message: 'Processing photos' });
+	await runIngest({ root, quiet: true, onEvent: opts.onIngest });
+	emit({ type: 'status', message: 'Building the site' });
+	await buildSite({ root, logLevel: 'warn' });
+
+	const dir = resolve(root, 'build');
+	const files = listFiles(dir);
+	return {
+		dir,
+		files: files.length,
+		bytes: files.reduce((sum, f) => sum + f.size, 0),
+		baseUrl: config.site.baseUrl,
+		baseUrlChanged: changed
+	};
+}
+
 /** Where the site will be once published, when that can be known up front. */
 async function expectedUrl(opts: PublishSiteOptions): Promise<string | undefined> {
 	if (opts.target === 'netlify' && opts.siteId) {
@@ -263,10 +324,16 @@ async function expectedUrl(opts: PublishSiteOptions): Promise<string | undefined
 
 const NETLIFY = 'https://api.netlify.com/api/v1';
 
-/** Zips `dir` (store-only for already-compressed media, deflate for the rest) into a temp file. */
-export async function zipDirectory(dir: string, onEvent?: Emit): Promise<string> {
+/**
+ * Zips `dir` (store-only for already-compressed media, deflate for the rest) into `out`, a temp
+ * file by default.
+ */
+export async function zipDirectory(
+	dir: string,
+	onEvent?: Emit,
+	out = join(tmpdir(), `revelar-deploy-${Date.now()}.zip`)
+): Promise<string> {
 	const files = listFiles(dir);
-	const out = join(tmpdir(), `revelar-deploy-${Date.now()}.zip`);
 	const zip = new yazl.ZipFile();
 	const stream = createWriteStream(out);
 	const finished = new Promise<void>((resolve, reject) => {

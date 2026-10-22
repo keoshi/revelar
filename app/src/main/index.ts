@@ -18,7 +18,7 @@ import {
 	utilityProcess
 } from 'electron';
 import { createRequire } from 'node:module';
-import { dirname, join, resolve, sep } from 'node:path';
+import { basename, dirname, join, resolve, sep } from 'node:path';
 import { existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
 import { pathToFileURL } from 'node:url';
 import { updateElectronApp, UpdateSourceType } from 'update-electron-app';
@@ -276,6 +276,25 @@ app.whenReady().then(() => {
 			properties: ['openDirectory', 'createDirectory']
 		});
 		return result.canceled ? undefined : result.filePaths[0];
+	});
+	// The built site for a server of the owner's own: shown in Finder or saved as a zip. Paths come
+	// from here, never from the renderer.
+	ipcMain.handle('site.showBuild', async () => {
+		const dir = siteRoot && join(siteRoot, 'build');
+		if (!dir || !existsSync(dir)) throw new Error('Build the site first');
+		const error = await shell.openPath(dir);
+		if (error) throw new Error(error);
+	});
+	ipcMain.handle('site.saveZip', async () => {
+		if (!siteRoot) throw new Error('No site open');
+		const result = await dialog.showSaveDialog(win!, {
+			title: 'Save the site as a zip',
+			defaultPath: join(app.getPath('downloads'), `${basename(siteRoot)}.zip`),
+			filters: [{ name: 'Zip archive', extensions: ['zip'] }]
+		});
+		if (result.canceled || !result.filePath) return undefined;
+		await call('export.zip', { root: siteRoot, out: result.filePath });
+		return result.filePath;
 	});
 	ipcMain.handle('settings.get', () => readSettings());
 	ipcMain.handle('settings.set', (_e, patch: Partial<Settings>) => {

@@ -129,6 +129,15 @@ try {
 	await win.waitForTimeout(400);
 	await shot('publish');
 
+	// Your own server, after the site folder has been made (this builds the site).
+	await win.getByRole('radio', { name: 'Your own server' }).click();
+	await win.locator('#own-url').fill('https://dev.keoshi.com/revelar');
+	await win.getByRole('button', { name: 'Make the site folder' }).click();
+	await win.getByRole('button', { name: 'Show in Finder' }).waitFor({ timeout: 300000 });
+	await win.locator('#own-url').blur();
+	await win.waitForTimeout(400);
+	await shot('publish-own');
+
 	await win.locator('.trigger').click();
 	await win.waitForTimeout(300);
 	await shot('site-menu');
@@ -158,7 +167,17 @@ if (args.includes('--www')) {
 	const www = join(app, '..', 'www', 'img');
 	for (const file of shots) {
 		const name = file.split('/').pop().replace('.png', '');
-		if (!['welcome', 'library', 'album-drag', 'publish', 'preview', 'settings'].includes(name))
+		if (
+			![
+				'welcome',
+				'library',
+				'album-drag',
+				'publish',
+				'publish-own',
+				'preview',
+				'settings'
+			].includes(name)
+		)
 			continue;
 		const trimmed = await sharp(file)
 			.trim({ threshold: 1 })

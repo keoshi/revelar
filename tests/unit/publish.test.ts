@@ -1,5 +1,15 @@
 import { describe, expect, it } from 'vitest';
-import { cloudflareHash, gitBlobSha, isManagedUrl, predictUrl } from '../../src/engine/publish.ts';
+import { existsSync, mkdirSync, mkdtempSync, statSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import {
+	cloudflareHash,
+	exportSite,
+	gitBlobSha,
+	isManagedUrl,
+	predictUrl,
+	zipDirectory
+} from '../../src/engine/publish.ts';
 import { titleFromPath } from '../../src/engine/site.ts';
 
 describe('predictUrl', () => {
@@ -29,6 +39,30 @@ describe('isManagedUrl', () => {
 	it('leaves a custom domain alone', () => {
 		expect(isManagedUrl('https://photos.ana.pt')).toBe(false);
 		expect(isManagedUrl('https://dev.keoshi.com/revelar')).toBe(false);
+	});
+});
+
+describe('exportSite', () => {
+	it('refuses an address that is not one the site can live at', async () => {
+		const root = mkdtempSync(join(tmpdir(), 'revelar-export-'));
+		await expect(exportSite({ root, baseUrl: 'photos' })).rejects.toThrow('Not a web address');
+		await expect(exportSite({ root, baseUrl: 'ftp://ana.pt' })).rejects.toThrow(
+			'Not a web address'
+		);
+		await expect(exportSite({ root, baseUrl: 'https://photos.example.com' })).rejects.toThrow(
+			'Enter the address'
+		);
+	});
+});
+
+describe('zipDirectory', () => {
+	it('writes to the path it is given', async () => {
+		const dir = mkdtempSync(join(tmpdir(), 'revelar-zip-'));
+		mkdirSync(join(dir, 'site'));
+		writeFileSync(join(dir, 'site', 'index.html'), '<!doctype html>');
+		const out = join(dir, 'site.zip');
+		expect(await zipDirectory(join(dir, 'site'), undefined, out)).toBe(out);
+		expect(existsSync(out) && statSync(out).size).toBeGreaterThan(0);
 	});
 });
 

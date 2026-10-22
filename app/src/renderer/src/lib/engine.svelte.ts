@@ -6,7 +6,8 @@ import type {
 	IngestEvent,
 	PublishEvent,
 	PublishSiteResult,
-	PublishTarget
+	PublishTarget,
+	ExportSiteResult
 } from '@index84/revelar';
 
 export type SiteState = { root: string; config: RevelarConfig; albums: AlbumListing[] };
@@ -45,7 +46,10 @@ export const engine = {
 	publish: (
 		root: string,
 		opts: { target: PublishTarget; token: string; name?: string; account?: string; siteId?: string }
-	) => bridge().call<PublishSiteResult>('publish', { root, ...opts })
+	) => bridge().call<PublishSiteResult>('publish', { root, ...opts }),
+	/** Processes and builds the site for a server of the owner's own, at `baseUrl`. */
+	export: (root: string, baseUrl: string) =>
+		bridge().call<ExportSiteResult>('export', { root, baseUrl })
 };
 
 /** Live progress of the running ingest / publish, for the status bar. */

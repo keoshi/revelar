@@ -34,6 +34,7 @@ export type { AlbumListing, AlbumDetail } from './engine/site.ts';
 export {
 	publish,
 	publishSite,
+	exportSite,
 	publishNetlify,
 	publishVercel,
 	publishCloudflare,
@@ -48,6 +49,8 @@ export type {
 	PublishResult,
 	PublishSiteOptions,
 	PublishSiteResult,
+	ExportSiteOptions,
+	ExportSiteResult,
 	PublishTarget,
 	PublishEvent
 } from './engine/publish.ts';

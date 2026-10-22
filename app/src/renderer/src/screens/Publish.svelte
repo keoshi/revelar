@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { siCloudflare, siGithub, siNetlify, siVercel } from 'simple-icons';
-	import type { PublishTarget, PublishedSite } from '../../../shared/api.ts';
+	import type { PublishChoice, PublishTarget, PublishedSite } from '../../../shared/api.ts';
 	import { engine, run, type SiteState } from '../lib/engine.svelte.ts';
 
 	type Props = { site: SiteState; onPublished: (baseUrl: string) => void };
@@ -70,7 +70,7 @@
 	};
 	const TARGETS = Object.keys(PROVIDERS) as PublishTarget[];
 
-	let target = $state<PublishTarget>('netlify');
+	let target = $state<PublishChoice>('netlify');
 	let token = $state('');
 	let name = $state('');
 	let account = $state('');
@@ -78,9 +78,14 @@
 	let liveUrl = $state('');
 	let error = $state('');
 	let busy = $state(false);
-	let sites = $state<Partial<Record<PublishTarget, PublishedSite>>>({});
+	let sites = $state<Partial<Record<PublishChoice, PublishedSite>>>({});
+	// Your own server: the address it will live at, and the last build made for it.
+	let ownUrl = $state('');
+	let built = $state<{ files: number; bytes: number } | undefined>();
+	let zipped = $state('');
+	let zipping = $state(false);
 
-	const provider = $derived(PROVIDERS[target]);
+	const provider = $derived(target === 'own' ? PROVIDERS.netlify : PROVIDERS[target]);
 	// A custom domain in the config is the owner's; a host-given one follows the publish target.
 	const managed = $derived(isManaged(site.config.site.baseUrl));
 	const address = $derived(
@@ -100,9 +105,14 @@
 		}
 	}
 
-	async function select(t: PublishTarget) {
+	async function select(t: PublishChoice) {
 		target = t;
 		error = '';
+		if (t === 'own') {
+			const base = site.config.site.baseUrl;
+			ownUrl = sites.own?.url ?? (isManaged(base) ? '' : base);
+			return;
+		}
 		token = (await window.revelar.secrets.get(`${t}-token`)) ?? '';
 		const saved = sites[t];
 		name = saved?.name ?? '';
@@ -123,14 +133,53 @@
 		await select(settings.publish?.target ?? 'netlify');
 	});
 
+	async function makeFolder() {
+		error = '';
+		zipped = '';
+		busy = true;
+		try {
+			const result = await run('Making the site folder', () =>
+				engine.export(site.root, ownUrl.trim())
+			);
+			built = { files: result.files, bytes: result.bytes };
+			ownUrl = result.baseUrl;
+			sites = { ...sites, own: { url: result.baseUrl } };
+			await window.revelar.settings.set({
+				publish: { target, sites: $state.snapshot(sites) }
+			});
+			onPublished(result.baseUrl);
+		} catch (e) {
+			error = e instanceof Error ? e.message : String(e);
+		} finally {
+			busy = false;
+		}
+	}
+
+	async function saveZip() {
+		error = '';
+		zipping = true;
+		try {
+			zipped = (await window.revelar.saveZip()) ?? '';
+		} catch (e) {
+			error = e instanceof Error ? e.message : String(e);
+		} finally {
+			zipping = false;
+		}
+	}
+
+	const size = (bytes: number) =>
+		bytes >= 1e9 ? `${(bytes / 1e9).toFixed(1)} GB` : `${Math.max(1, Math.round(bytes / 1e6))} MB`;
+
 	async function publish() {
+		const host = target;
+		if (host === 'own') return;
 		error = '';
 		busy = true;
 		try {
 			await window.revelar.secrets.set(`${target}-token`, token);
 			const result = await run(`Publishing to ${provider.label}`, () =>
 				engine.publish(site.root, {
-					target,
+					target: host,
 					token,
 					name: name.trim() || undefined,
 					account: account.trim() || undefined,
@@ -158,7 +207,8 @@
 		<h1>Publish</h1>
 		<p class="hint">
 			Pick a host. Each one serves static sites for free; all the app needs is a token from your
-			account, kept encrypted on this computer.
+			account, kept encrypted on this computer. Or make the site as a folder to upload to a server
+			of your own.
 		</p>
 	</div>
 
@@ -182,79 +232,157 @@
 				{#if sites[t]?.url}<span class="dot" title="Published before"></span>{/if}
 			</button>
 		{/each}
+		<button
+			type="button"
+			class="tile"
+			class:active={target === 'own'}
+			role="radio"
+			aria-checked={target === 'own'}
+			disabled={busy}
+			style:--brand="var(--accent)"
+			onclick={() => select('own')}
+		>
+			<svg
+				viewBox="0 0 24 24"
+				width="28"
+				height="28"
+				fill="none"
+				stroke="currentColor"
+				stroke-width="1.6"
+				stroke-linecap="round"
+				stroke-linejoin="round"
+				aria-hidden="true"
+				><rect x="3" y="5" width="18" height="6" rx="1.5" /><rect
+					x="3"
+					y="13"
+					width="18"
+					height="6"
+					rx="1.5"
+				/><path d="M7 8h.01M7 16h.01" /></svg
+			>
+			<span>Your own server</span>
+			{#if sites.own?.url}<span class="dot" title="Made before"></span>{/if}
+		</button>
 	</div>
 
 	{#key target}
-		<div class="form rise">
-			<div class="field">
-				<label for="token">{provider.label} {provider.tokenLabel}</label>
-				<input id="token" type="password" bind:value={token} autocomplete="off" />
-				<p class="hint">
-					{provider.tokenHelp}.
-					<button
-						type="button"
-						class="link inline ext"
-						onclick={() => window.revelar.openExternal(provider.tokenUrl)}>Get one</button
-					>
-				</p>
-			</div>
-			{#if provider.needsAccount}
+		{#if target === 'own'}
+			<div class="form rise">
 				<div class="field">
-					<label for="account">Account ID</label>
+					<label for="own-url">Site address</label>
 					<input
-						id="account"
-						bind:value={account}
-						placeholder="32 hex characters, on the dashboard's overview page"
+						id="own-url"
+						type="url"
+						bind:value={ownUrl}
+						placeholder="https://photos.example.com"
+						autocomplete="off"
 					/>
-				</div>
-			{/if}
-			<div class="field">
-				<label for="name">{provider.nameLabel}</label>
-				<input
-					id="name"
-					bind:value={name}
-					placeholder={provider.namePlaceholder}
-					disabled={target === 'netlify' && Boolean(siteId)}
-				/>
-				{#if target === 'netlify' && siteId}
 					<p class="hint">
-						Publishing updates the existing site.
-						<button type="button" class="link inline" onclick={() => (siteId = undefined)}
-							>Create a new one instead</button
-						>
+						Where you will upload it. A folder on a site works too, like https://example.com/photos.
+						Shared links, the sitemap and feeds point at it.
+					</p>
+				</div>
+
+				{#if built}
+					<p class="address">
+						<span class="hint">Ready to upload</span>
+						<strong>{built.files.toLocaleString()} files, {size(built.bytes)}</strong>
+						<span class="hint">
+							Upload everything inside the build folder to your server, at the address above. Make
+							it again after changing photos or settings.
+						</span>
 					</p>
 				{/if}
-			</div>
 
-			<p class="address">
-				<span class="hint">Site address</span>
-				<strong>{address}</strong>
-				<span class="hint">
-					{#if managed}
-						Set in the site's config for you when you publish, so shared links and the sitemap point
-						at it.
-					{:else}
-						Your own domain, from Site settings. Point it at the host after publishing.
-					{/if}
-				</span>
-			</p>
-
-			<div class="row">
-				<button
-					type="button"
-					class="primary"
-					disabled={!token || busy || (provider.needsAccount && !account)}
-					onclick={publish}>{liveUrl ? 'Publish update' : 'Publish'}</button
-				>
-				{#if liveUrl}<button
+				<div class="row">
+					<button
 						type="button"
-						class="ext"
-						onclick={() => window.revelar.openExternal(liveUrl)}
-						>Open {liveUrl.replace(/^https?:\/\//, '')}</button
-					>{/if}
+						class="primary"
+						disabled={!ownUrl.trim() || busy}
+						onclick={makeFolder}>{built ? 'Make it again' : 'Make the site folder'}</button
+					>
+					{#if built}
+						<button type="button" onclick={() => window.revelar.showBuild()}>Show in Finder</button>
+						<button type="button" disabled={zipping} onclick={saveZip}
+							>{zipping ? 'Saving…' : 'Save as zip…'}</button
+						>
+					{/if}
+				</div>
+				{#if zipped}<p class="hint">Saved {zipped}</p>{/if}
+				{#if error}<p class="error">{error}</p>{/if}
 			</div>
-			{#if error}<p class="error">{error}</p>{/if}
-		</div>
+		{:else}
+			<div class="form rise">
+				<div class="field">
+					<label for="token">{provider.label} {provider.tokenLabel}</label>
+					<input id="token" type="password" bind:value={token} autocomplete="off" />
+					<p class="hint">
+						{provider.tokenHelp}.
+						<button
+							type="button"
+							class="link inline ext"
+							onclick={() => window.revelar.openExternal(provider.tokenUrl)}>Get one</button
+						>
+					</p>
+				</div>
+				{#if provider.needsAccount}
+					<div class="field">
+						<label for="account">Account ID</label>
+						<input
+							id="account"
+							bind:value={account}
+							placeholder="32 hex characters, on the dashboard's overview page"
+						/>
+					</div>
+				{/if}
+				<div class="field">
+					<label for="name">{provider.nameLabel}</label>
+					<input
+						id="name"
+						bind:value={name}
+						placeholder={provider.namePlaceholder}
+						disabled={target === 'netlify' && Boolean(siteId)}
+					/>
+					{#if target === 'netlify' && siteId}
+						<p class="hint">
+							Publishing updates the existing site.
+							<button type="button" class="link inline" onclick={() => (siteId = undefined)}
+								>Create a new one instead</button
+							>
+						</p>
+					{/if}
+				</div>
+
+				<p class="address">
+					<span class="hint">Site address</span>
+					<strong>{address}</strong>
+					<span class="hint">
+						{#if managed}
+							Set in the site's config for you when you publish, so shared links and the sitemap
+							point at it.
+						{:else}
+							Your own domain, from Site settings. Point it at the host after publishing.
+						{/if}
+					</span>
+				</p>
+
+				<div class="row">
+					<button
+						type="button"
+						class="primary"
+						disabled={!token || busy || (provider.needsAccount && !account)}
+						onclick={publish}>{liveUrl ? 'Publish update' : 'Publish'}</button
+					>
+					{#if liveUrl}<button
+							type="button"
+							class="ext"
+							onclick={() => window.revelar.openExternal(liveUrl)}
+							>Open {liveUrl.replace(/^https?:\/\//, '')}</button
+						>{/if}
+				</div>
+				{#if error}<p class="error">{error}</p>{/if}
+			</div>
+		{/if}
 	{/key}
 </section>
 
@@ -270,7 +398,7 @@
 	}
 	.tiles {
 		display: grid;
-		grid-template-columns: repeat(4, 1fr);
+		grid-template-columns: repeat(5, 1fr);
 		gap: 10px;
 	}
 	.tile {

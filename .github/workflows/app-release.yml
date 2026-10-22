@@ -1,10 +1,11 @@
 # Builds, signs, notarizes and publishes the desktop app when a tag like v0.1.0 is pushed.
-# Tags are plain semver because update.electronjs.org only reads releases tagged that way; the
-# npm package is published without GitHub releases so the app's updater never sees its versions.
+# Tags are plain semver (copies before 0.1.3 update through update.electronjs.org, which only reads
+# releases tagged that way); the npm package is published without GitHub releases so the app's
+# updater never sees its versions.
 # Secrets: APPLE_CERT_P12_BASE64 and APPLE_CERT_PASSWORD (the Developer ID Application
 # certificate exported from Keychain Access), APPLE_ID, APPLE_APP_PASSWORD (an app-specific
-# password) and APPLE_TEAM_ID. The zips land on a GitHub release, where update.electronjs.org
-# serves them to installed copies. The jobs only run once the repository variable
+# password) and APPLE_TEAM_ID. The zips and their update feeds (RELEASES-darwin-<arch>.json) land
+# on a GitHub release, where installed copies find them through releases/latest. The jobs only run once the repository variable
 # APP_RELEASE_ENABLED is "true", so a tag made by hand for a locally built release stays quiet.
 name: Desktop app release
 
@@ -43,7 +44,9 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: Revelar-darwin-${{ matrix.arch }}
-          path: app/dist/*.zip
+          path: |
+            app/dist/*.zip
+            app/dist/RELEASES-darwin-*.json
 
   release:
     needs: build
@@ -57,5 +60,13 @@ jobs:
           merge-multiple: true
       - uses: softprops/action-gh-release@v2
         with:
-          files: dist/*.zip
+          files: |
+            dist/*.zip
+            dist/RELEASES-darwin-*.json
           generate_release_notes: true
+      - name: Check installed copies will see the release
+        run: |
+          for arch in arm64 x64; do
+            got=$(curl -fsSL "https://github.com/keoshi/revelar/releases/latest/download/RELEASES-darwin-${arch}.json" | jq -r .currentRelease)
+            [ "v${got}" = "${GITHUB_REF_NAME}" ] || { echo "darwin-${arch} feed says ${got}"; exit 1; }
+          done

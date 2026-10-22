@@ -1,5 +1,5 @@
 // Packages the desktop app for macOS: a signed (and optionally notarized) Revelar.app plus the
-// zip that GitHub releases and the updater use.
+// zip and update feed (RELEASES-darwin-<arch>.json) that GitHub releases and the updater use.
 //
 //   node app/scripts/package.mjs [--arch arm64|x64] [--no-sign] [--notarize <keychain profile>]
 //
@@ -14,7 +14,7 @@
 // APPLE_ID, APPLE_APP_PASSWORD and APPLE_TEAM_ID variables when the profile is "env".
 import { execFileSync } from 'node:child_process';
 import { cpSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
-import { dirname, join } from 'node:path';
+import { basename, dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { packager } from '@electron/packager';
 
@@ -163,4 +163,21 @@ if (notarize) run('spctl', ['--assess', '--type', 'execute', '--verbose=2', appP
 const zip = join(dist, `${pkg.productName}-darwin-${arch}-${pkg.version}.zip`);
 rmSync(zip, { force: true });
 run('ditto', ['-c', '-k', '--sequesterRsrc', '--keepParent', appPath, zip]);
-console.log(`\n${appPath}\n${zip} (${output('du', ['-sh', zip]).split('\t')[0]})`);
+
+// The updater's feed (see startUpdates in src/main/index.ts): installed copies read this file
+// from the latest release, so it goes up with the zip and keeps the same name every version.
+const feed = join(dist, `RELEASES-darwin-${arch}.json`);
+const tag = `v${pkg.version}`;
+const url = `https://github.com/keoshi/revelar/releases/download/${tag}/${basename(zip)}`;
+const name = `${pkg.productName} ${pkg.version}`;
+const updateTo = { version: pkg.version, name, notes: '', pub_date: new Date().toISOString(), url };
+writeFileSync(
+	feed,
+	JSON.stringify(
+		{ currentRelease: pkg.version, releases: [{ version: pkg.version, updateTo }] },
+		null,
+		'\t'
+	) + '\n'
+);
+console.log(`\n${appPath}\n${zip} (${output('du', ['-sh', zip]).split('\t')[0]})\n${feed}`);
+console.log(`Both go on the ${tag} release, next to the other architecture's zip and feed.`);

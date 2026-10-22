@@ -5,6 +5,7 @@
  */
 import {
 	app,
+	autoUpdater,
 	BrowserWindow,
 	dialog,
 	ipcMain,
@@ -21,7 +22,7 @@ import { createRequire } from 'node:module';
 import { basename, dirname, join, resolve, sep } from 'node:path';
 import { existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
 import { pathToFileURL } from 'node:url';
-import { updateElectronApp, UpdateSourceType } from 'update-electron-app';
+import { makeUserNotifier } from 'update-electron-app';
 import type { AppCommand, EngineEvent, Settings } from '../shared/api.ts';
 
 const require = createRequire(import.meta.url);
@@ -102,6 +103,26 @@ function call(method: string, params?: Record<string, unknown>): Promise<unknown
 		pending.set(id, { resolve, reject });
 		engine!.postMessage({ id, method, params });
 	});
+}
+
+// ---- updates --------------------------------------------------------------------------------
+
+/**
+ * Updates come from the latest GitHub release of keoshi/revelar: each release carries a
+ * `RELEASES-darwin-<arch>.json` (written by app/scripts/package.mjs) naming its zip, which
+ * Squirrel downloads when that version is newer than this one. Read straight from GitHub rather
+ * than through update.electronjs.org, whose cache once kept answering "no updates" for hours
+ * after a release. Only the signed, packaged app can update.
+ */
+function startUpdates(): void {
+	const feed = `https://github.com/keoshi/revelar/releases/latest/download/RELEASES-darwin-${process.arch}.json`;
+	autoUpdater.setFeedURL({ url: feed, serverType: 'json' });
+	autoUpdater.on('error', (err) => console.error('[updates]', err.message));
+	autoUpdater.on('update-downloaded', (event, releaseNotes, releaseName, releaseDate, updateURL) =>
+		makeUserNotifier()({ event, releaseNotes, releaseName, releaseDate, updateURL })
+	);
+	autoUpdater.checkForUpdates();
+	setInterval(() => autoUpdater.checkForUpdates(), 60 * 60 * 1000);
 }
 
 // ---- settings and secrets -------------------------------------------------------------------
@@ -225,13 +246,7 @@ app.whenReady().then(() => {
 	session.defaultSession.setPermissionRequestHandler((_wc, _permission, callback) =>
 		callback(false)
 	);
-	// Updates come from the GitHub releases of keoshi/revelar through update.electronjs.org,
-	// which only works for the signed, packaged app.
-	if (app.isPackaged)
-		updateElectronApp({
-			updateSource: { type: UpdateSourceType.ElectronPublicUpdateService, repo: 'keoshi/revelar' },
-			updateInterval: '1 hour'
-		});
+	if (app.isPackaged) startUpdates();
 	// Files of the open site: site://media/… and site://downloads/… map to static/, site://cache/…
 	// to .cache/ (quick previews) and site://photos/… to the originals.
 	// Only the folders the renderer needs; `.cache` holds private album keys, so just its thumbs.

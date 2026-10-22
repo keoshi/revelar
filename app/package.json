@@ -1,6 +1,6 @@
 {
 	"name": "revelar-app",
-	"version": "0.1.2",
+	"version": "0.1.3",
 	"productName": "Revelar",
 	"description": "Revelar desktop app: a friendly face over the revelar engine",
 	"private": true,

@@ -1,6 +1,6 @@
 {
 	"name": "@index84/revelar",
-	"version": "0.1.0",
+	"version": "0.1.1",
 	"description": "Static, photo-first gallery: drop folders of photos in, get a fast site out",
 	"private": false,
 	"license": "MIT",

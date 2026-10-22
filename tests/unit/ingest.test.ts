@@ -1,5 +1,13 @@
 import { beforeAll, describe, expect, it } from 'vitest';
-import { mkdtempSync, readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
+import {
+	cpSync,
+	existsSync,
+	mkdtempSync,
+	readdirSync,
+	readFileSync,
+	statSync,
+	writeFileSync
+} from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import exifr from 'exifr';
@@ -246,6 +254,17 @@ describe('incremental cache', () => {
 		expect(second.manifest.albums.map((a) => a.photos.map((p) => p.sources))).toEqual(
 			first.manifest.albums.map((a) => a.photos.map((p) => p.sources))
 		);
+	});
+
+	it('keeps a copied site whole while the original still exists', async () => {
+		const copy = join(mkdtempSync(join(tmpdir(), 'revelar-copy-')), 'site');
+		cpSync(root, copy, { recursive: true });
+		const report = await runIngest({ root: copy, config, quiet: true });
+		expect(report.removed).toBe(0);
+		const missing = report.manifest.albums
+			.flatMap((a) => a.photos.map((p) => expandSources(p.sources).jpeg))
+			.filter((url) => !existsSync(join(copy, 'static', url)));
+		expect(missing).toEqual([]);
 	});
 
 	it('re-encodes an edited file with a new content hash and prunes the old derivatives', async () => {

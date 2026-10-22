@@ -8,7 +8,7 @@ import {
 	readdirSync
 } from 'node:fs';
 import { createHash } from 'node:crypto';
-import { basename, extname, join, relative, resolve } from 'node:path';
+import { basename, extname, join, relative, resolve, sep } from 'node:path';
 import { marked } from 'marked';
 import type pLimit from 'p-limit';
 import type { RevelarConfig } from '../lib/config.ts';
@@ -160,7 +160,9 @@ async function processFile(
 		cached.hash === hash &&
 		cached.settings === settings &&
 		!ctx.force &&
-		cached.derivatives.files.every((f) => existsSync(f))
+		// In this site's own folder: a copied site's cache still names the original's files,
+		// which exist, so without this the copy would keep entries whose files it then prunes.
+		cached.derivatives.files.every((f) => f.startsWith(outDir + sep) && existsSync(f))
 	) {
 		ctx.cache.touch(file.rel);
 		ctx.stats.reused++;

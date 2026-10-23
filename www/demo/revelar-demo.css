@@ -1,0 +1,740 @@
+/* Revelar for Mac, drawn at 1200 × 750 inside HTML Demo's window. Sizes, colours and type
+   come from app/src/renderer/src (app.css and the screens), dark scheme. Every class and
+   keyframe carries the rvd- prefix. */
+.rvd-host .hd-bar {
+	/* Revelar hides the title bar and draws its own top bar under the traffic lights. */
+	display: none;
+}
+.rvd-host {
+	--hd-font: 'Geist', system-ui, sans-serif;
+	--hd-mono: 'Geist Mono', ui-monospace, monospace;
+	--hd-focus: #ff5900;
+}
+.rvd-host .hd-win {
+	background: #0d0d10;
+}
+.rvd-host .hd-view,
+.rvd-host .hd-stage {
+	background: #0d0d10;
+}
+
+.rvd {
+	--bg: #0d0d10;
+	--surface: #17171c;
+	--ink: #f1f1f4;
+	--muted: #9a9aa2;
+	--faint: #66666e;
+	--line: #24242b;
+	--track: #34343c;
+	--accent: #ff5900;
+	--on-accent: #ffffff;
+	--ok: #2fcf9f;
+	--dot: rgb(255 255 255 / 0.08);
+	--surface-2: color-mix(in srgb, var(--surface), var(--ink) 7%);
+	--glass: rgb(255 255 255 / 0.86);
+	--float: #1c1c22;
+	--float-ring: rgb(255 255 255 / 0.08);
+	--float-shadow: rgb(0 0 0 / 0.5);
+	--f-body: 'Geist', system-ui, -apple-system, sans-serif;
+	--f-mono: 'Geist Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+	--radius: 10px;
+	font: 14px/1.5 var(--f-body);
+	color: var(--ink);
+	background: var(--bg);
+}
+.rvd *,
+.rvd *::before,
+.rvd *::after {
+	box-sizing: border-box;
+}
+.rvd [hidden] {
+	display: none !important;
+}
+.rvd h1 {
+	margin: 0;
+	font-size: 20px;
+	font-weight: 600;
+	letter-spacing: -0.015em;
+	line-height: 1.5;
+}
+.rvd p {
+	margin: 0;
+}
+
+/* Controls, as app.css draws them. */
+.rvd-btn {
+	display: inline-block;
+	font: 500 14px/1.5 var(--f-body);
+	color: var(--ink);
+	background: var(--surface);
+	border-radius: var(--radius);
+	padding: 9px 14px;
+	white-space: nowrap;
+}
+.rvd-btn.hover {
+	background: var(--surface-2);
+}
+.rvd-btn.down {
+	transform: scale(0.98);
+}
+.rvd-btn.primary {
+	background: var(--accent);
+	color: var(--on-accent);
+	font-weight: 600;
+}
+.rvd-btn.primary.hover {
+	background: #ff6c1f;
+}
+.rvd-btn.off {
+	opacity: 0.5;
+}
+.rvd-btn.ext::after {
+	content: '↗';
+	display: inline-block;
+	margin-left: 0.4em;
+	font-weight: 400;
+}
+.rvd-link {
+	font-size: 12.5px;
+	color: var(--muted);
+	padding: 4px 6px 4px 0;
+	display: inline-block;
+	line-height: 1.5;
+}
+.rvd-input {
+	display: block;
+	font: 14px/1.5 var(--f-body);
+	color: var(--ink);
+	background: var(--surface);
+	border-radius: var(--radius);
+	padding: 9px 12px;
+	width: 100%;
+	min-height: 39px;
+	white-space: nowrap;
+	overflow: hidden;
+}
+.rvd-input.ph {
+	color: var(--faint);
+}
+.rvd-input.focus {
+	outline: 2px solid var(--accent);
+	outline-offset: 2px;
+}
+.rvd-input.area {
+	min-height: 60px;
+}
+.rvd-input.dim {
+	opacity: 0.5;
+}
+.rvd-select {
+	padding-right: 30px;
+	background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 10 10'%3E%3Cpath d='M2 3.5l3 3 3-3' fill='none' stroke='%2366666a' stroke-width='1.5'/%3E%3C/svg%3E");
+	background-repeat: no-repeat;
+	background-position: right 12px center;
+}
+.rvd-caret {
+	display: inline-block;
+	width: 1px;
+	height: 17px;
+	margin-left: 1px;
+	vertical-align: -3px;
+	background: var(--ink);
+}
+.rvd-label {
+	display: block;
+	font-size: 13px;
+	font-weight: 500;
+	line-height: 20px;
+	margin: 0 0 6px;
+}
+.rvd-hint {
+	font-size: 12.5px;
+	line-height: 1.5;
+	color: var(--muted);
+}
+.rvd-field {
+	margin-bottom: 14px;
+}
+.rvd-field .rvd-hint {
+	margin-top: 5px;
+}
+.rvd-row {
+	display: flex;
+	gap: 8px;
+	align-items: center;
+}
+.rvd-board {
+	border-radius: 16px;
+	background-color: var(--surface);
+	background-image: radial-gradient(var(--dot) 1px, transparent 1.4px);
+	background-size: 16px 16px;
+	background-position: center;
+}
+.rvd-badge {
+	position: absolute;
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	font: 500 11px/1 var(--f-body);
+	padding: 5px 9px;
+	border-radius: 999px;
+	background: var(--glass);
+	color: #11111a;
+	box-shadow: 0 0 0 1px rgb(17 17 26 / 0.06);
+}
+.rvd-switch {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	font-size: 13px;
+	padding: 2px 0;
+}
+.rvd-switch i {
+	position: relative;
+	width: 32px;
+	height: 20px;
+	border-radius: 999px;
+	background: var(--track);
+}
+.rvd-switch i::after {
+	content: '';
+	position: absolute;
+	top: 2px;
+	left: 2px;
+	width: 16px;
+	height: 16px;
+	border-radius: 50%;
+	background: #fff;
+	box-shadow: 0 1px 2px rgb(0 0 0 / 0.2);
+}
+
+/* Segmented control (lib/Seg.svelte). */
+.rvd-seg {
+	display: grid;
+	grid-template-columns: repeat(var(--n), 1fr);
+	background: var(--surface);
+	border-radius: 10px;
+	padding: 3px;
+}
+.rvd-seg span {
+	text-align: center;
+	color: var(--muted);
+	font: 500 12.5px/1.5 var(--f-body);
+	padding: 6px 4px;
+	border-radius: 7px;
+}
+.rvd-seg span.on {
+	background: var(--bg);
+	color: var(--ink);
+	box-shadow: 0 1px 3px rgb(0 0 0 / 0.1);
+}
+.rvd-seg span.hover {
+	color: var(--ink);
+}
+
+/* The shell (App.svelte): top bar and main. */
+.rvd-top {
+	position: absolute;
+	inset: 0 0 auto;
+	display: flex;
+	align-items: center;
+	gap: 24px;
+	height: 50px;
+	padding: 0 14px 0 104px;
+}
+.rvd-lights {
+	position: absolute;
+	left: 20px;
+	top: 19px;
+	display: flex;
+	gap: 8px;
+}
+.rvd-lights i {
+	width: 12px;
+	height: 12px;
+	border-radius: 50%;
+	background: #ff5f57;
+	box-shadow: inset 0 0 0 0.5px rgb(0 0 0 / 0.2);
+}
+.rvd-lights i:nth-child(2) {
+	background: #febc2e;
+}
+.rvd-lights i:nth-child(3) {
+	background: #28c840;
+}
+.rvd-brand {
+	display: flex;
+	align-items: center;
+	gap: 9px;
+	font-weight: 600;
+	font-size: 15px;
+	letter-spacing: -0.015em;
+	color: var(--accent);
+}
+.rvd-brand svg {
+	height: 16px;
+	width: auto;
+	display: block;
+}
+.rvd-brand span {
+	color: var(--ink);
+}
+.rvd-top .rvd-seg {
+	width: 270px;
+}
+.rvd-sitemenu {
+	margin-left: auto;
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	padding: 6px 10px;
+	font-weight: 500;
+}
+.rvd-sitemenu b {
+	width: 7px;
+	height: 7px;
+	border-radius: 50%;
+	background: var(--ok);
+}
+.rvd-sitemenu svg {
+	color: var(--muted);
+}
+.rvd-main {
+	position: absolute;
+	left: 0;
+	right: 0;
+	top: 50px;
+	bottom: 0;
+	padding: 18px 24px 24px;
+	overflow: hidden;
+}
+.rvd-screen {
+	position: absolute;
+	inset: 18px 24px 24px;
+}
+
+/* Library (screens/Library.svelte). */
+.rvd-head {
+	display: flex;
+	justify-content: space-between;
+	align-items: flex-start;
+	gap: 16px;
+	margin-bottom: 20px;
+}
+.rvd-empty {
+	padding: 56px 48px;
+	text-align: center;
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+	align-items: center;
+}
+.rvd-empty .rvd-hint {
+	max-width: 420px;
+}
+.rvd-empty .rvd-code {
+	font: 12px var(--f-mono);
+}
+.rvd-cards {
+	display: grid;
+	grid-template-columns: repeat(4, 1fr);
+	gap: 20px 16px;
+}
+.rvd-cover {
+	position: relative;
+	aspect-ratio: 3 / 2;
+	border-radius: 12px;
+	overflow: hidden;
+	background: #2a2f33;
+}
+.rvd-cover img {
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+	display: block;
+}
+.rvd-cover .rvd-badge {
+	left: 10px;
+	bottom: 10px;
+}
+.rvd-meta {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	padding: 10px 2px 0;
+}
+.rvd-meta strong {
+	font-weight: 500;
+}
+.rvd-meta span {
+	font: 11.5px/1.5 var(--f-mono);
+	color: var(--muted);
+}
+
+/* Album editor (screens/Album.svelte). */
+.rvd-album {
+	height: 100%;
+	display: flex;
+	flex-direction: column;
+}
+.rvd-album .rvd-head {
+	align-items: flex-end;
+	margin: 0 0 16px;
+}
+.rvd-path {
+	font: 12px/1.5 var(--f-mono);
+	color: var(--muted);
+}
+.rvd-autosave {
+	font-size: 12.5px;
+	color: var(--muted);
+	margin-right: 4px;
+}
+.rvd-panes {
+	flex: 1;
+	min-height: 0;
+	display: grid;
+	grid-template-columns: 250px minmax(0, 1fr) 250px;
+	gap: 24px;
+}
+.rvd-pane {
+	min-height: 0;
+	overflow: hidden;
+	position: relative;
+	/* room for focus rings, which the pane would otherwise clip */
+	padding: 6px;
+	margin: -6px;
+}
+.rvd-lead {
+	font-size: 13px;
+	line-height: 20px;
+	margin: 0 0 6px;
+	min-height: 20px;
+	color: var(--muted);
+}
+.rvd-thumbs {
+	position: relative;
+}
+.rvd-thumb {
+	position: absolute;
+	left: 0;
+	top: 0;
+	border-radius: 10px;
+	overflow: hidden;
+	background: var(--surface);
+	outline: 2px solid transparent;
+	outline-offset: 2px;
+}
+.rvd-thumb img,
+.rvd-ghost img {
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+	display: block;
+}
+.rvd-thumb.sel {
+	outline-color: var(--accent);
+}
+.rvd-thumb.hole {
+	outline: 1.5px dashed var(--muted);
+	outline-offset: -1.5px;
+	background: transparent;
+}
+.rvd-thumb.hole img,
+.rvd-thumb.hole .rvd-badge {
+	opacity: 0.12;
+}
+.rvd-thumb .rvd-badge {
+	left: 6px;
+	bottom: 6px;
+}
+.rvd-badge.cover::before {
+	content: '';
+	width: 6px;
+	height: 6px;
+	border-radius: 50%;
+	background: var(--accent);
+}
+.rvd-ghost {
+	position: absolute;
+	z-index: 20;
+	border-radius: 10px;
+	overflow: hidden;
+	box-shadow: 0 16px 40px rgb(17 17 26 / 0.35);
+}
+.rvd-detail-empty {
+	padding-top: 26px;
+	font-size: 13px;
+}
+.rvd-detail {
+	padding-top: 26px;
+	display: flex;
+	flex-direction: column;
+	gap: 12px;
+}
+.rvd-detail .rvd-field {
+	margin: 0;
+}
+.rvd-big {
+	width: 100%;
+	max-height: 180px;
+	object-fit: contain;
+	border-radius: 10px;
+	background: var(--surface);
+	display: block;
+}
+.rvd-file {
+	font: 12px/1.5 var(--f-mono);
+	color: var(--muted);
+	white-space: nowrap;
+}
+
+/* Preview (screens/Preview.svelte). */
+.rvd-preview {
+	display: flex;
+	flex-direction: column;
+	height: 100%;
+	gap: 14px;
+}
+.rvd-preview .rvd-row {
+	gap: 14px;
+}
+.rvd-url {
+	font: 12px/1.5 var(--f-mono);
+	color: var(--muted);
+	margin-right: auto;
+}
+.rvd-frame {
+	flex: 1;
+	min-height: 0;
+	border: 1px solid var(--line);
+	border-radius: 16px;
+	overflow: hidden;
+	background: var(--bg);
+	position: relative;
+}
+
+/* The built site in the preview frame: the album page as Revelar's site draws it. */
+.rvd-site {
+	position: absolute;
+	inset: 0 0 auto;
+	background: #0e0e10;
+	color: #f2f2f2;
+	padding: 0 19px 40px;
+}
+.rvd-site-top {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	height: 52px;
+	font-weight: 600;
+	font-size: 15px;
+}
+.rvd-site-top svg {
+	width: 16px;
+	height: 16px;
+	color: #d8d8d8;
+}
+.rvd-site-head {
+	display: flex;
+	justify-content: space-between;
+	align-items: flex-end;
+	padding: 14px 0 16px;
+}
+.rvd-site-head h2 {
+	margin: 0;
+	font: 600 32px/1.15 var(--f-body);
+	letter-spacing: -0.02em;
+}
+.rvd-site-head p {
+	margin: 6px 0 0;
+	font-size: 12px;
+	color: #a0a0a6;
+}
+.rvd-site-act {
+	display: flex;
+	gap: 22px;
+	font-size: 12px;
+	color: #d8d8d8;
+	padding-bottom: 6px;
+}
+.rvd-site-act span::before {
+	margin-right: 7px;
+	font-size: 10px;
+}
+.rvd-site-act .play::before {
+	content: '▶';
+}
+.rvd-site-act .dl::before {
+	content: '⤓';
+	font-size: 12px;
+}
+.rvd-jrow {
+	display: flex;
+	gap: 3px;
+	margin-bottom: 3px;
+}
+.rvd-jrow img {
+	display: block;
+	object-fit: cover;
+}
+
+/* Publish (screens/Publish.svelte). */
+.rvd-publish {
+	max-width: 620px;
+	display: flex;
+	flex-direction: column;
+	gap: 18px;
+}
+.rvd-publish h1 {
+	margin-bottom: 4px;
+}
+.rvd-tiles {
+	display: grid;
+	grid-template-columns: repeat(5, 1fr);
+	gap: 10px;
+}
+.rvd-tile {
+	position: relative;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 10px;
+	padding: 16px 8px 12px;
+	border-radius: 12px;
+	color: var(--muted);
+	background: var(--surface);
+	font: 500 13px/1.5 var(--f-body);
+	white-space: nowrap;
+}
+.rvd-tile svg {
+	width: 28px;
+	height: 28px;
+}
+.rvd-tile.on {
+	color: var(--ink);
+	box-shadow: 0 0 0 2px var(--accent);
+}
+.rvd-tile.on svg {
+	color: var(--brand);
+}
+.rvd-tile .rvd-ok {
+	position: absolute;
+	top: 9px;
+	right: 9px;
+	width: 6px;
+	height: 6px;
+	border-radius: 50%;
+	background: var(--ok);
+}
+.rvd-pform {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+}
+.rvd-u {
+	text-decoration: underline;
+	text-underline-offset: 2px;
+}
+.rvd-address {
+	display: flex;
+	flex-direction: column;
+	gap: 3px;
+	padding: 12px 14px;
+	margin: 4px 0 16px;
+	background: var(--surface);
+	border-radius: 12px;
+}
+.rvd-address strong {
+	font: 500 13px/1.5 var(--f-mono);
+	letter-spacing: -0.01em;
+}
+
+/* The ending: the mark and name, as the top bar's brand but large, alone in the window. */
+.rvd-outro {
+	position: absolute;
+	left: 50%;
+	top: 50%;
+	z-index: 26;
+	display: flex;
+	align-items: center;
+	gap: 22px;
+	opacity: 0;
+	transform: translate(-50%, -50%);
+	color: var(--accent);
+	font-weight: 600;
+	font-size: 44px;
+	letter-spacing: -0.03em;
+}
+.rvd-outro svg {
+	height: 46px;
+	width: auto;
+	display: block;
+}
+.rvd-outro span {
+	color: var(--ink);
+}
+
+/* Busy (screens/Busy.svelte): the veil and its card. */
+.rvd-veil {
+	position: absolute;
+	inset: 0;
+	z-index: 25;
+	display: grid;
+	place-items: center;
+	background: color-mix(in srgb, var(--bg) 55%, transparent);
+	backdrop-filter: blur(6px);
+}
+.rvd-busy {
+	display: grid;
+	grid-template-columns: auto 1fr;
+	gap: 8px 14px;
+	align-items: center;
+	width: fit-content;
+	max-width: 440px;
+	padding: 18px 22px;
+	background: var(--float);
+	border-radius: 14px;
+	box-shadow:
+		0 0 0 1px var(--float-ring),
+		0 20px 50px var(--float-shadow);
+}
+.rvd-busy.progress {
+	min-width: 320px;
+}
+.rvd-busy > div {
+	display: flex;
+	flex-direction: column;
+	min-width: 0;
+}
+.rvd-busy strong {
+	font-weight: 500;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+.rvd-detailline {
+	font: 12px/1.5 var(--f-mono);
+	color: var(--muted);
+	white-space: nowrap;
+}
+.rvd-spin {
+	width: 16px;
+	height: 16px;
+	border: 2px solid var(--track);
+	border-top-color: var(--accent);
+	border-radius: 50%;
+}
+.rvd-bar {
+	grid-column: 1 / -1;
+	height: 4px;
+	background: var(--track);
+	border-radius: 2px;
+	overflow: hidden;
+}
+.rvd-bar i {
+	display: block;
+	height: 100%;
+	background: var(--accent);
+	border-radius: 2px;
+}

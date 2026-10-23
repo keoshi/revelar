@@ -30,6 +30,8 @@
 			href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&display=swap"
 		/>
 		<link rel="stylesheet" href="../shared/tools.css" />
+		<link rel="stylesheet" href="demo/step-window.css" />
+		<link rel="stylesheet" href="demo/revelar-demo.css" />
 		<style>
 			/* Revelar: a product page, laid out like the index (one column, statement, boards) rather than a tool. */
 			html,
@@ -118,41 +120,21 @@
 			.btn.primary {
 				flex: none;
 			}
-			/* the result: a browser-sized shot of a finished site, framed like the canvas */
+			/* the app at work: Revelar's window drawn live by demo/revelar-demo.js (the html-demo
+			   engine), with the finished site as the picture until the script takes over */
 			.result {
 				margin: 0;
-				border-radius: 16px;
-				overflow: hidden;
-				box-shadow:
-					0 0 0 1px var(--line),
-					0 24px 60px rgb(17 17 26 / 0.18);
-				background: var(--surface);
 			}
-			.result a {
-				display: block;
-				position: relative;
-				aspect-ratio: 1800 / 1125;
-				color: inherit;
-			}
-			/* facets of the finished site, stacked; the current one is opaque and the rest dissolve behind it */
-			.result picture {
-				position: absolute;
-				inset: 0;
-				opacity: 0;
-				transition: opacity 1.2s var(--ease);
-			}
-			.result picture.on {
-				opacity: 1;
-			}
-			.result img {
+			.result > picture img {
 				display: block;
 				width: 100%;
 				height: auto;
+				border-radius: 14px;
 			}
-			@media (prefers-reduced-motion: reduce) {
-				.result picture {
-					transition: none;
-				}
+			.result .hd-win {
+				box-shadow:
+					0 0 0 1px var(--line),
+					0 24px 60px rgb(17 17 26 / 0.18);
 			}
 
 			section {
@@ -419,73 +401,17 @@
 							</div>
 						</div>
 					</div>
-					<figure class="result" id="facets">
-						<a
-							href="https://revelar-app-vercel-test-alpha-1.vercel.app/"
-							aria-label="Open the example site"
-						>
-							<picture class="on">
-								<source
-									srcset="img/gallery-dark.avif"
-									type="image/avif"
-									media="(prefers-color-scheme: dark)"
-								/>
-								<source
-									srcset="img/gallery-dark.webp"
-									type="image/webp"
-									media="(prefers-color-scheme: dark)"
-								/>
-								<source srcset="img/gallery-light.avif" type="image/avif" />
-								<img
-									src="img/gallery-light.webp"
-									width="1800"
-									height="1125"
-									alt="A site made with Revelar: an album page with a justified grid of photos, Play, Download album and Map"
-									fetchpriority="high"
-								/>
-							</picture>
-							<picture>
-								<source
-									srcset="img/viewer-dark.avif"
-									type="image/avif"
-									media="(prefers-color-scheme: dark)"
-								/>
-								<source
-									srcset="img/viewer-dark.webp"
-									type="image/webp"
-									media="(prefers-color-scheme: dark)"
-								/>
-								<source srcset="img/viewer-light.avif" type="image/avif" />
-								<img
-									src="img/viewer-light.webp"
-									width="1800"
-									height="1125"
-									alt="The same site with a photo open fullscreen, filmstrip along the bottom"
-									loading="lazy"
-								/>
-							</picture>
-							<picture>
-								<source
-									srcset="img/info-dark.avif"
-									type="image/avif"
-									media="(prefers-color-scheme: dark)"
-								/>
-								<source
-									srcset="img/info-dark.webp"
-									type="image/webp"
-									media="(prefers-color-scheme: dark)"
-								/>
-								<source srcset="img/info-light.avif" type="image/avif" />
-								<img
-									src="img/info-light.webp"
-									width="1800"
-									height="1125"
-									alt="The viewer with its info panel open: caption, date, camera and exposure"
-									loading="lazy"
-								/>
-							</picture>
-						</a>
-					</figure>
+					<div class="result demo rvd-host" id="demo">
+						<picture>
+							<source srcset="img/gallery-dark.avif" type="image/avif" />
+							<img
+								src="img/gallery-dark.webp"
+								width="1800"
+								height="1125"
+								alt="A site made with Revelar: an album page with a justified grid of photos, Play, Download album and Map"
+							/>
+						</picture>
+					</div>
 				</section>
 
 				<section aria-labelledby="how">
@@ -845,20 +771,12 @@
 			</defs>
 		</svg>
 
+		<script src="demo/step-window.js"></script>
+		<script src="demo/revelar-demo.js"></script>
 		<script>
-			// The hero dissolves between facets of the finished site every few seconds, unless the visitor
-			// asked for reduced motion or the tab is hidden.
-			(() => {
-				const facets = [...document.querySelectorAll('#facets picture')];
-				if (facets.length < 2 || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-				let i = 0;
-				setInterval(() => {
-					if (document.hidden) return;
-					facets[i].classList.remove('on');
-					i = (i + 1) % facets.length;
-					facets[i].classList.add('on');
-				}, 4500);
-			})();
+			// The hero plays the app: add an album, arrange it, preview, publish. It runs only while on
+			// screen, and stands on each step's last frame for reduced motion.
+			RevelarDemo.mount(document.getElementById('demo'));
 			// One download button for the visitor's kind of Mac. Browsers hide the chip on purpose, but
 			// Chromium's client hints say "arm" or "x86", and the WebGL renderer names Apple M-series or
 			// Intel/AMD graphics on most Macs. Safari masks both, so the fallback is Apple Silicon (every

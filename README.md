@@ -116,7 +116,7 @@ photos:
 
 `revelar.config.ts` in the site root (`import { defineConfig } from '@index84/revelar/config'`) is validated at ingest; invalid values fail the build with a readable message. The important fields:
 
-- `site.baseUrl` (required) is used for canonical and Open Graph URLs. If it has a path (for example `https://user.github.io/photos`), the site is built to work from that subpath. `BASE_PATH=/photos` overrides it.
+- `site.baseUrl` (optional) is the site's own address, used for canonical, Open Graph, sitemap and feed URLs. When the app publishes to a host, a site without one is built with that host's address, and a site with one points every copy at it, so the address is never rewritten by publishing. A build with no address at all leaves out the sitemap, the feed and the absolute tags. If it has a path (for example `https://user.github.io/photos`), the site is built to work from that subpath. `BASE_PATH=/photos` overrides it.
 - `site.author`, `site.authorUrl` and `site.copyright`: the footer shows the copyright line followed by a link to the author's site (as its host name); the author also appears as the creator in structured data.
 - `REVELAR_CONFIG=path/to/config.ts` makes ingest, dev and build use another config file (the e2e suite uses `tests/e2e/revelar.config.ts`).
 - `photosDir` can be an absolute path, so large libraries can live outside the repo.
@@ -186,7 +186,7 @@ For thousands of photos, keep `photos/` outside the repo (`photosDir`), build lo
 **What a rebuild changes.** The output is deliberately small outside the images:
 
 ```
-index.html                   home (or a redirect when there is a single album)
+index.html                   home: the album covers, or the album itself when there is only one
 <album>/index.html           the album page with its grid, data inline
 <album>/album.json           the album's photo list, fetched once by photo pages
 <album>/<id>/index.html      one small shell per photo: its image, caption, Open Graph and JSON-LD
@@ -195,6 +195,8 @@ _app/                        hashed JavaScript and CSS
 media/, downloads/           content-hashed derivatives and zips: written once, never rewritten
 rss.xml sitemap.xml robots.txt _headers
 ```
+
+A site with a single public album serves it at the root instead: the album at `/`, its photos at `/<id>/`, its map at `/map/` and its list at `/album.json`. The `<album>/` folder then only holds small redirects to those addresses, so links shared before keep working. Adding a second public album moves both back into folders.
 
 Media and downloads only change when photos or image settings change. Everything else is a few megabytes in total and is rewritten on every build (the shells reference the hashed scripts), so after a code or config change you re-upload everything except `media/` and `downloads/`. SvelteKit's per-page `__data.json` files are not shipped: links are plain page loads and the viewer moves between photos without fetching anything.
 
@@ -232,13 +234,13 @@ tests/                       Vitest unit tests, Playwright e2e, synthetic fixtur
 
 Download for macOS from [the latest release](https://github.com/keoshi/revelar/releases/latest): one zip for Apple Silicon (`darwin-arm64`), one for Intel (`darwin-x64`), both signed and notarized. Unzip and drag Revelar to Applications; the app updates itself from later releases.
 
-`app/` is an Electron app for people who would rather not use a terminal: a friendly face over the same site folder. It creates or opens a site (recent ones are one click away), lists albums with their covers, follows folders added in Finder, adds a folder of photos as an album, edits titles, captions, cover, visibility and the other `album.yaml` settings, arranges photos by dragging them, keeps site-wide settings (name, address, defaults, theme) in a form (edits save themselves), processes photos with live progress, previews the built site in place, and publishes to Netlify, Vercel, Cloudflare Pages or GitHub Pages with a token from the account, or builds it for a server of your own (enter the address, then upload the `build/` folder or a zip of it). Publishing sets `site.baseUrl` to the live address by itself unless the site has its own domain. Photos show up before processing through quick previews. Everything it writes is the same `photos/`, `album.yaml` and `revelar.config.ts` the CLI uses, so a site can move between the app and the terminal freely.
+`app/` is an Electron app for people who would rather not use a terminal: a friendly face over the same site folder. It creates or opens a site (recent ones are one click away), lists albums with their covers, follows folders added in Finder, adds a folder of photos as an album, edits titles, captions, cover, visibility and the other `album.yaml` settings, arranges photos by dragging them, keeps site-wide settings (name, address, defaults, theme) in a form (edits save themselves), processes photos with live progress, previews the built site in place, and publishes to Spacefast, Netlify, Vercel, Cloudflare Pages or GitHub Pages with a token from the account, or builds it for a server of your own (enter the address, then upload the `build/` folder or a zip of it). Each published copy is built for its own address, or for the site's own domain when Site settings has one; publishing never rewrites the config. Photos show up before processing through quick previews. Everything it writes is the same `photos/`, `album.yaml` and `revelar.config.ts` the CLI uses, so a site can move between the app and the terminal freely.
 
 ![The welcome screen](docs/screenshots/app-welcome.jpg)
 ![The app's library screen](docs/screenshots/app-library.jpg)
 ![The album editor, dragging a photo into place](docs/screenshots/app-album-drag.jpg)
 ![Site settings](docs/screenshots/app-settings.jpg)
-![Publishing to one of four hosts, or to a server of your own](docs/screenshots/app-publish.jpg)
+![Publishing to one of five hosts, or to a server of your own: the site is live on Spacefast](docs/screenshots/app-publish.jpg)
 ![The site built for your own server, ready to upload](docs/screenshots/app-publish-own.jpg)
 ![The built site previewed in place](docs/screenshots/app-preview.jpg)
 
@@ -265,7 +267,7 @@ The script builds the app, stages a production install of the engine (`npm pack`
 
 Inside an installed app the engine package is read-only, so builds run from a mirror of it under the app's data folder (`~/Library/Application Support/Revelar/engine`): symlinks to the package's source and dependencies, with real folders where SvelteKit and Vite write.
 
-The renderer runs sandboxed behind a small context-isolated bridge; the `site://` scheme serves only the open site's media, downloads, quick previews and originals; tokens live in the Keychain through Electron's `safeStorage`; external links are limited to web addresses. Of the four publish targets only Netlify has been exercised against a live account; Vercel, Cloudflare Pages and GitHub Pages follow their documented APIs but are untested.
+The renderer runs sandboxed behind a small context-isolated bridge; the `site://` scheme serves only the open site's media, downloads, quick previews and originals; tokens live in the Keychain through Electron's `safeStorage`; external links are limited to web addresses. Of the five publish targets, Spacefast, Netlify and Vercel have been exercised against live accounts; Cloudflare Pages and GitHub Pages follow their documented APIs but are untested.
 
 ## Measured performance
 

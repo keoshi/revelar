@@ -33,7 +33,6 @@ export const DEFAULT_CONFIG: RevelarConfigInput = {
 	site: {
 		title: 'Photographs',
 		description: 'Selected work',
-		baseUrl: 'https://photos.example.com',
 		author: 'Your Name',
 		authorUrl: '',
 		copyright: '© Your Name',

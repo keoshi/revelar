@@ -1,35 +1,20 @@
 import { error } from '@sveltejs/kit';
-import { findAlbum, loadManifest } from '#lib/server/manifest.ts';
+import { findAlbum, loadManifest, rootAlbum } from '#lib/server/manifest.ts';
+import { albumMapLoad } from '#lib/server/album.ts';
 import { siteConfig } from '#lib/server/site.ts';
-import { compactSources, type ImageSources } from '#lib/utils/sources.ts';
 import type { EntryGenerator, PageServerLoad } from './$types';
 
+// The root album's map is /map/ instead.
 export const entries: EntryGenerator = () => {
-	const config = siteConfig();
-	if (!config.map.enabled) return [];
+	if (!siteConfig().map.enabled) return [];
 	return loadManifest()
-		.albums.filter((a) => a.bounds)
+		.albums.filter((a) => a.bounds && a.slug !== rootAlbum()?.slug)
 		.map((a) => ({ album: a.slug }));
 };
 
 export const load: PageServerLoad = ({ params }) => {
 	const album = findAlbum(params.album);
-	const config = siteConfig();
-	if (!album || !album.bounds || !config.map.enabled) error(404, 'Map not available');
-	return {
-		slug: album.slug,
-		title: album.title,
-		visibility: album.visibility,
-		bounds: album.bounds,
-		photos: album.photos
-			.filter((p) => p.gps)
-			.map((p) => ({
-				id: p.id,
-				title: p.title,
-				alt: p.alt,
-				gps: p.gps!,
-				sources: compactSources(p.sources as ImageSources),
-				color: p.color
-			}))
-	};
+	const data = album && albumMapLoad(album);
+	if (!data) error(404, 'Map not available');
+	return data;
 };

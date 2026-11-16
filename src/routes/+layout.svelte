@@ -4,9 +4,13 @@
 	import '@fontsource-variable/inter';
 	import favicon from '#lib/assets/favicon.svg';
 	import SiteHeader from '#lib/components/SiteHeader.svelte';
+	import { setRootAlbum } from '#lib/utils/href.ts';
 	import type { LayoutProps } from './$types';
 
 	let { data, children }: LayoutProps = $props();
+	// Fixed for a build: the links every page renders depend on it, so set it before they do.
+	// svelte-ignore state_referenced_locally
+	setRootAlbum(data.rootAlbum);
 	const site = $derived(data.site);
 	// The footer links the author's site by its host name: "© Name · example.com".
 	const authorHost = $derived(
@@ -29,7 +33,7 @@
 	{@html `<style>:root{${themeVars}}</style>`}
 </svelte:head>
 
-<SiteHeader title={site.title} href={data.homeHref} themeMode={site.theme.mode} />
+<SiteHeader title={site.title} themeMode={site.theme.mode} />
 
 <main id="main">
 	{@render children()}

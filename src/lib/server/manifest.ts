@@ -1,7 +1,6 @@
 import { existsSync, readFileSync, statSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { EMPTY_MANIFEST, type Manifest, type AlbumSummary } from '#lib/types.ts';
-import { albumHref } from '#lib/utils/href.ts';
 
 /** Written by ingest into the site root's .cache/ (REVELAR_SITE_ROOT, else the working directory). */
 const MANIFEST_PATH = resolve(
@@ -35,10 +34,10 @@ export function publicAlbums(): AlbumSummary[] {
 	return loadManifest().albums.filter((a) => a.visibility === 'public');
 }
 
-/** When exactly one public album exists, its href; the home page redirects there. */
-export function soleAlbumHref(): string | undefined {
+/** With exactly one public album, that album: the site serves it at the root. */
+export function rootAlbum(): AlbumSummary | undefined {
 	const albums = publicAlbums();
-	return albums.length === 1 ? albumHref(albums[0].slug) : undefined;
+	return albums.length === 1 ? albums[0] : undefined;
 }
 
 export function findAlbum(slug: string): AlbumSummary | undefined {

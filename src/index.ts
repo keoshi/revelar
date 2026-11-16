@@ -39,10 +39,13 @@ export {
 	publishVercel,
 	publishCloudflare,
 	publishGitHub,
+	publishSpacefast,
 	predictUrl,
 	isManagedUrl,
+	ownDomain,
 	zipDirectory,
-	PUBLISH_TARGETS
+	PUBLISH_TARGETS,
+	PUBLISH_PHASES
 } from './engine/publish.ts';
 export type {
 	PublishOptions,
@@ -52,7 +55,8 @@ export type {
 	ExportSiteOptions,
 	ExportSiteResult,
 	PublishTarget,
-	PublishEvent
+	PublishEvent,
+	PublishPhase
 } from './engine/publish.ts';
 export { startHost } from './engine/host.ts';
 export type { IngestEvent } from './engine/ingest.ts';

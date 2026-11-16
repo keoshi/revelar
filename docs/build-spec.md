@@ -209,7 +209,7 @@ Every route is prerendered (`export const prerender = true` in the root layout; 
 
 | Route               | Purpose                                                           | Notes                                                                 |
 | ------------------- | ----------------------------------------------------------------- | --------------------------------------------------------------------- |
-| `/`                 | Home: grid of album covers, newest first (or `config.albumOrder`) | Public albums only; site title, optional intro text. **As built:** a site with exactly one public album prerenders `/` as a redirect to that album, and the header title links there |
+| `/`                 | Home: grid of album covers, newest first (or `config.albumOrder`) | Public albums only; site title, optional intro text. **As built:** a site with exactly one public album serves it at the root: `/` is the album, `/<id>/` its photos, `/map/` its map and `/album.json` its list (the `[album]` route answers photo ids in that mode; photo ids are 10 hex characters, so they cannot meet a reserved name). `/<album>/` and `/<album>/<id>/` prerender as redirects to the new addresses |
 | `/[album]/`         | Album: justified grid with title, date, description, count        | Always the first view of an album; Play and Map actions in the header |
 | `/[album]/[photo]/` | Album grid with the fullscreen viewer open on one photo           | Prerendered per photo so links unfurl with the right Open Graph image |
 | `/[album]/map/`     | Map of the album's geotagged photos                               | Only generated when ≥1 photo has displayable GPS                      |
@@ -391,7 +391,7 @@ export default defineConfig({
 	site: {
 		title: 'Photographs',
 		description: 'Selected work',
-		baseUrl: 'https://photos.example.com', // required for canonical/OG; its path becomes paths.base
+		baseUrl: 'https://photos.example.com', // optional own domain for canonical/OG; its path becomes paths.base
 		author: 'Your Name',
 		authorUrl: 'https://example.com', // as built: linked from the footer and used as the creator URL
 		copyright: '© Your Name',
@@ -482,6 +482,7 @@ export default defineConfig({
 
 **As built**
 
+- **As built:** `site.baseUrl` is optional. The engine builds each copy for an address (`REVELAR_BASE_URL`): a host's when publishing a site with no domain of its own, else the configured one, and never writes it back. Without any address the sitemap, feed and absolute head tags are left out.
 - `site.baseUrl` may include a path; it becomes `paths.base`, so the site works from a subfolder (`BASE_PATH` overrides it). Links and asset URLs are absolute under that path (`paths.relative: false`): relative hrefs rendered for a photo page resolved wrongly once the viewer's shallow routing changed the URL. A build is therefore tied to its base URL, as its canonical, Open Graph, sitemap and RSS URLs already were.
 - `REVELAR_CONFIG=path/to/config.ts` selects another config file for ingest, dev and build. The e2e suite uses `tests/e2e/revelar.config.ts` and its own site root (`tests/e2e/.site`), so it never touches `photos/`, `build/` or the owner's settings.
 - Media (`media/`, `downloads/`) are content-hashed and unaffected by config or code changes; a redeploy after such changes only needs the HTML, `album.json`, `_app/` and feed files, a few megabytes in total.
@@ -527,7 +528,7 @@ Recorded on Oct 13, 2026. Each is deliberate; do not "fix" them back without a d
 | Typography    | Inter plus optional serif for titles             | Inter Variable only                                                                                                                          |
 | Transitions   | Slide on manual navigation, crossfade in autoplay | `viewer.transition` applies to both; crossfade by default                                                                                    |
 | Downloads     | Default `none`                                   | Default `large`, so album zips are built unless turned off                                                                                   |
-| Home page     | Grid of album covers                             | Single-album sites redirect `/` to the album                                                                                                 |
+| Home page     | Grid of album covers                             | Single-album sites serve the album at `/`                                                                                                     |
 | Map markers   | 40 px GL sprites                                 | 56 px DOM thumbnails; clusters to zoom 19; popup grid for photos sharing one point; worker shipped as a hashed file                            |
 | JS budget     | ≤ 45 KB gzip on the album page                   | About 52 KB; test asserts ≤ 55 KB                                                                                                            |
 | Config        | One file at the root                             | Plus `site.authorUrl` (footer link, creator URL) and `REVELAR_CONFIG` for alternate config files                                             |

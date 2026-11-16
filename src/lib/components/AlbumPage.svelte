@@ -6,7 +6,7 @@
 	import type { SiteSettings } from '../config.ts';
 	import { createAlbumState, type AlbumState } from '../state/album.svelte.ts';
 	import { expandSources } from '../utils/sources.ts';
-	import { albumHref, photoHref, withBase } from '../utils/href.ts';
+	import { albumHref, albumPath, photoHref, photoPath, withBase } from '../utils/href.ts';
 	import AlbumHeader from './AlbumHeader.svelte';
 	import Grid from './Grid.svelte';
 	import Picture from './Picture.svelte';
@@ -65,7 +65,9 @@
 			site.description
 	);
 	const canonical = $derived(
-		current ? `${site.baseUrl}/${album.slug}/${current.id}/` : `${site.baseUrl}/${album.slug}/`
+		current
+			? `${site.baseUrl}${photoPath(album.slug, current.id)}`
+			: `${site.baseUrl}${albumPath(album.slug)}`
 	);
 	const pageTitle = $derived(
 		current ? `${current.title ?? `Photo ${currentIndex + 1}`} · ${album.title}` : album.title
@@ -93,7 +95,7 @@
 				isPartOf: {
 					'@type': 'ImageGallery',
 					name: album.title,
-					url: `${site.baseUrl}/${album.slug}/`
+					url: `${site.baseUrl}${albumPath(album.slug)}`
 				}
 			};
 		}
@@ -220,15 +222,18 @@
 <svelte:head>
 	<title>{pageTitle} · {site.title}</title>
 	<meta name="description" content={description} />
-	<link rel="canonical" href={canonical} />
+	<!-- Absolute addresses only: a build for no address (a local preview) leaves them out. -->
+	{#if site.baseUrl}<link rel="canonical" href={canonical} />{/if}
 	{#if album.visibility === 'unlisted'}
 		<meta name="robots" content="noindex" />
 	{/if}
 	<meta property="og:type" content="website" />
 	<meta property="og:title" content={current ? pageTitle : album.title} />
 	<meta property="og:description" content={description} />
-	<meta property="og:url" content={canonical} />
-	<meta property="og:image" content={site.baseUrl + ogImage} />
+	{#if site.baseUrl}
+		<meta property="og:url" content={canonical} />
+		<meta property="og:image" content={site.baseUrl + ogImage} />
+	{/if}
 	<meta name="twitter:card" content="summary_large_image" />
 	<!-- eslint-disable-next-line svelte/no-at-html-tags -- JSON-LD built from build-time data with < escaped -->
 	{@html jsonLdTag}

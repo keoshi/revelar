@@ -28,25 +28,51 @@ export type BuildOptions = {
 	root?: string;
 	/** config file; defaults to REVELAR_CONFIG or <root>/revelar.config.ts */
 	config?: string;
+	/**
+	 * The address this build will be served from (a host's, or the owner's server). Defaults to
+	 * the config's `site.baseUrl`; never written back to it.
+	 */
+	baseUrl?: string;
 	/** Vite log level */
 	logLevel?: 'info' | 'warn' | 'error' | 'silent';
 };
 
 export type BuildReport = { outDir: string; removedDataFiles: number };
 
+/** BASE_PATH as the user set it, before any build: an override that wins over every address. */
+const USER_BASE_PATH = process.env.BASE_PATH;
+
+/** The address a build uses, without a trailing slash; none when it is empty or not a URL. */
+function buildAddress(url: string | undefined): string {
+	if (!url) return '';
+	try {
+		return new URL(url).href.replace(/\/+$/, '');
+	} catch {
+		return '';
+	}
+}
+
 /**
  * Resolves the site root and config for a Vite call and publishes them through the environment,
  * which is how vite.config.ts (evaluated by Vite, and again by Kit in a child process) learns
- * about them: REVELAR_SITE_ROOT, REVELAR_CONFIG and BASE_PATH (the path of site.baseUrl, unless
- * the user set BASE_PATH themselves).
+ * about them: REVELAR_SITE_ROOT, REVELAR_CONFIG, REVELAR_BASE_URL (the address the build is for)
+ * and BASE_PATH (that address's path, unless the user set BASE_PATH themselves).
  */
-export async function prepareSite(opts: { root?: string; config?: string }): Promise<string> {
+export async function prepareSite(opts: {
+	root?: string;
+	config?: string;
+	baseUrl?: string;
+}): Promise<string> {
 	const root = resolve(opts.root ?? process.env.REVELAR_SITE_ROOT ?? process.cwd());
 	process.env.REVELAR_SITE_ROOT = root;
 	if (opts.config) process.env.REVELAR_CONFIG = resolve(opts.config);
 	const config = await loadConfig();
-	if (process.env.BASE_PATH === undefined)
-		process.env.BASE_PATH = new URL(config.site.baseUrl).pathname.replace(/\/+$/, '');
+	// Set for every build, not once: the engine process outlives a build, and the next one may be
+	// for another host.
+	const address = buildAddress(opts.baseUrl ?? config.site.baseUrl);
+	process.env.REVELAR_BASE_URL = address;
+	process.env.BASE_PATH =
+		USER_BASE_PATH ?? (address ? new URL(address).pathname : '').replace(/\/+$/, '');
 	// vite.config.ts cannot load the site config itself (see there), so it learns from here
 	// whether the global map page exists at all; listing it otherwise logs a 404 for nothing.
 	process.env.REVELAR_GLOBAL_MAP = config.map.enabled && config.map.globalMap ? '1' : '0';

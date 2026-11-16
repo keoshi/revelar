@@ -1,5 +1,6 @@
 import { error } from '@sveltejs/kit';
-import { publicAlbums } from '#lib/server/manifest.ts';
+import { publicAlbums, rootAlbum } from '#lib/server/manifest.ts';
+import { albumMapLoad } from '#lib/server/album.ts';
 import { siteConfig } from '#lib/server/site.ts';
 import { compactSources, type ImageSources } from '#lib/utils/sources.ts';
 import type { PageServerLoad } from './$types';
@@ -8,6 +9,13 @@ import type { PageServerLoad } from './$types';
 // to tolerate for this path (see vite.config.ts), so no /map/ page is written.
 
 export const load: PageServerLoad = () => {
+	// A single-album site serves that album's map here.
+	const root = rootAlbum();
+	if (root) {
+		const map = albumMapLoad(root);
+		if (!map) error(404, 'Map not available');
+		return { kind: 'album' as const, ...map };
+	}
 	const config = siteConfig();
 	if (!config.map.enabled || !config.map.globalMap) error(404, 'Map not available');
 	const albums = publicAlbums().filter((a) => a.bounds);
@@ -29,6 +37,7 @@ export const load: PageServerLoad = () => {
 	const lngs = photos.map((p) => p.gps.lng);
 	const lats = photos.map((p) => p.gps.lat);
 	return {
+		kind: 'global' as const,
 		photos,
 		bounds: [
 			[Math.min(...lngs), Math.min(...lats)],

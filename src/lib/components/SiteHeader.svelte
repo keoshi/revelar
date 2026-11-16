@@ -3,7 +3,7 @@
 	import ThemeToggle from './ThemeToggle.svelte';
 
 	type Props = { title: string; href?: string; themeMode: 'system' | 'dark' | 'light' };
-	/** `href` overrides the home link, e.g. straight to the only album */
+	/** `href` overrides the home link */
 	let { title, href, themeMode }: Props = $props();
 </script>
 

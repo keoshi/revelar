@@ -20,7 +20,8 @@ export function siteSettings(): SiteSettings {
 	return {
 		title: c.site.title,
 		description: c.site.description,
-		baseUrl: c.site.baseUrl.replace(/\/$/, ''),
+		// The address this build is for (set by the engine per publish target), else the config's.
+		baseUrl: (process.env.REVELAR_BASE_URL ?? c.site.baseUrl).replace(/\/$/, ''),
 		author: c.site.author,
 		authorUrl: c.site.authorUrl,
 		copyright: c.site.copyright,

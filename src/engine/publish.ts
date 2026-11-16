@@ -1,15 +1,18 @@
 /**
  * Publishing a built site to a static host with nothing but a token: Netlify (zip deploy),
- * Vercel (file upload plus a deployment), Cloudflare Pages (direct upload) and GitHub Pages (a
- * `gh-pages` branch written through the Git data API). Every provider has the same shape, a
+ * Vercel (file upload plus a deployment), Cloudflare Pages (direct upload), GitHub Pages (a
+ * `gh-pages` branch written through the Git data API) and Spacefast (a file manifest, then the
+ * uploads it asks for). Every provider has the same shape, a
  * token, a name and a URL back, so a "Publish" button can offer them side by side.
  *
- * `publishSite` wraps a provider with the site address: when `site.baseUrl` is still the
- * placeholder or a host-given address, it is set to where the site will live before the build,
- * and corrected (with one more build and upload) if the host hands back a different one.
+ * `publishSite` wraps a provider with the address each copy is built for. A site with a domain of
+ * its own (`site.baseUrl`) points every copy's shared links, sitemap and feed at that domain, the
+ * primary address. Without one, each copy uses its host's address: predicted before the build,
+ * and corrected (one more build and upload) if the host hands back another. Nothing is written to
+ * the config, so publishing to several hosts never leaves one copy pointing at another.
  * `exportSite` is the same without a host: the built folder (or a zip of it) to upload anywhere.
  */
-import { createHash } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import { createWriteStream, readdirSync, readFileSync, statSync } from 'node:fs';
 import { readFile, rm } from 'node:fs/promises';
 import { extname, join, relative, resolve } from 'node:path';
@@ -20,13 +23,28 @@ import { blake3 } from '@noble/hashes/blake3.js';
 import { bytesToHex, utf8ToBytes } from '@noble/hashes/utils.js';
 import { runIngest, type IngestEvent } from './ingest.ts';
 import { buildSite } from './build.ts';
-import { patchConfig, readConfig } from './site.ts';
+import { readConfig } from './site.ts';
+
+/**
+ * The four stages every publish goes through, whatever the host: a progress view can show them
+ * as a short checklist while `status` messages carry each host's own detail.
+ */
+export type PublishPhase = 'process' | 'build' | 'upload' | 'live';
+export const PUBLISH_PHASES: PublishPhase[] = ['process', 'build', 'upload', 'live'];
 
 export type PublishEvent =
-	{ type: 'status'; message: string } | { type: 'progress'; done: number; total: number };
+	| { type: 'status'; message: string }
+	| { type: 'progress'; done: number; total: number }
+	| { type: 'phase'; phase: PublishPhase };
 
-export type PublishTarget = 'netlify' | 'vercel' | 'cloudflare' | 'github';
-export const PUBLISH_TARGETS: PublishTarget[] = ['netlify', 'vercel', 'cloudflare', 'github'];
+export type PublishTarget = 'netlify' | 'vercel' | 'cloudflare' | 'github' | 'spacefast';
+export const PUBLISH_TARGETS: PublishTarget[] = [
+	'netlify',
+	'vercel',
+	'cloudflare',
+	'github',
+	'spacefast'
+];
 
 export type PublishOptions = {
 	/** absolute path of the built site */
@@ -38,7 +56,7 @@ export type PublishOptions = {
 	name?: string;
 	/** Cloudflare account ID */
 	account?: string;
-	/** an existing Netlify site to update instead of creating one */
+	/** an existing Netlify site or Spacefast space to update instead of creating one */
 	siteId?: string;
 	onEvent?: (e: PublishEvent) => void;
 };
@@ -46,7 +64,7 @@ export type PublishOptions = {
 export type PublishResult = {
 	target: PublishTarget;
 	name: string;
-	/** Netlify's site id (needed to update the same site again) */
+	/** Netlify's site id or Spacefast's space id (needed to update the same site again) */
 	siteId?: string;
 	/** where the site is served from, without a trailing slash */
 	url: string;
@@ -122,10 +140,30 @@ async function request<T>(
 		body: json !== undefined ? JSON.stringify(json) : rest.body
 	});
 	if (!res.ok) {
-		const text = (await res.text()).slice(0, 400);
-		throw new Error(`${label} (${res.status}): ${text || res.statusText}`);
+		const text = await res.text();
+		throw new Error(`${label} (${res.status}): ${problemText(text) || res.statusText}`);
 	}
 	return res.status === 204 ? (undefined as T) : ((await res.json()) as T);
+}
+
+/** An RFC 9457 problem document reads as its detail, code and request id; anything else as is. */
+function problemText(text: string): string {
+	try {
+		const p = JSON.parse(text) as {
+			detail?: string;
+			title?: string;
+			code?: string;
+			requestId?: string;
+		};
+		const detail = p.detail ?? p.title;
+		if (detail) {
+			const refs = [p.code, p.requestId && `request ${p.requestId}`].filter(Boolean).join(', ');
+			return refs ? `${detail} (${refs})` : detail;
+		}
+	} catch {
+		// not JSON
+	}
+	return text.slice(0, 400);
 }
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
@@ -144,6 +182,8 @@ export function predictUrl(
 			return `https://${name}.vercel.app`;
 		case 'cloudflare':
 			return `https://${name}.pages.dev`;
+		case 'spacefast':
+			return `https://${name}.space.fast`;
 		case 'github': {
 			if (!extra.login) return undefined;
 			const login = extra.login.toLowerCase();
@@ -155,8 +195,8 @@ export function predictUrl(
 }
 
 /**
- * Whether `baseUrl` is one the publisher may overwrite: the placeholder, empty, or an address a
- * host hands out. A custom domain is the owner's decision and is left alone.
+ * Whether `baseUrl` is not a domain of the owner's: empty, the old placeholder, or an address a
+ * host hands out (which earlier versions wrote into the config when publishing).
  */
 export function isManagedUrl(baseUrl: string): boolean {
 	if (!baseUrl) return true;
@@ -164,7 +204,7 @@ export function isManagedUrl(baseUrl: string): boolean {
 		const host = new URL(baseUrl).hostname;
 		return (
 			host === 'photos.example.com' ||
-			/\.(netlify\.app|vercel\.app|pages\.dev|github\.io)$/.test(host)
+			/\.(netlify\.app|vercel\.app|pages\.dev|github\.io|space\.fast|view\.fast)$/.test(host)
 		);
 	} catch {
 		return true;
@@ -184,6 +224,8 @@ export async function publish(opts: PublishOptions): Promise<PublishResult> {
 			return publishCloudflare(opts);
 		case 'github':
 			return publishGitHub(opts);
+		case 'spacefast':
+			return publishSpacefast(opts);
 	}
 }
 
@@ -194,46 +236,45 @@ export type PublishSiteOptions = Omit<PublishOptions, 'dir'> & {
 };
 
 export type PublishSiteResult = PublishResult & {
-	/** `site.baseUrl` after publishing */
+	/** the address this copy was built with: the site's own domain, or the host's address */
 	baseUrl: string;
-	/** whether the config was rewritten with the live address */
+	/** always false: publishing no longer writes the config (kept for older callers) */
 	baseUrlChanged: boolean;
 };
 
+/** The site's own domain from the config, or '' when it has none. */
+export function ownDomain(baseUrl: string): string {
+	return isManagedUrl(baseUrl) ? '' : baseUrl.replace(/\/+$/, '');
+}
+
 /**
- * Processes, builds and publishes a site, keeping `site.baseUrl` in step with where it lives so
- * shared links, the sitemap and feeds point at the right place without the owner editing the
- * config by hand.
+ * Processes, builds and publishes a site. Each copy is built for its address (see the top of this
+ * file), so shared links, the sitemap and feeds point at the right place on every host.
  */
 export async function publishSite(opts: PublishSiteOptions): Promise<PublishSiteResult> {
 	const emit: Emit = opts.onEvent ?? (() => {});
 	const { root } = opts;
-	let config = await readConfig(root);
-	const managed = isManagedUrl(config.site.baseUrl);
-	let changed = false;
+	const config = await readConfig(root);
+	const primary = ownDomain(config.site.baseUrl);
+	let address = primary || (await expectedUrl(opts)) || '';
 
-	const expected = await expectedUrl(opts);
-	if (managed && expected && normaliseUrl(expected) !== normaliseUrl(config.site.baseUrl)) {
-		emit({ type: 'status', message: `Site address set to ${expected}` });
-		config = await patchConfig(root, { site: { baseUrl: expected } });
-		changed = true;
-	}
-
+	emit({ type: 'phase', phase: 'process' });
 	emit({ type: 'status', message: 'Processing photos' });
 	await runIngest({ root, quiet: true, onEvent: opts.onIngest });
+	emit({ type: 'phase', phase: 'build' });
 	emit({ type: 'status', message: 'Building the site' });
-	await buildSite({ root, logLevel: 'warn' });
+	await buildSite({ root, baseUrl: address, logLevel: 'warn' });
 
 	const dir = resolve(root, 'build');
+	emit({ type: 'phase', phase: 'upload' });
 	let result = await publish({ ...opts, dir });
 
 	// The host chose a different address (a name taken, a random Netlify name): build once more
 	// with the real one so nothing inside the site points at the wrong place.
-	if (managed && result.url && normaliseUrl(result.url) !== normaliseUrl(config.site.baseUrl)) {
+	if (!primary && result.url && normaliseUrl(result.url) !== normaliseUrl(address)) {
 		emit({ type: 'status', message: `Live at ${result.url}; rebuilding with that address` });
-		config = await patchConfig(root, { site: { baseUrl: result.url } });
-		changed = true;
-		await buildSite({ root, logLevel: 'warn' });
+		address = result.url;
+		await buildSite({ root, baseUrl: address, logLevel: 'warn' });
 		result = await publish({
 			...opts,
 			dir,
@@ -242,13 +283,13 @@ export async function publishSite(opts: PublishSiteOptions): Promise<PublishSite
 		});
 	}
 	emit({ type: 'status', message: `Live at ${result.url}` });
-	return { ...result, baseUrl: config.site.baseUrl, baseUrlChanged: changed };
+	return { ...result, baseUrl: address, baseUrlChanged: false };
 }
 
 export type ExportSiteOptions = {
 	/** the site folder */
 	root: string;
-	/** where the owner will upload the site; becomes `site.baseUrl` */
+	/** where the owner will upload the site: what this build's links use (not saved to the config) */
 	baseUrl: string;
 	onEvent?: (e: PublishEvent) => void;
 	onIngest?: (e: IngestEvent) => void;
@@ -260,13 +301,14 @@ export type ExportSiteResult = {
 	files: number;
 	bytes: number;
 	baseUrl: string;
+	/** always false: the address is not written to the config (kept for older callers) */
 	baseUrlChanged: boolean;
 };
 
 /**
  * Processes and builds a site for a server of the owner's own: no host, no token. The address
  * matters as much as with a host (shared links, the sitemap and feeds use it, and a path such as
- * `/photos` makes every page work from that subfolder), so it is written into the config first.
+ * `/photos` makes every page work from that subfolder), so the build is made for it.
  */
 export async function exportSite(opts: ExportSiteOptions): Promise<ExportSiteResult> {
 	const emit = opts.onEvent ?? (() => {});
@@ -282,17 +324,12 @@ export async function exportSite(opts: ExportSiteOptions): Promise<ExportSiteRes
 	if (url.hostname === 'photos.example.com')
 		throw new Error('Enter the address the site will live at');
 	const baseUrl = url.href.replace(/\/+$/, '');
-
-	let config = await readConfig(root);
-	let changed = false;
-	if (normaliseUrl(baseUrl) !== normaliseUrl(config.site.baseUrl)) {
-		config = await patchConfig(root, { site: { baseUrl } });
-		changed = true;
-	}
+	emit({ type: 'phase', phase: 'process' });
 	emit({ type: 'status', message: 'Processing photos' });
 	await runIngest({ root, quiet: true, onEvent: opts.onIngest });
+	emit({ type: 'phase', phase: 'build' });
 	emit({ type: 'status', message: 'Building the site' });
-	await buildSite({ root, logLevel: 'warn' });
+	await buildSite({ root, baseUrl, logLevel: 'warn' });
 
 	const dir = resolve(root, 'build');
 	const files = listFiles(dir);
@@ -300,8 +337,8 @@ export async function exportSite(opts: ExportSiteOptions): Promise<ExportSiteRes
 		dir,
 		files: files.length,
 		bytes: files.reduce((sum, f) => sum + f.size, 0),
-		baseUrl: config.site.baseUrl,
-		baseUrlChanged: changed
+		baseUrl,
+		baseUrlChanged: false
 	};
 }
 
@@ -381,6 +418,7 @@ export async function publishNetlify(opts: Omit<PublishOptions, 'target'>): Prom
 	} finally {
 		await rm(zipPath, { force: true });
 	}
+	emit({ type: 'phase', phase: 'live' });
 	emit({ type: 'status', message: 'Waiting for Netlify to process the deploy' });
 	for (let i = 0; i < 150; i++) {
 		const state = await request<{ state: string; ssl_url?: string; url?: string; name?: string }>(
@@ -429,6 +467,7 @@ export async function publishVercel(opts: Omit<PublishOptions, 'target'>): Promi
 		(done, total) => emit({ type: 'progress', done, total })
 	);
 
+	emit({ type: 'phase', phase: 'live' });
 	emit({ type: 'status', message: 'Creating the deployment' });
 	const deployment = await request<{ id: string; url: string; readyState: string }>(
 		'Vercel: could not create the deployment',
@@ -567,6 +606,7 @@ export async function publishCloudflare(
 		json: { hashes: files.map((f) => f.hash) }
 	});
 
+	emit({ type: 'phase', phase: 'live' });
 	emit({ type: 'status', message: 'Creating the deployment' });
 	const form = new FormData();
 	form.append(
@@ -684,6 +724,7 @@ export async function publishGitHub(opts: Omit<PublishOptions, 'target'>): Promi
 		(done, total) => emit({ type: 'progress', done, total })
 	);
 
+	emit({ type: 'phase', phase: 'live' });
 	emit({ type: 'status', message: 'Committing' });
 	const { sha: treeSha } = await request<{ sha: string }>(
 		'GitHub: could not write the tree',
@@ -744,4 +785,301 @@ export async function publishGitHub(opts: Omit<PublishOptions, 'target'>): Promi
 		if (status === 'errored') throw new Error('GitHub Pages reported a failed build');
 	}
 	return { target: 'github', name, url };
+}
+
+// ---- Spacefast --------------------------------------------------------------------------------
+//
+// Follows Spacefast's own SDK (packages/sdk/src/publish in spacefast/monorepo): declare every
+// file, upload what the session asks for page by page, call `uploads/refresh` after each page
+// until nothing is pending (that call finalizes the version), then wait for the version.
+
+const SPACEFAST = 'https://api.spacefast.com';
+const SF_CONCURRENCY = 4;
+const SF_ATTEMPTS = 4;
+const SF_REQUEST_TIMEOUT_MS = 60_000;
+const SF_WAIT_MS = 15 * 60_000;
+const SF_STALLED_REFRESHES = 3;
+
+type SpacefastSpace = { id: string; slug: string; defaultHostname: string; liveUrl: string | null };
+type SpacefastTarget = {
+	path: string;
+	method: 'PUT' | 'POST';
+	url: string;
+	headers?: Record<string, string>;
+	body?: { kind: 'url'; url: string };
+};
+type SpacefastUpload = {
+	id: string;
+	summary: { upload: number; reused: number; ignored: number };
+	targets: SpacefastTarget[];
+};
+type SpacefastReceipt = {
+	space: SpacefastSpace;
+	version: { id: string; status: string };
+	next: { action: 'done' | 'upload' | 'finalize' | 'poll'; url?: string };
+	upload?: SpacefastUpload | null;
+};
+type SpacefastVersion = {
+	id: string;
+	status: string;
+	failureCode?: string | null;
+	failureMessage?: string | null;
+};
+
+/** The SDK's lifecycle classification (packages/sdk/src/publish/status.ts). */
+const SF_PENDING = new Set([
+	'building',
+	'prepared',
+	'created',
+	'uploading',
+	'uploaded',
+	'finalizing'
+]);
+
+/** A rejected upload: retried when the host is busy, refreshed when the address expired. */
+class SpacefastUploadError extends Error {
+	constructor(
+		message: string,
+		readonly status: number,
+		readonly code?: string
+	) {
+		super(message);
+	}
+	get expired() {
+		return this.code === 'upload_session_expired' || this.status === 401 || this.status === 403;
+	}
+	get retryable() {
+		return this.status === 0 || this.status === 408 || this.status === 429 || this.status >= 500;
+	}
+}
+
+/** The id of the account's space with this slug, if there is one. */
+async function spacefastSpaceBySlug(
+	slug: string,
+	auth: Record<string, string>
+): Promise<string | undefined> {
+	const res = await fetch(`${SPACEFAST}/v1/spaces`, { headers: auth });
+	if (!res.ok) return undefined;
+	const body = (await res.json()) as Record<string, unknown>;
+	const list = [
+		body.data,
+		(body.data as Record<string, unknown> | undefined)?.items,
+		body.items,
+		body.spaces
+	].find(Array.isArray) as { id?: string; slug?: string }[] | undefined;
+	return list?.find((s) => s.slug === slug)?.id;
+}
+
+/**
+ * With REVELAR_DEBUG set, each Spacefast reply is written to stderr with secrets taken out: the
+ * claim key, the access token and the query strings of pre-signed upload addresses.
+ */
+function trace(label: string, reply: unknown): void {
+	if (!process.env.REVELAR_DEBUG) return;
+	const clean = JSON.stringify(reply, (key, value: unknown) => {
+		if (key === 'key' || key === 'token' || key === 'claimUrl') return '[redacted]';
+		if (key === 'headers') return '[headers]';
+		if (key === 'targets' && Array.isArray(value)) return `[${value.length} targets]`;
+		if (typeof value === 'string' && /^https?:\/\/.*\?/.test(value))
+			return value.replace(/\?.*/, '?[redacted]');
+		return value;
+	});
+	process.stderr.write(`[spacefast] ${label} ${clean.slice(0, 2000)}\n`);
+}
+
+export async function publishSpacefast(
+	opts: Omit<PublishOptions, 'target'>
+): Promise<PublishResult> {
+	const auth = { Authorization: `Bearer ${opts.token}`, 'x-spacefast-client': 'revelar' };
+	const emit: Emit = opts.onEvent ?? (() => {});
+	const name = opts.name?.trim();
+	const api = (url: string) => new URL(url, SPACEFAST);
+	const call = async <T>(
+		label: string,
+		url: string,
+		init: RequestInit & { json?: unknown } = {}
+	) => {
+		const body = await request<{ data?: T } & T>(`Spacefast: ${label}`, api(url).href, {
+			...init,
+			headers: { ...auth, ...init.headers }
+		});
+		const reply = (body?.data ?? body) as T;
+		trace(label, reply);
+		return reply;
+	};
+
+	emit({ type: 'status', message: 'Listing the files' });
+	const files = listFiles(opts.dir).map((f) => ({
+		...f,
+		sha256: createHash('sha256').update(readFileSync(f.abs)).digest('hex')
+	}));
+	const byPath = new Map(files.map((f) => [f.rel, f]));
+
+	// ---- declare the version
+	emit({ type: 'status', message: opts.siteId ? 'Updating the space' : 'Creating the space' });
+	const start = (target: object) =>
+		call<SpacefastReceipt>('could not start the publish', '/v1/publish', {
+			method: 'POST',
+			headers: { 'Idempotency-Key': randomUUID() },
+			json: {
+				files: files.map((f) => ({
+					path: f.rel,
+					size: f.size,
+					sha256: f.sha256,
+					contentType: contentType(f.rel)
+				})),
+				publishMode: 'snapshot',
+				...target,
+				source: { kind: 'api', client: 'revelar', message: 'Publish site' }
+			}
+		});
+	let receipt: SpacefastReceipt;
+	try {
+		receipt = await start(
+			opts.siteId ? { spaceId: opts.siteId } : name ? { space: { slug: name, title: name } } : {}
+		);
+	} catch (err) {
+		// The name is taken. When it is a space in this account (an earlier publish that stopped
+		// half way, or one made on the dashboard), update that space instead.
+		const own =
+			!opts.siteId && name && String(err).includes('slug_unavailable')
+				? await spacefastSpaceBySlug(name, auth)
+				: undefined;
+		if (!own) throw err;
+		emit({ type: 'status', message: `Updating the existing space ${name}` });
+		receipt = await start({ spaceId: own });
+	}
+	const { space } = receipt;
+	if (!space?.id || !receipt.version?.id)
+		throw new Error('Spacefast: the publish started without a space or version');
+	const versionPath = `/v1/spaces/${space.id}/versions/${receipt.version.id}`;
+	const refresh = () =>
+		call<{ upload?: SpacefastUpload | null }>(
+			'could not refresh the upload',
+			`${versionPath}/uploads/refresh`,
+			{ method: 'POST', json: {} }
+		);
+
+	// ---- upload, page by page
+	let session = receipt.upload ?? null;
+	const total = session?.summary.upload ?? 0;
+	let uploaded = 0;
+	let stalled = 0;
+	if (session?.targets.length) emit({ type: 'status', message: `Uploading ${total} files` });
+	while (session?.targets.length) {
+		const before = session.targets.map((t) => t.path).join('\n');
+		let expired = false;
+		try {
+			await uploadSpacefastPage(session.targets, byPath, auth, () =>
+				emit({ type: 'progress', done: ++uploaded, total: Math.max(total, uploaded) })
+			);
+		} catch (err) {
+			if (!(err instanceof SpacefastUploadError && err.expired)) throw err;
+			expired = true; // fresh addresses come from the refresh below
+		}
+		// Refreshing after the last page is what finalizes the version.
+		session = (await refresh()).upload ?? null;
+		const after = session?.targets.map((t) => t.path).join('\n');
+		stalled = session && (after === before || expired) ? stalled + 1 : 0;
+		if (stalled >= SF_STALLED_REFRESHES)
+			throw new Error('Spacefast: the upload is not moving forward; try publishing again');
+	}
+
+	// ---- wait for the version
+	emit({ type: 'phase', phase: 'live' });
+	emit({ type: 'status', message: 'Waiting for Spacefast to put it live' });
+	const deadline = Date.now() + SF_WAIT_MS;
+	let finalized = false;
+	for (let check = 0; ; check++) {
+		const version = await call<SpacefastVersion>('could not read the version', versionPath);
+		if (version.status === 'ready') break;
+		if (version.status === 'uploaded' && !finalized) {
+			// The server handed the last step back: finalize explicitly, once.
+			finalized = true;
+			await call('could not finalize', `${versionPath}/finalize`, { method: 'POST', json: {} });
+			continue;
+		}
+		if (!SF_PENDING.has(version.status)) {
+			const why = version.failureMessage ?? version.failureCode;
+			throw new Error(`Spacefast reported a ${version.status} publish${why ? `: ${why}` : ''}`);
+		}
+		if (Date.now() > deadline) throw new Error('Spacefast: the publish did not finish in time');
+		await sleep(Math.min(300 * 2 ** check, 1000));
+	}
+
+	const url = (space.liveUrl ?? `https://${space.defaultHostname}`).replace(/\/+$/, '');
+	return { target: 'spacefast', siteId: space.id, name: space.slug, url };
+}
+
+/**
+ * Sends one page of upload targets the way Spacefast's SDK does: four at a time, halving under
+ * pressure, each with a timeout and up to four attempts with backoff for busy or flaky hosts.
+ * An expired address stops the page so the caller can refresh it.
+ */
+async function uploadSpacefastPage(
+	targets: SpacefastTarget[],
+	byPath: Map<string, Entry>,
+	auth: Record<string, string>,
+	onDone: () => void
+): Promise<void> {
+	let concurrency = SF_CONCURRENCY;
+	let next = 0;
+	const one = async (t: SpacefastTarget) => {
+		const to = new URL(t.url, SPACEFAST);
+		const file = byPath.get(t.path);
+		if (!file && t.body?.kind !== 'url')
+			throw new Error(`Spacefast asked for a file that is not in the site: ${t.path}`);
+		for (let attempt = 0; ; attempt++) {
+			try {
+				let res: Response;
+				try {
+					res = await fetch(to, {
+						method: t.method,
+						headers: {
+							'Content-Type': file ? contentType(t.path) : 'application/json',
+							// only the API's own paths get the token; upload targets are pre-signed
+							...(to.origin === SPACEFAST ? auth : {}),
+							...t.headers
+						},
+						body: file ? readFileSync(file.abs) : JSON.stringify({ url: t.body?.url }),
+						redirect: 'manual',
+						signal: AbortSignal.timeout(SF_REQUEST_TIMEOUT_MS)
+					});
+				} catch (err) {
+					throw new SpacefastUploadError(
+						`Spacefast: upload of ${t.path} failed: ${err instanceof Error ? err.message : String(err)}`,
+						0
+					);
+				}
+				if (!res.ok) {
+					const text = await res.text();
+					let code: string | undefined;
+					try {
+						code = (JSON.parse(text) as { code?: string }).code;
+					} catch {
+						// not a problem document
+					}
+					throw new SpacefastUploadError(
+						`Spacefast: upload of ${t.path} failed (${res.status}): ${problemText(text) || res.statusText}`,
+						res.status,
+						code
+					);
+				}
+				onDone();
+				return;
+			} catch (err) {
+				const retry =
+					err instanceof SpacefastUploadError && err.retryable && attempt < SF_ATTEMPTS - 1;
+				if (!retry) throw err;
+				concurrency = Math.max(1, Math.floor(concurrency / 2));
+				await sleep(Math.min(2 ** attempt * 1000, 10_000));
+			}
+		}
+	};
+	const worker = async (slot: number): Promise<void> => {
+		while (slot < concurrency && next < targets.length) await one(targets[next++]);
+	};
+	await Promise.all(
+		Array.from({ length: Math.min(SF_CONCURRENCY, targets.length) }, (_, slot) => worker(slot))
+	);
 }

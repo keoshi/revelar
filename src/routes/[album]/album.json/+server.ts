@@ -1,5 +1,5 @@
 import { error, json } from '@sveltejs/kit';
-import { findAlbum, loadManifest } from '#lib/server/manifest.ts';
+import { findAlbum, loadManifest, rootAlbum } from '#lib/server/manifest.ts';
 import { albumPageData } from '#lib/server/album.ts';
 import type { EntryGenerator, RequestHandler } from './$types';
 
@@ -9,7 +9,11 @@ import type { EntryGenerator, RequestHandler } from './$types';
  */
 export const prerender = true;
 
-export const entries: EntryGenerator = () => loadManifest().albums.map((a) => ({ album: a.slug }));
+// The root album's list is /album.json instead.
+export const entries: EntryGenerator = () =>
+	loadManifest()
+		.albums.filter((a) => a.slug !== rootAlbum()?.slug)
+		.map((a) => ({ album: a.slug }));
 
 export const GET: RequestHandler = ({ params }) => {
 	const album = findAlbum(params.album);

@@ -35,7 +35,7 @@ let configuredBase = process.env.BASE_PATH;
 if (configuredBase === undefined) {
 	try {
 		const revelar: RevelarConfigInput = (await import(pathToFileURL(configPath).href)).default;
-		configuredBase = new URL(revelar.site.baseUrl).pathname;
+		configuredBase = revelar.site.baseUrl ? new URL(revelar.site.baseUrl).pathname : '';
 	} catch {
 		configuredBase = '';
 	}
@@ -109,20 +109,29 @@ export default defineConfig({
 			prerender: {
 				// Endpoints are not discovered by crawling; list them (and the optional global map) explicitly.
 				entries: wantsGlobalMap()
-					? ['*', '/robots.txt', '/sitemap.xml', '/rss.xml', '/map/']
-					: ['*', '/robots.txt', '/sitemap.xml', '/rss.xml'],
+					? ['*', '/robots.txt', '/sitemap.xml', '/rss.xml', '/album.json', '/map/']
+					: ['*', '/robots.txt', '/sitemap.xml', '/rss.xml', '/album.json'],
 				handleUnseenRoutes: ({ routes }) => {
 					// Routes whose entries() returned nothing (e.g. no private albums) are fine.
 					const unexpected = routes.filter(
-						(r) => !['/p/[token]', '/[album]/map', '/map'].includes(r)
+						(r) =>
+							![
+								'/p/[token]',
+								'/[album]/map',
+								'/[album]/album.json',
+								'/map',
+								'/album.json'
+							].includes(r)
 					);
 					if (unexpected.length)
 						throw new Error(`Routes not prerendered: ${unexpected.join(', ')}`);
 				},
 				handleHttpError: ({ path, status, message }) => {
-					// Optional outputs: /map/ (global map), sitemap.xml and rss.xml can be disabled in config.
+					// Optional outputs: /map/ (global map), sitemap.xml and rss.xml can be disabled in
+					// config, and /album.json only exists for a single-album site.
 					const optional = [
 						`${basePath()}/map`,
+						`${basePath()}/album.json`,
 						`${basePath()}/sitemap.xml`,
 						`${basePath()}/rss.xml`
 					];

@@ -1,5 +1,6 @@
 import { error } from '@sveltejs/kit';
-import { publicAlbums } from '#lib/server/manifest.ts';
+import { publicAlbums, rootAlbum } from '#lib/server/manifest.ts';
+import { albumPath } from '#lib/utils/href.ts';
 import { siteConfig, siteSettings } from '#lib/server/site.ts';
 import type { RequestHandler } from './$types';
 
@@ -17,10 +18,12 @@ export const GET: RequestHandler = () => {
 	const config = siteConfig();
 	if (!config.feeds.rss) error(404, 'RSS disabled');
 	const site = siteSettings();
+	// A feed links absolute addresses: without one (a build for no host) there is none.
+	if (!site.baseUrl) error(404, 'No site address');
 	const albums = publicAlbums();
 	const items = albums
 		.map((album) => {
-			const url = `${site.baseUrl}/${album.slug}/`;
+			const url = `${site.baseUrl}${albumPath(album.slug, rootAlbum()?.slug)}`;
 			const cover =
 				'base' in album.cover.sources
 					? `${album.cover.sources.base}-${album.cover.sources.jpegWidth}.jpg`

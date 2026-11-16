@@ -10,9 +10,18 @@ const hexColor = v.pipe(v.string(), v.regex(/^#[0-9a-fA-F]{6}$/, 'must be a 6-di
 const SiteSchema = v.object({
 	title: v.optional(v.string(), 'Revelar'),
 	description: v.optional(v.string(), ''),
-	baseUrl: v.pipe(
-		v.string('site.baseUrl is required (used for canonical and Open Graph URLs)'),
-		v.url('site.baseUrl must be an absolute URL, e.g. https://photos.example.com')
+	// The site's own address, when it has one (a domain of the owner's). Optional: publishing to
+	// a host builds with that host's address, and a copy published anywhere points shared links
+	// and search engines here when it is set.
+	baseUrl: v.optional(
+		v.pipe(
+			v.string(),
+			v.check(
+				(s) => s === '' || /^https?:\/\/[^/]/.test(s),
+				'site.baseUrl must be empty or an absolute URL, e.g. https://photos.example.com'
+			)
+		),
+		''
 	),
 	author: v.optional(v.string(), ''),
 	// Linked from the footer and used as the creator URL in structured data.
@@ -95,7 +104,7 @@ export const ConfigSchema = v.object({
 	)
 });
 
-/** The user-facing input shape: every field except `site.baseUrl` is optional. */
+/** The user-facing input shape: every field is optional. */
 export type RevelarConfigInput = v.InferInput<typeof ConfigSchema>;
 /** The resolved shape with all defaults applied. */
 export type RevelarConfig = v.InferOutput<typeof ConfigSchema>;

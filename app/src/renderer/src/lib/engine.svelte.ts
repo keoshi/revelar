@@ -7,6 +7,7 @@ import type {
 	PublishEvent,
 	PublishSiteResult,
 	PublishTarget,
+	PublishPhase,
 	ExportSiteResult
 } from '@index84/revelar';
 
@@ -42,7 +43,7 @@ export const engine = {
 	build: (root: string) => bridge().call<{ outDir: string }>('build', { root }),
 	previewStart: (root: string) => bridge().call<{ url: string }>('preview.start', { root }),
 	previewStop: () => bridge().call('preview.stop'),
-	/** Processes, builds and uploads the site, keeping `site.baseUrl` in step with the host. */
+	/** Processes, builds and uploads the site, built for the host's address unless it has a domain. */
 	publish: (
 		root: string,
 		opts: { target: PublishTarget; token: string; name?: string; account?: string; siteId?: string }
@@ -62,7 +63,10 @@ export const activity = $state({
 	slug: '',
 	done: 0,
 	total: 0,
-	log: [] as { level: string; message: string }[]
+	log: [] as { level: string; message: string }[],
+	/** a publish's checklist: the stages it goes through, and how far it is (-1 before the first) */
+	phases: [] as { key: PublishPhase; label: string }[],
+	phase: -1
 });
 
 let siteListeners: (() => void)[] = [];
@@ -91,7 +95,17 @@ export function watchEvents(): () => void {
 		} else if (event === 'publish') {
 			const e = data as PublishEvent;
 			if (e.type === 'status') activity.label = e.message;
-			else if (activity.counts) {
+			else if (e.type === 'phase') {
+				// Only forward: a rebuild for a corrected address stays under "Going live".
+				const i = activity.phases.findIndex((p) => p.key === e.phase);
+				if (i > activity.phase) {
+					activity.phase = i;
+					// counts belong to the stage that reports them
+					activity.slug = '';
+					activity.done = 0;
+					activity.total = 0;
+				}
+			} else if (activity.counts) {
 				activity.done = e.done;
 				activity.total = e.total;
 			}
@@ -102,8 +116,10 @@ export function watchEvents(): () => void {
 export async function run<T>(
 	label: string,
 	fn: () => Promise<T>,
-	opts: { counts?: boolean } = {}
+	opts: { counts?: boolean; phases?: { key: PublishPhase; label: string }[] } = {}
 ): Promise<T> {
+	activity.phases = opts.phases ?? [];
+	activity.phase = -1;
 	activity.busy = true;
 	activity.counts = opts.counts ?? true;
 	activity.label = label;
@@ -111,10 +127,17 @@ export async function run<T>(
 	activity.done = 0;
 	activity.total = 0;
 	try {
-		return await fn();
+		const result = await fn();
+		if (activity.phases.length) {
+			// a beat with every stage checked, so the end is seen before the card goes
+			activity.phase = activity.phases.length;
+			await new Promise((r) => setTimeout(r, 700));
+		}
+		return result;
 	} finally {
 		activity.busy = false;
 		activity.label = '';
+		activity.phases = [];
 	}
 }
 

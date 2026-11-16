@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { engine, type SiteState } from '../lib/engine.svelte.ts';
+	import { isHostAddress } from '../lib/address.ts';
 	import Seg from '../lib/Seg.svelte';
 	import { autosave } from '../lib/autosave.svelte.ts';
 	import { onCommand } from '../lib/commands.ts';
@@ -40,7 +41,9 @@
 	let form = $state({
 		title: c.site.title,
 		description: c.site.description,
-		baseUrl: c.site.baseUrl,
+		// Only a domain of the owner's: an address a host gave (written by earlier versions when
+		// publishing) shows as empty, and saving clears it.
+		baseUrl: isHostAddress(c.site.baseUrl) ? '' : c.site.baseUrl,
 		author: c.site.author,
 		authorUrl: c.site.authorUrl ?? '',
 		copyright: c.site.copyright,
@@ -71,6 +74,9 @@
 		};
 	});
 
+	/** "photos.example.com" is read as https://photos.example.com. */
+	const withScheme = (url: string) => (url && !/^https?:\/\//i.test(url) ? `https://${url}` : url);
+
 	async function save() {
 		error = '';
 		try {
@@ -78,7 +84,7 @@
 				site: {
 					title: form.title,
 					description: form.description,
-					baseUrl: form.baseUrl,
+					baseUrl: withScheme(form.baseUrl.trim()),
 					author: form.author,
 					authorUrl: form.authorUrl,
 					copyright: form.copyright,
@@ -133,10 +139,18 @@
 				<label for="s-desc">Description</label><input id="s-desc" bind:value={form.description} />
 			</div>
 			<div class="r">
-				<label for="s-url">Address</label>
+				<label for="s-url">Your domain</label>
 				<div>
-					<input id="s-url" bind:value={form.baseUrl} placeholder="https://photos.example.com" />
-					<p class="hint">Filled in when you publish. Set it yourself only for your own domain.</p>
+					<input
+						id="s-url"
+						type="url"
+						bind:value={form.baseUrl}
+						placeholder="Optional, e.g. https://photos.example.com"
+					/>
+					<p class="hint">
+						Leave empty and each host's copy links to itself. With your own domain, every copy sends
+						shared links and search engines there.
+					</p>
 				</div>
 			</div>
 			<div class="r">

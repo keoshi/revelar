@@ -1,11 +1,13 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { siCloudflare, siGithub, siNetlify, siVercel } from 'simple-icons';
+	import type { PublishPhase } from '@index84/revelar';
 	import type { PublishChoice, PublishTarget, PublishedSite } from '../../../shared/api.ts';
 	import { engine, run, type SiteState } from '../lib/engine.svelte.ts';
+	import { isHostAddress } from '../lib/address.ts';
 
-	type Props = { site: SiteState; onPublished: (baseUrl: string) => void };
-	let { site, onPublished }: Props = $props();
+	type Props = { site: SiteState };
+	let { site }: Props = $props();
 
 	type Provider = {
 		label: string;
@@ -66,16 +68,42 @@
 				'Settings → Developer settings → Tokens, with the "repo" scope. A public repository is created if needed.',
 			tokenUrl: 'https://github.com/settings/tokens/new?scopes=repo&description=Revelar',
 			address: (n) => `you.github.io/${n || 'my-photos'}`
+		},
+		spacefast: {
+			label: 'Spacefast',
+			// No mark in simple-icons: a four-point spark, monochrome like Vercel and GitHub.
+			icon: {
+				path: 'M12 1.5l2.6 7.9 7.9 2.6-7.9 2.6-2.6 7.9-2.6-7.9L1.5 12l7.9-2.6z',
+				hex: '000000'
+			},
+			color: 'var(--ink)',
+			nameLabel: 'Space name',
+			namePlaceholder: 'my-photos',
+			tokenLabel: 'API key',
+			tokenHelp: 'Dashboard → API keys, with the "Space publisher" preset',
+			tokenUrl: 'https://spacefast.com',
+			address: (n) => `${n || 'my-photos'}.space.fast`
 		}
 	};
-	const TARGETS = Object.keys(PROVIDERS) as PublishTarget[];
+	/** Hosts that remember the site by id, so the name only counts when creating it. */
+	const BY_ID: PublishChoice[] = ['netlify', 'spacefast'];
+	const TARGETS: PublishTarget[] = ['spacefast', 'netlify', 'vercel', 'cloudflare', 'github'];
+	/** The checklist the progress card shows, the same for every host. */
+	const PHASES: { key: PublishPhase; label: string }[] = [
+		{ key: 'process', label: 'Processing photos' },
+		{ key: 'build', label: 'Building the site' },
+		{ key: 'upload', label: 'Uploading' },
+		{ key: 'live', label: 'Going live' }
+	];
 
-	let target = $state<PublishChoice>('netlify');
+	let target = $state<PublishChoice>('spacefast');
 	let token = $state('');
 	let name = $state('');
 	let account = $state('');
 	let siteId = $state<string | undefined>();
 	let liveUrl = $state('');
+	// Set by a publish in this visit, so the box can say so rather than just "Live".
+	let justPublished = $state(false);
 	let error = $state('');
 	let busy = $state(false);
 	let sites = $state<Partial<Record<PublishChoice, PublishedSite>>>({});
@@ -87,30 +115,18 @@
 
 	const provider = $derived(target === 'own' ? PROVIDERS.netlify : PROVIDERS[target]);
 	// A custom domain in the config is the owner's; a host-given one follows the publish target.
-	const managed = $derived(isManaged(site.config.site.baseUrl));
-	const address = $derived(
-		managed ? `https://${provider.address(name.trim())}` : site.config.site.baseUrl
-	);
-
-	function isManaged(url: string): boolean {
-		if (!url) return true;
-		try {
-			const host = new URL(url).hostname;
-			return (
-				host === 'photos.example.com' ||
-				/\.(netlify\.app|vercel\.app|pages\.dev|github\.io)$/.test(host)
-			);
-		} catch {
-			return true;
-		}
-	}
+	const managed = $derived(isHostAddress(site.config.site.baseUrl));
+	// Where this host serves the site: the last live address, else the one its name gives.
+	const address = $derived(liveUrl || `https://${provider.address(name.trim())}`);
+	const ownDomain = $derived(managed ? '' : site.config.site.baseUrl.replace(/^https?:\/\//, ''));
 
 	async function select(t: PublishChoice) {
 		target = t;
 		error = '';
+		justPublished = false;
 		if (t === 'own') {
 			const base = site.config.site.baseUrl;
-			ownUrl = sites.own?.url ?? (isManaged(base) ? '' : base);
+			ownUrl = sites.own?.url ?? (isHostAddress(base) ? '' : base);
 			return;
 		}
 		token = (await window.revelar.secrets.get(`${t}-token`)) ?? '';
@@ -130,7 +146,7 @@
 				siteId: settings.netlify.siteId,
 				url: settings.netlify.url
 			};
-		await select(settings.publish?.target ?? 'netlify');
+		await select(settings.publish?.target ?? 'spacefast');
 	});
 
 	async function makeFolder() {
@@ -138,8 +154,10 @@
 		zipped = '';
 		busy = true;
 		try {
-			const result = await run('Making the site folder', () =>
-				engine.export(site.root, ownUrl.trim())
+			const result = await run(
+				'Making the site folder',
+				() => engine.export(site.root, ownUrl.trim()),
+				{ phases: PHASES.slice(0, 2) }
 			);
 			built = { files: result.files, bytes: result.bytes };
 			ownUrl = result.baseUrl;
@@ -147,7 +165,6 @@
 			await window.revelar.settings.set({
 				publish: { target, sites: $state.snapshot(sites) }
 			});
-			onPublished(result.baseUrl);
 		} catch (e) {
 			error = e instanceof Error ? e.message : String(e);
 		} finally {
@@ -177,23 +194,30 @@
 		busy = true;
 		try {
 			await window.revelar.secrets.set(`${target}-token`, token);
-			const result = await run(`Publishing to ${provider.label}`, () =>
-				engine.publish(site.root, {
-					target: host,
-					token,
-					name: name.trim() || undefined,
-					account: account.trim() || undefined,
-					siteId
-				})
+			const result = await run(
+				`Publishing to ${provider.label}`,
+				() =>
+					engine.publish(site.root, {
+						target: host,
+						token,
+						name: name.trim() || undefined,
+						account: account.trim() || undefined,
+						siteId
+					}),
+				{
+					phases: PHASES.map((p) =>
+						p.key === 'upload' ? { ...p, label: `Uploading to ${provider.label}` } : p
+					)
+				}
 			);
 			siteId = result.siteId;
 			name = result.name;
 			liveUrl = result.url;
+			justPublished = true;
 			sites = { ...sites, [target]: { name, siteId, url: liveUrl, account: account || undefined } };
 			await window.revelar.settings.set({
 				publish: { target, sites: $state.snapshot(sites) }
 			});
-			onPublished(result.baseUrl);
 		} catch (e) {
 			error = e instanceof Error ? e.message : String(e);
 		} finally {
@@ -341,9 +365,9 @@
 						id="name"
 						bind:value={name}
 						placeholder={provider.namePlaceholder}
-						disabled={target === 'netlify' && Boolean(siteId)}
+						disabled={BY_ID.includes(target) && Boolean(siteId)}
 					/>
-					{#if target === 'netlify' && siteId}
+					{#if BY_ID.includes(target) && siteId}
 						<p class="hint">
 							Publishing updates the existing site.
 							<button type="button" class="link inline" onclick={() => (siteId = undefined)}
@@ -353,18 +377,73 @@
 					{/if}
 				</div>
 
-				<p class="address">
-					<span class="hint">Site address</span>
-					<strong>{address}</strong>
-					<span class="hint">
-						{#if managed}
-							Set in the site's config for you when you publish, so shared links and the sitemap
-							point at it.
+				<div class="address" class:live={liveUrl}>
+					<span class="status">
+						{#if liveUrl}
+							<svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"
+								><circle cx="8" cy="8" r="8" fill="currentColor" /><path
+									d="M4.8 8.3l2.1 2.1 4.3-4.6"
+									fill="none"
+									stroke="var(--surface)"
+									stroke-width="1.8"
+									stroke-linecap="round"
+									stroke-linejoin="round"
+								/></svg
+							>
+							{justPublished ? 'Your site is live' : 'Live at'}
 						{:else}
-							Your own domain, from Site settings. Point it at the host after publishing.
+							<svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"
+								><circle
+									cx="8"
+									cy="8"
+									r="6.5"
+									fill="none"
+									stroke="currentColor"
+									stroke-width="1.5"
+									stroke-dasharray="2.5 2.6"
+								/></svg
+							>
+							Will be live at
 						{/if}
 					</span>
-				</p>
+					{#if liveUrl}
+						<a
+							class="url"
+							href={liveUrl}
+							title="Open in your browser"
+							onclick={(e) => {
+								e.preventDefault();
+								window.revelar.openExternal(liveUrl);
+							}}
+							>{address.replace(/^https?:\/\//, '')}<svg
+								viewBox="0 0 12 12"
+								width="11"
+								height="11"
+								aria-hidden="true"
+								><path
+									d="M4 2.5h5.5V8M9.5 2.5 2.5 9.5"
+									fill="none"
+									stroke="currentColor"
+									stroke-width="1.5"
+									stroke-linecap="round"
+									stroke-linejoin="round"
+								/></svg
+							></a
+						>
+					{:else}
+						<span class="url">{address.replace(/^https?:\/\//, '')}</span>
+					{/if}
+					<span class="hint">
+						{#if managed}
+							This copy's shared links, sitemap and feed point here. Each host you publish to gets
+							links of its own.
+						{:else}
+							Shared links, the sitemap and the feed use your own domain, {ownDomain}, so every copy
+							sends people and search engines there. Point it at {provider.label}, or clear it in
+							Site settings to give each copy its own links.
+						{/if}
+					</span>
+				</div>
 
 				<div class="row">
 					<button
@@ -373,12 +452,6 @@
 						disabled={!token || busy || (provider.needsAccount && !account)}
 						onclick={publish}>{liveUrl ? 'Publish update' : 'Publish'}</button
 					>
-					{#if liveUrl}<button
-							type="button"
-							class="ext"
-							onclick={() => window.revelar.openExternal(liveUrl)}
-							>Open {liveUrl.replace(/^https?:\/\//, '')}</button
-						>{/if}
 				</div>
 				{#if error}<p class="error">{error}</p>{/if}
 			</div>
@@ -398,7 +471,7 @@
 	}
 	.tiles {
 		display: grid;
-		grid-template-columns: repeat(5, 1fr);
+		grid-template-columns: repeat(3, 1fr);
 		gap: 10px;
 	}
 	.tile {
@@ -464,9 +537,53 @@
 		background: var(--surface);
 		border-radius: 12px;
 	}
-	.address strong {
+	.address .url {
+		align-self: flex-start;
+		display: inline-flex;
+		align-items: center;
+		gap: 6px;
+		max-width: 100%;
+		margin: 1px 0 2px;
+		overflow-wrap: anywhere;
 		user-select: text;
+		color: var(--ink);
 		font: 500 13px var(--f-mono);
 		letter-spacing: -0.01em;
+	}
+	a.url {
+		text-decoration: none;
+		border-radius: 4px;
+		transition: color 150ms;
+	}
+	a.url svg {
+		flex: none;
+		color: var(--ok);
+		transition: transform 200ms var(--ease);
+	}
+	a.url:hover {
+		color: var(--ok);
+	}
+	a.url:hover svg {
+		transform: translate(1px, -1px);
+	}
+	a.url:focus-visible {
+		outline: 2px solid var(--accent);
+		outline-offset: 3px;
+	}
+	.address.live {
+		background: color-mix(in srgb, var(--ok) 10%, var(--surface));
+		box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--ok) 35%, transparent);
+	}
+	.status {
+		display: flex;
+		align-items: center;
+		gap: 6px;
+		color: var(--muted);
+		font-size: 12.5px;
+		font-weight: 500;
+	}
+	.live .status {
+		color: var(--ok);
+		font-weight: 600;
 	}
 </style>

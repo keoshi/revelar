@@ -2,7 +2,7 @@
 
 export type EngineEvent = { event: string; data: unknown };
 
-export type PublishTarget = 'netlify' | 'vercel' | 'cloudflare' | 'github';
+export type PublishTarget = 'netlify' | 'vercel' | 'cloudflare' | 'github' | 'spacefast';
 /** Where the Publish screen sends the site: a host, or 'own' for a server of the owner's own. */
 export type PublishChoice = PublishTarget | 'own';
 export type PublishedSite = { name?: string; siteId?: string; url?: string; account?: string };

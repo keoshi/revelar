@@ -238,6 +238,12 @@
 				grid-template-columns: repeat(auto-fill, minmax(min(100%, 200px), 1fr));
 				gap: 16px;
 			}
+			/* six tiles: two even rows rather than five and an orphan */
+			@media (min-width: 720px) {
+				.hosts {
+					grid-template-columns: repeat(3, 1fr);
+				}
+			}
 			.hosts li {
 				display: flex;
 				align-items: center;
@@ -395,9 +401,7 @@
 									href="https://github.com/keoshi/revelar/releases/latest"
 									>Download for Mac</a
 								>
-								<a class="btn" href="https://revelar-app-vercel-test-alpha-1.vercel.app/"
-									>See a live gallery ↗</a
-								>
+								<a class="btn" href="https://revelar-gallery.space.fast/">See a live gallery ↗</a>
 							</div>
 						</div>
 					</div>
@@ -461,15 +465,16 @@
 										src="img/publish.webp"
 										width="1600"
 										height="1116"
-										alt="The publish screen, with four hosts and your own server to pick from"
+										alt="The publish screen with Spacefast picked and the site live at its address, among five hosts and your own server"
 										loading="lazy"
 								/></picture>
 							</div>
 							<strong>Put it online</strong>
 							<p>
-								Pick a host, paste a token from your account, publish. Nothing leaves your computer
-								until then, and only the finished site does. Updates are one click. Or make the site
-								as a folder and upload it to a server of your own.
+								Pick a host, paste a token from your account, publish. A short checklist shows each
+								step, and the address turns green once the site is live. Nothing leaves your
+								computer until then, and only the finished site does. Updates are one click. Or make
+								the site as a folder and upload it to a server of your own.
 							</p>
 						</li>
 					</ol>
@@ -592,10 +597,18 @@
 					<h2 id="where">
 						Put it anywhere.
 						<span
-							>Four hosts with free plans, one click each. Or any server that serves files.</span
+							>Five hosts with free plans, one click each. Or any server that serves files.</span
 						>
 					</h2>
 					<ul class="hosts">
+						<li>
+							<svg viewBox="0 0 24 24" aria-hidden="true">
+								<path
+									fill="currentColor"
+									d="M12 1.5l2.6 7.9 7.9 2.6-7.9 2.6-2.6 7.9-2.6-7.9L1.5 12l7.9-2.6z"
+								/></svg
+							><span>Spacefast<small>space.fast</small></span>
+						</li>
 						<li>
 							<svg viewBox="0 0 24 24" aria-hidden="true">
 								<path
@@ -663,7 +676,11 @@
 						</details>
 						<details class="q">
 							<summary>Can I use my own domain?</summary>
-							<p>Yes. Set the address in site settings and point the domain at your host.</p>
+							<p>
+								Yes. Add it as your domain in site settings and point it at your host; every copy
+								then sends people and search engines there. Without one, each host's copy simply
+								uses that host's address.
+							</p>
 						</details>
 						<details class="q">
 							<summary>Which Macs does it run on?</summary>

@@ -591,7 +591,7 @@
 }
 .rvd-tiles {
 	display: grid;
-	grid-template-columns: repeat(5, 1fr);
+	grid-template-columns: repeat(3, 1fr);
 	gap: 10px;
 }
 .rvd-tile {
@@ -645,9 +645,57 @@
 	background: var(--surface);
 	border-radius: 12px;
 }
-.rvd-address strong {
+.rvd-status {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	color: var(--muted);
+	font-size: 12.5px;
+	font-weight: 500;
+}
+.rvd-status svg {
+	width: 14px;
+	height: 14px;
+}
+.rvd-address .rvd-yes,
+.rvd-address.live .rvd-pend,
+.rvd-address:not(.live) .rvd-go {
+	display: none;
+}
+.rvd-address.live .rvd-yes {
+	display: block;
+}
+.rvd-address.live {
+	background: color-mix(in srgb, var(--ok) 10%, var(--surface));
+	box-shadow:
+		inset 0 0 0 1px color-mix(in srgb, var(--ok) 35%, transparent),
+		0 0 0 calc(var(--glow, 0) * 5px) color-mix(in srgb, var(--ok) 18%, transparent);
+}
+.rvd-address.live .rvd-status {
+	color: var(--ok);
+	font-weight: 600;
+}
+.rvd-url-line {
+	align-self: flex-start;
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	margin: 1px 0 2px;
+	color: var(--ink);
 	font: 500 13px/1.5 var(--f-mono);
 	letter-spacing: -0.01em;
+}
+.rvd-url-line svg {
+	width: 11px;
+	height: 11px;
+	color: var(--ok);
+	transition: transform 200ms var(--ease);
+}
+.rvd-url-line.hover {
+	color: var(--ok);
+}
+.rvd-url-line.hover svg {
+	transform: translate(1px, -1px);
 }
 
 /* The ending: the mark and name, as the top bar's brand but large, alone in the window. */
@@ -737,4 +785,82 @@
 	height: 100%;
 	background: var(--accent);
 	border-radius: 2px;
+}
+
+/* Busy with phases: the publish checklist. */
+.rvd-checks {
+	width: 360px;
+	padding: 20px 22px;
+	background: var(--float);
+	border-radius: 14px;
+	box-shadow:
+		0 0 0 1px var(--float-ring),
+		0 20px 50px var(--float-shadow);
+}
+.rvd-checks ol {
+	list-style: none;
+	margin: 0;
+	padding: 0;
+	display: flex;
+	flex-direction: column;
+	gap: 12px;
+}
+.rvd-checks li {
+	display: grid;
+	grid-template-columns: 16px 1fr;
+	gap: 12px;
+	align-items: start;
+	color: var(--faint);
+}
+.rvd-checks li.active {
+	color: var(--ink);
+}
+.rvd-checks li.done {
+	color: var(--muted);
+}
+.rvd-mark {
+	display: grid;
+	place-items: center;
+	height: 20px;
+}
+.rvd-mark > * {
+	display: none;
+}
+.rvd-mark svg {
+	width: 16px;
+	height: 16px;
+	color: var(--ok);
+}
+.done .rvd-mark svg,
+.active .rvd-mark .rvd-spin,
+.todo .rvd-mark .rvd-pending {
+	display: block;
+}
+.rvd-pending {
+	width: 6px;
+	height: 6px;
+	border-radius: 50%;
+	background: var(--track);
+}
+.rvd-step {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+	min-width: 0;
+	line-height: 20px;
+}
+.active .rvd-step > span:first-child {
+	font-weight: 500;
+}
+.rvd-step .rvd-detailline {
+	line-height: 1.4;
+	white-space: normal;
+}
+.rvd-step .rvd-bar {
+	display: block;
+	margin-top: 4px;
+}
+.rvd-step .rvd-bar[hidden],
+.rvd-step .rvd-detailline[hidden] {
+	display: none;
 }

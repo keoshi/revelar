@@ -39,6 +39,8 @@
 	const ARRANGED = [MOVED, ...FILES.filter((f) => f !== MOVED)];
 	const TITLE = 'Synthest 52';
 	const HOST_NAME = 'synthest-photos';
+	// The progress card's checklist while publishing (Publish.svelte's PHASES).
+	const PHASES = ['Processing photos', 'Building the site', 'Uploading to Spacefast', 'Going live'];
 	const SITE_FILES = 219; // files in the built Synthest site
 	const src = (f) => `demo/img/${f.toLowerCase().replace('.jpg', '.webp')}`;
 
@@ -86,6 +88,10 @@
 				<div><strong></strong><span class="rvd-detailline"></span></div>
 				<div class="rvd-bar"><i></i></div>
 			</div>
+			<div class="rvd-checks"><ol>${PHASES.map(
+				(p) =>
+					`<li><span class="rvd-mark"><svg viewBox="0 0 16 16"><path d="M3.5 8.5l3 3 6-7" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="rvd-spin"></span><span class="rvd-pending"></span></span><span class="rvd-step"><span>${p}</span><span class="rvd-detailline"></span><span class="rvd-bar"><i></i></span></span></li>`
+			).join('')}</ol></div>
 		</div>`;
 
 	/** Lights the screen's tab; `hover` names a tab under the pointer. */
@@ -105,7 +111,9 @@
 		veil.style.opacity = k;
 		veil.style.visibility = k > 0 ? '' : 'hidden';
 		if (k <= 0) return;
+		$('.rvd-checks').hidden = true;
 		const card = $('.rvd-busy');
+		card.hidden = false;
 		card.style.transform = `translateY(${(1 - ease(t, start, start + 0.22)) * 10}px)`;
 		let p = phases[0];
 		for (const q of phases) if (t >= q[0]) p = q;
@@ -119,6 +127,46 @@
 		bar.hidden = prog === undefined;
 		if (prog !== undefined) bar.firstElementChild.style.width = `${Math.round(prog * 100)}%`;
 		$('.rvd-spin').style.transform = `rotate(${(t * 450) % 360}deg)`;
+	}
+
+	/**
+	 * The publish checklist (Busy.svelte with phases): steps are [from, phase index, detail?,
+	 * progress 0–1?]; from `done` on every step is checked, as the app holds it for 700 ms.
+	 */
+	function checklist($, t, steps, done, end) {
+		const veil = $('.rvd-veil');
+		const start = steps[0][0];
+		const k = Math.min(ease(t, start, start + 0.16), 1 - ease(t, end, end + 0.16));
+		veil.style.opacity = k;
+		veil.style.visibility = k > 0 ? '' : 'hidden';
+		$('.rvd-busy').hidden = true;
+		const card = $('.rvd-checks');
+		card.hidden = false;
+		if (k <= 0) return;
+		card.style.transform = `translateY(${(1 - ease(t, start, start + 0.22)) * 10}px)`;
+		let cur = steps[0];
+		for (const q of steps) if (t >= q[0]) cur = q;
+		const phase = t >= done ? PHASES.length : cur[1];
+		card.querySelectorAll('li').forEach((li, i) => {
+			const state = i < phase ? 'done' : i === phase ? 'active' : 'todo';
+			li.className = state;
+			const d = li.querySelector('.rvd-detailline');
+			const bar = li.querySelector('.rvd-bar');
+			const on = state === 'active';
+			d.textContent = on ? (cur[2] ?? '') : '';
+			d.hidden = !on || !cur[2];
+			bar.hidden = !on || cur[3] === undefined;
+			if (on && cur[3] !== undefined)
+				bar.firstElementChild.style.width = `${Math.round(cur[3] * 100)}%`;
+			// each check pops in as its step completes
+			const finished = i < cur[1] ? steps.find((q) => q[1] > i)[0] : done;
+			const pop = ease(t, finished, finished + 0.26);
+			const m = li.querySelector('svg');
+			m.style.opacity = pop;
+			m.style.transform = `scale(${0.5 + 0.5 * pop})`;
+		});
+		for (const sp of card.querySelectorAll('.rvd-spin'))
+			sp.style.transform = `rotate(${(t * 450) % 360}deg)`;
 	}
 
 	// ---- screens ------------------------------------------------------------------------------
@@ -243,6 +291,7 @@
 	const ICONS = {
 		netlify:
 			'M6.49 19.04h-.23L5.13 17.9v-.23l1.73-1.71h1.2l.15.15v1.2L6.5 19.04ZM5.13 6.31V6.1l1.13-1.13h.23L8.2 6.68v1.2l-.15.15h-1.2L5.13 6.31Zm9.96 9.09h-1.65l-.14-.13v-3.83c0-.68-.27-1.2-1.1-1.23-.42 0-.9 0-1.43.02l-.07.08v4.96l-.14.14H8.9l-.13-.14V8.73l.13-.14h3.7a2.6 2.6 0 0 1 2.61 2.6v4.08l-.13.14Zm-8.37-2.44H.14L0 12.82v-1.64l.14-.14h6.58l.14.14v1.64l-.14.14Zm17.14 0h-6.58l-.14-.14v-1.64l.14-.14h6.58l.14.14v1.64l-.14.14ZM11.05 6.55V1.64l.14-.14h1.65l.14.14v4.9l-.14.14h-1.65l-.14-.13Zm0 15.81v-4.9l.14-.14h1.65l.14.13v4.91l-.14.14h-1.65l-.14-.14Z',
+		spacefast: 'M12 1.5l2.6 7.9 7.9 2.6-7.9 2.6-2.6 7.9-2.6-7.9L1.5 12l7.9-2.6z',
 		vercel: 'm12 1.608 12 20.784H0Z',
 		cloudflare:
 			'M16.5088 16.8447c.1475-.5068.0908-.9707-.1553-1.3154-.2246-.3164-.6045-.499-1.0615-.5205l-8.6592-.1123a.1559.1559 0 0 1-.1333-.0713c-.0283-.042-.0351-.0986-.021-.1553.0278-.084.1123-.1484.2036-.1562l8.7359-.1123c1.0351-.0489 2.1601-.8868 2.5537-1.9136l.499-1.3013c.0215-.0561.0293-.1128.0147-.168-.5625-2.5463-2.835-4.4453-5.5499-4.4453-2.5039 0-4.6284 1.6177-5.3876 3.8614-.4927-.3658-1.1187-.5625-1.794-.499-1.2026.119-2.1665 1.083-2.2861 2.2856-.0283.31-.0069.6128.0635.894C1.5683 13.171 0 14.7754 0 16.752c0 .1748.0142.3515.0352.5273.0141.083.0844.1475.1689.1475h15.9814c.0909 0 .1758-.0645.2032-.1553l.12-.4268zm2.7568-5.5634c-.0771 0-.1611 0-.2383.0112-.0566 0-.1054.0415-.127.0976l-.3378 1.1744c-.1475.5068-.0918.9707.1543 1.3164.2256.3164.6055.498 1.0625.5195l1.8437.1133c.0557 0 .1055.0263.1329.0703.0283.043.0351.1074.0214.1562-.0283.084-.1132.1485-.204.1553l-1.921.1123c-1.041.0488-2.1582.8867-2.5527 1.914l-.1406.3585c-.0283.0713.0215.1416.0986.1416h6.5977c.0771 0 .1474-.0489.169-.126.1122-.4082.1757-.837.1757-1.2803 0-2.6025-2.125-4.727-4.7344-4.727',
@@ -258,23 +307,27 @@
 				<p class="rvd-hint">Pick a host. Each one serves static sites for free; all the app needs is a token from your account, kept encrypted on this computer. Or make the site as a folder to upload to a server of your own.</p>
 			</div>
 			<div class="rvd-tiles">
-				${tile('Netlify', ICONS.netlify, '#00C7B7', true, ' data-k="netlify"')}
+				${tile('Spacefast', ICONS.spacefast, 'var(--ink)', true, ' data-k="host"')}
+				${tile('Netlify', ICONS.netlify, '#00C7B7')}
 				${tile('Vercel', ICONS.vercel, 'var(--ink)')}
 				${tile('Cloudflare Pages', ICONS.cloudflare, '#F38020')}
 				${tile('GitHub Pages', ICONS.github, 'var(--ink)')}
 				<div class="rvd-tile" style="--brand:var(--accent)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="6" rx="1.5"/><rect x="3" y="13" width="18" height="6" rx="1.5"/><path d="M7 8h.01M7 16h.01"/></svg><span>Your own server</span></div>
 			</div>
 			<div class="rvd-pform">
-				${field('Netlify personal access token', '<span class="rvd-input" data-aim="token"></span>', '<p class="rvd-hint">User settings → Applications → Personal access tokens. <span class="rvd-u">Get one</span> ↗</p>')}
-				${field('Site name', '<span class="rvd-input" data-aim="name"></span>', '<p class="rvd-hint" data-k="update-hint">Publishing updates the existing site. <span class="rvd-u">Create a new one instead</span></p>')}
-				<p class="rvd-address">
-					<span class="rvd-hint">Site address</span>
-					<strong data-k="address"></strong>
-					<span class="rvd-hint">Set in the site's config for you when you publish, so shared links and the sitemap point at it.</span>
-				</p>
+				${field('Spacefast API key', '<span class="rvd-input" data-aim="token"></span>', '<p class="rvd-hint">Dashboard → API keys, with the "Space publisher" preset. <span class="rvd-u">Get one</span> ↗</p>')}
+				${field('Space name', '<span class="rvd-input" data-aim="name"></span>', '<p class="rvd-hint" data-k="update-hint">Publishing updates the existing site. <span class="rvd-u">Create a new one instead</span></p>')}
+				<div class="rvd-address" data-k="addrbox">
+					<span class="rvd-status">
+						<svg class="rvd-pend" viewBox="0 0 16 16"><circle cx="8" cy="8" r="6.5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-dasharray="2.5 2.6"/></svg>
+						<svg class="rvd-yes" viewBox="0 0 16 16"><circle cx="8" cy="8" r="8" fill="currentColor"/><path d="M4.8 8.3l2.1 2.1 4.3-4.6" fill="none" stroke="var(--surface)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+						<span data-k="addrlabel">Will be live at</span>
+					</span>
+					<span class="rvd-url-line" data-aim="address"><span data-k="address"></span><svg class="rvd-go" viewBox="0 0 12 12"><path d="M4 2.5h5.5V8M9.5 2.5 2.5 9.5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+					<span class="rvd-hint">This copy's shared links, sitemap and feed point here. Each host you publish to gets links of its own.</span>
+				</div>
 				<div class="rvd-row">
 					<span class="rvd-btn primary" data-aim="publish">Publish</span>
-					<span class="rvd-btn ext" data-k="live">Open ${HOST_NAME}.netlify.app</span>
 				</div>
 			</div>
 		</div></div>`;
@@ -523,11 +576,13 @@
 		NAME_FROM = 3.45,
 		NAME_TO = 4.2,
 		PUBLISH_AT = 5.05,
-		LIVE_AT = 8.45,
-		OUTRO_AT = 9.7,
-		MARK_IN = 10.2,
-		MARK_OUT = 12.4,
-		PUBLISH_DUR = 13;
+		ALL_DONE = 8.55, // every step checked, held as the app does
+		LIVE_AT = 9.25,
+		HOVER_AT = 10.0,
+		OUTRO_AT = 11.6,
+		MARK_IN = 12.1,
+		MARK_OUT = 14.3,
+		PUBLISH_DUR = 14.9;
 	function drawPublish(t, $) {
 		const on = t >= PUB_NAV + 0.05;
 		nav($, on ? 'publish' : 'preview', t >= 0.8 && !on ? 'publish' : '');
@@ -552,32 +607,43 @@
 		name.classList.toggle('ph', !typedName);
 		name.classList.toggle('focus', naming);
 		name.classList.toggle('dim', live);
-		show($('[data-k="update-hint"]'), live);
 		$('[data-k="update-hint"]').style.display = live ? '' : 'none';
-		$('[data-k="address"]').textContent = `https://${typedName || 'something-random'}.netlify.app`;
+
+		// The address box: pending until the publish lands, then green, with the address as the link.
+		const box = $('[data-k="addrbox"]');
+		box.classList.toggle('live', live);
+		box.style.setProperty('--glow', live ? 1 - ease(t, LIVE_AT + 0.2, LIVE_AT + 1.4) : 0);
+		$('[data-k="addrlabel"]').textContent = live ? 'Your site is live' : 'Will be live at';
+		$('[data-k="address"]').textContent = `${typedName || 'my-photos'}.space.fast`;
+		$('[data-aim="address"]').classList.toggle('hover', t >= HOVER_AT + 0.05 && t < OUTRO_AT);
+
 		const btn = $('[data-aim="publish"]');
 		btn.textContent = live ? 'Publish update' : 'Publish';
 		btn.classList.toggle('off', t < PASTE_AT || (t >= PUBLISH_AT && !live));
 		btn.classList.toggle('hover', t >= 4.9 && t < PUBLISH_AT + 0.1);
 		btn.classList.toggle('down', held(t, PUBLISH_AT));
-		show($('[data-k="live"]'), live);
-		const tileEl = $('[data-k="netlify"]');
+		const tileEl = $('[data-k="host"]');
 		if (!tileEl.querySelector('.rvd-ok'))
 			tileEl.insertAdjacentHTML('beforeend', '<span class="rvd-ok"></span>');
 		show(tileEl.querySelector('.rvd-ok'), live);
 
-		const address = `https://${HOST_NAME}.netlify.app`;
-		const packed = Math.round(SITE_FILES * clamp01((t - 6.85) / 0.5));
-		busy($, t, [
-			[PUBLISH_AT + 0.1, 5.5, `Site address set to ${address}`],
-			[5.5, 5.9, 'Processing photos'],
-			[5.9, 6.5, 'Building the site'],
-			[6.5, 6.8, 'Creating the Netlify site'],
-			[6.8, 7.4, 'Packing the site', `${packed} of ${SITE_FILES}`, packed / SITE_FILES],
-			[7.4, 7.9, 'Uploading to Netlify', `${SITE_FILES} of ${SITE_FILES}`, 1],
-			[7.9, 8.3, 'Waiting for Netlify to process the deploy', `${SITE_FILES} of ${SITE_FILES}`, 1],
-			[8.3, LIVE_AT, `Live at ${address}`, `${SITE_FILES} of ${SITE_FILES}`, 1]
-		]);
+		// Spacefast's own wording (src/engine/publish.ts), under the app's four steps.
+		const UP_FROM = 6.75,
+			UP_TO = 7.85;
+		const sent = Math.round(SITE_FILES * clamp01((t - UP_FROM) / (UP_TO - UP_FROM)));
+		checklist(
+			$,
+			t,
+			[
+				[PUBLISH_AT + 0.1, 0],
+				[5.65, 1],
+				[6.35, 2, 'Creating the space'],
+				[UP_FROM, 2, `Uploading ${SITE_FILES} files · ${sent} of ${SITE_FILES}`, sent / SITE_FILES],
+				[UP_TO + 0.05, 3, 'Waiting for Spacefast to put it live']
+			],
+			ALL_DONE,
+			LIVE_AT - 0.16
+		);
 		const c = glide(
 			t,
 			[
@@ -586,11 +652,11 @@
 				[1.3, 1.9, ...aim($, '[data-aim="token"]', 0.3)],
 				[2.6, 3.1, ...aim($, '[data-aim="name"]', 0.3)],
 				[4.4, 4.9, ...aim($, '[data-aim="publish"]')],
-				[8.6, 9.2, 820, 640]
+				[9.35, 9.95, ...aim($, '[data-aim="address"]', 0.55)]
 			],
 			[PUB_NAV, TOKEN_AT, NAME_AT, PUBLISH_AT]
 		);
-		c.hide = t >= 9.3;
+		c.hide = (t >= 5.4 && t < 9.2) || t >= OUTRO_AT;
 		outro($, t >= PUBLISH_DUR ? 0 : t);
 		return { cursor: c };
 	}
